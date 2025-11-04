@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,6 +28,7 @@ interface TaskStats {
 
 const HomeScreen: React.FC = () => {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const textInputRef = useRef<TextInput>(null);
   
   const [taskInputText, setTaskInputText] = useState<string>('');
@@ -45,23 +46,20 @@ const HomeScreen: React.FC = () => {
     initializeData();
   }, []);
 
+  // 监听 URL 参数变化，显示操作成功的提示
+  useEffect(() => {
+    const message = params.message as string | undefined;
+    if (message === 'today_cleared') {
+      showToast('今日任务已清空');
+    } else if (message === 'all_cleared') {
+      showToast('所有数据已清空');
+    }
+  }, [params.message]);
+
   // 使用useFocusEffect监听页面焦点变化，当从其他页面返回时刷新数据
   useFocusEffect(
     React.useCallback(() => {
       initializeData();
-      
-      // 检查是否有操作成功的消息
-      const urlParams = new URLSearchParams(window.location.search);
-      const message = urlParams.get('message');
-      if (message === 'today_cleared') {
-        showToast('今日任务已清空');
-        // 清除URL参数，避免重复显示提示
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } else if (message === 'all_cleared') {
-        showToast('所有数据已清空');
-        // 清除URL参数，避免重复显示提示
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
     }, [])
   );
 
