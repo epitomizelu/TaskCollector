@@ -4,7 +4,7 @@
 
 expo-env.d.ts
 # @end expo-cli
-.android
+android
 node_modules/
 .expo/
 *.log
