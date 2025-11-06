@@ -57,6 +57,7 @@ export default function RootLayout() {
           headerShown: false 
         }}>
           <Stack.Screen name="index" options={{ title: "首页" }} />
+          <Stack.Screen name="p-login-phone" options={{ title: "手机号登录" }} />
           <Stack.Screen name="module-home" options={{ title: "模块首页" }} />
           <Stack.Screen name="p-home" options={{ title: "任务收集" }} />
           <Stack.Screen name="p-full-home" options={{ title: "任务收集完整首页" }} />

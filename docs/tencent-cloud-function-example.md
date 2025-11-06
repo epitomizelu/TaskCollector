@@ -153,6 +153,15 @@ exports.main = async (event, context) => {
     } else if (path === '/reciting/contents' || path.startsWith('/reciting/contents')) {
       // 我爱背书模块 - 内容
       result = await handleRecitingContents(method, path, body, normalizedHeaders);
+    } else if (path === '/auth/register' || path.startsWith('/auth/register')) {
+      // 用户注册
+      result = await handleUserRegister(method, path, body, normalizedHeaders);
+    } else if (path === '/auth/login' || path.startsWith('/auth/login')) {
+      // 用户登录
+      result = await handleUserLogin(method, path, body, normalizedHeaders);
+    } else if (path === '/auth/user-info' || path.startsWith('/auth/user-info')) {
+      // 获取用户信息
+      result = await handleGetUserInfo(method, path, body, normalizedHeaders);
     } else {
       return {
         statusCode: 404,

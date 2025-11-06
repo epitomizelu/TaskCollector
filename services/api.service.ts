@@ -405,6 +405,61 @@ class ApiService {
       throw new Error(response.message || '删除内容失败');
     }
   }
+
+  // ========== 用户认证相关 API ==========
+
+  /**
+   * 用户注册
+   */
+  async register(data: {
+    phone: string;
+    nickname: string;
+    [key: string]: any;
+  }): Promise<{
+    token: string;
+    userInfo: any;
+    expiresIn: number;
+  }> {
+    const response = await this.post<{
+      token: string;
+      userInfo: any;
+      expiresIn: number;
+    }>('/auth/register', data);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '注册失败');
+  }
+
+  /**
+   * 用户登录
+   */
+  async login(phone: string): Promise<{
+    token: string;
+    userInfo: any;
+    expiresIn: number;
+  }> {
+    const response = await this.post<{
+      token: string;
+      userInfo: any;
+      expiresIn: number;
+    }>('/auth/login', { phone });
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '登录失败');
+  }
+
+  /**
+   * 获取用户信息
+   */
+  async getUserInfo(): Promise<any> {
+    const response = await this.get<any>('/auth/user-info');
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取用户信息失败');
+  }
 }
 
 // 导出单例
