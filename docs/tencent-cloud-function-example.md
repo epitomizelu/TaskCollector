@@ -11,6 +11,8 @@ task-collection-function/
 
 ## package.json
 
+**重要：** 必须包含 `@cloudbase/node-sdk` 依赖，否则云函数会报错！
+
 ```json
 {
   "name": "task-collection-api",
@@ -18,9 +20,15 @@ task-collection-function/
   "description": "任务收集应用后端 API",
   "main": "index.js",
   "dependencies": {
-    "@serverless/utils": "^2.0.0"
+    "@cloudbase/node-sdk": "^2.5.0"
   }
 }
+```
+
+**安装依赖：**
+```bash
+# 在云函数目录中执行
+npm install @cloudbase/node-sdk
 ```
 
 ## index.js - Node.js 云函数主文件
@@ -40,7 +48,60 @@ const db = app.database();
  * 云函数入口
  */
 exports.main = async (event, context) => {
-  const { method, path, headers, body } = event;
+  // 兼容不同的路径格式
+  let { method, path, headers, body } = event;
+  
+  // 如果 method 未定义，尝试从其他字段获取（腾讯云函数使用 httpMethod）
+  if (!method) {
+    method = event.httpMethod || event.method || 'GET';
+  }
+  // 转换为大写（标准 HTTP 方法格式）
+  method = method.toUpperCase();
+  
+  // 如果 event 中没有 path，尝试从其他字段获取
+  if (!path) {
+    path = event.pathname || event.requestContext?.path || event.path || '/';
+  }
+  
+  // 移除函数名前缀（如果存在）
+  const functionName = 'task-collection-api';
+  if (path && path.startsWith(`/${functionName}`)) {
+    path = path.replace(`/${functionName}`, '') || '/';
+  }
+  
+  // 确保 path 以 / 开头
+  if (!path.startsWith('/')) {
+    path = '/' + path;
+  }
+  
+  // 处理 body（如果是字符串，解析为 JSON）
+  if (typeof body === 'string' && body) {
+    try {
+      body = JSON.parse(body);
+    } catch (e) {
+      // 解析失败，保持原样
+      console.log('Body 解析失败，保持原样:', e.message);
+    }
+  }
+  
+  // 处理 headers（统一大小写）
+  const normalizedHeaders = {};
+  if (headers) {
+    for (const key in headers) {
+      normalizedHeaders[key.toLowerCase()] = headers[key];
+    }
+  }
+  
+  // 添加调试日志（开发时使用）
+  console.log('请求详情:', {
+    method,
+    originalPath: event.path || event.pathname,
+    normalizedPath: path,
+    hasHeaders: !!headers,
+    headerKeys: headers ? Object.keys(headers) : [],
+    hasAuthorization: !!normalizedHeaders.authorization,
+    authorizationPrefix: normalizedHeaders.authorization ? normalizedHeaders.authorization.substring(0, 20) : '无',
+  });
   
   // CORS 支持
   const corsHeaders = {
@@ -59,20 +120,46 @@ exports.main = async (event, context) => {
   }
 
   try {
+    // 验证 API Key（所有接口都需要验证）
+    try {
+      verifyApiKey(normalizedHeaders);
+    } catch (authError) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          code: 401,
+          message: authError.message || '未授权访问',
+          data: null,
+        }),
+      };
+    }
+    
     let result;
     
-    // 路由处理
-    if (path === '/tasks' || path.startsWith('/tasks')) {
-      result = await handleTasksRequest(method, path, body, headers);
-    } else if (path === '/stats/today' || path.startsWith('/stats')) {
-      result = await handleStatsRequest(method, path, body, headers);
+    // 路由处理（使用标准化后的路径）
+    if (path === '/tasks' || path.startsWith('/tasks/') || path.includes('/tasks?')) {
+      // 任务收集模块
+      result = await handleTasksRequest(method, path, body, normalizedHeaders);
+    } else if (path === '/stats/today' || path.startsWith('/stats/')) {
+      // 统计接口
+      result = await handleStatsRequest(method, path, body, normalizedHeaders);
+    } else if (path === '/reciting/plans' || path.startsWith('/reciting/plans')) {
+      // 我爱背书模块 - 计划
+      result = await handleRecitingPlans(method, path, body, normalizedHeaders);
+    } else if (path === '/reciting/tasks' || path.startsWith('/reciting/tasks')) {
+      // 我爱背书模块 - 任务
+      result = await handleRecitingTasks(method, path, body, normalizedHeaders);
+    } else if (path === '/reciting/contents' || path.startsWith('/reciting/contents')) {
+      // 我爱背书模块 - 内容
+      result = await handleRecitingContents(method, path, body, normalizedHeaders);
     } else {
       return {
         statusCode: 404,
         headers: corsHeaders,
         body: JSON.stringify({
           code: 404,
-          message: '接口不存在',
+          message: `接口不存在: ${path}`,
           data: null,
         }),
       };
@@ -330,22 +417,442 @@ async function handleMonthStats(month, userId, collection) {
 }
 
 /**
- * 从请求头获取用户 ID（需要实现 JWT 解析）
+ * API Key 验证配置
+ * 在云函数环境变量中设置有效的 API Key
  */
-function getUserIdFromHeaders(headers) {
-  // TODO: 从 Authorization header 中解析 Token 获取 userId
-  // 这里暂时返回一个默认值，实际应该解析 JWT Token
-  const authHeader = headers.authorization || headers.Authorization;
+const VALID_API_KEYS = [
+  process.env.API_KEY_1,  // 环境变量中的 API Key
+  process.env.API_KEY_2,  // 可以配置多个 API Key
+  // 也可以从数据库或配置服务中读取
+].filter(key => key); // 过滤掉空值
+
+/**
+ * 验证 API Key 并获取用户信息
+ * 使用 Bearer Token 方式：Authorization: Bearer YOUR_API_KEY
+ */
+function verifyApiKey(headers) {
+  // 添加调试日志
+  console.log('验证 API Key:', {
+    hasHeaders: !!headers,
+    headerKeys: headers ? Object.keys(headers) : [],
+    validApiKeysCount: VALID_API_KEYS.length,
+    validApiKeysPrefix: VALID_API_KEYS.map(k => k ? k.substring(0, 8) + '...' : '空'),
+  });
   
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    // 这里应该解析 JWT Token 获取 userId
-    // 示例：const decoded = jwt.verify(token, secret);
-    // return decoded.userId;
+  // headers 已经是标准化后的（小写键名）
+  const authHeader = headers.authorization || headers['authorization'];
+  
+  if (!authHeader) {
+    console.log('缺少 Authorization 头');
+    throw new Error('缺少授权信息，请在请求头中添加: Authorization: Bearer YOUR_API_KEY');
   }
   
-  // 临时返回固定用户 ID，实际应该从 Token 中获取
-  return 'default-user-id';
+  if (!authHeader.startsWith('Bearer ')) {
+    console.log('Authorization 格式错误:', authHeader.substring(0, 20));
+    throw new Error('授权格式错误，应为: Authorization: Bearer YOUR_API_KEY');
+  }
+  
+  const apiKey = authHeader.substring(7).trim(); // 移除 "Bearer " 前缀并去除空格
+  
+  console.log('提取的 API Key:', {
+    length: apiKey.length,
+    prefix: apiKey.substring(0, 8) + '...',
+    suffix: '...' + apiKey.substring(apiKey.length - 4),
+  });
+  
+  // 验证 API Key 是否有效
+  if (VALID_API_KEYS.length === 0) {
+    console.error('警告: 未配置有效的 API Key，请检查环境变量 API_KEY_1 和 API_KEY_2');
+    throw new Error('服务器未配置 API Key');
+  }
+  
+  if (!VALID_API_KEYS.includes(apiKey)) {
+    console.log('API Key 验证失败:', {
+      receivedPrefix: apiKey.substring(0, 8) + '...',
+      validKeysPrefix: VALID_API_KEYS.map(k => k.substring(0, 8) + '...'),
+    });
+    throw new Error('无效的 API Key');
+  }
+  
+  console.log('API Key 验证成功');
+  
+  // 可以根据 API Key 映射到用户 ID（如果需要）
+  // 这里简单返回一个基于 API Key 的用户标识
+  return {
+    userId: `user_${apiKey.substring(0, 8)}`, // 使用 API Key 前8位作为用户标识
+    apiKey: apiKey,
+  };
+}
+
+/**
+ * 从请求头获取用户 ID（使用 API Key 验证）
+ */
+function getUserIdFromHeaders(headers) {
+  try {
+    const userInfo = verifyApiKey(headers);
+    return userInfo.userId;
+  } catch (error) {
+    // 如果验证失败，抛出错误
+    throw error;
+  }
+}
+
+// ========== 我爱背书模块处理函数 ==========
+
+/**
+ * 处理我爱背书 - 计划相关请求
+ */
+async function handleRecitingPlans(method, path, body, headers) {
+  const userId = getUserIdFromHeaders(headers);
+  const plansCollection = db.collection('reciting_plans');
+
+  switch (method) {
+    case 'GET':
+      return await handleGetRecitingPlans(path, userId, plansCollection);
+    case 'POST':
+      return await handleCreateRecitingPlan(body, userId, plansCollection);
+    case 'PUT':
+      return await handleUpdateRecitingPlan(path, body, userId, plansCollection);
+    case 'DELETE':
+      return await handleDeleteRecitingPlan(path, userId, plansCollection);
+    default:
+      throw new Error('不支持的请求方法');
+  }
+}
+
+/**
+ * 获取计划列表
+ */
+async function handleGetRecitingPlans(path, userId, collection) {
+  const planId = path.split('/').pop();
+  
+  if (planId && planId !== 'plans') {
+    // 获取单个计划
+    const plan = await collection.where({
+      id: planId,
+      userId: userId,
+    }).get();
+    
+    return {
+      code: 0,
+      message: 'success',
+      data: plan.data[0] || null,
+    };
+  }
+  
+  // 获取所有计划
+  const result = await collection.where({
+    userId: userId,
+  }).orderBy('createdAt', 'desc').get();
+  
+  return {
+    code: 0,
+    message: 'success',
+    data: result.data || [],
+  };
+}
+
+/**
+ * 创建计划
+ */
+async function handleCreateRecitingPlan(body, userId, collection) {
+  const planData = {
+    ...body,
+    userId: userId,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  
+  const result = await collection.add(planData);
+  
+  return {
+    code: 0,
+    message: '创建成功',
+    data: { ...planData, _id: result.id },
+  };
+}
+
+/**
+ * 更新计划
+ */
+async function handleUpdateRecitingPlan(path, body, userId, collection) {
+  const planId = path.split('/').pop();
+  
+  if (!planId || planId === 'plans') {
+    throw new Error('计划 ID 不能为空');
+  }
+  
+  const updateData = {
+    ...body,
+    updatedAt: new Date().toISOString(),
+  };
+  
+  await collection.where({
+    id: planId,
+    userId: userId,
+  }).update(updateData);
+  
+  const plan = await collection.where({
+    id: planId,
+    userId: userId,
+  }).get();
+  
+  return {
+    code: 0,
+    message: '更新成功',
+    data: plan.data[0] || null,
+  };
+}
+
+/**
+ * 删除计划
+ */
+async function handleDeleteRecitingPlan(path, userId, collection) {
+  const planId = path.split('/').pop();
+  
+  if (!planId || planId === 'plans') {
+    throw new Error('计划 ID 不能为空');
+  }
+  
+  await collection.where({
+    id: planId,
+    userId: userId,
+  }).remove();
+  
+  return {
+    code: 0,
+    message: '删除成功',
+    data: null,
+  };
+}
+
+/**
+ * 处理我爱背书 - 任务相关请求
+ */
+async function handleRecitingTasks(method, path, body, headers) {
+  const userId = getUserIdFromHeaders(headers);
+  const tasksCollection = db.collection('reciting_tasks');
+
+  switch (method) {
+    case 'GET':
+      return await handleGetRecitingTasks(path, userId, tasksCollection);
+    case 'POST':
+      return await handleCreateRecitingTask(body, userId, tasksCollection);
+    case 'PUT':
+      return await handleUpdateRecitingTask(path, body, userId, tasksCollection);
+    case 'DELETE':
+      return await handleDeleteRecitingTask(path, userId, tasksCollection);
+    default:
+      throw new Error('不支持的请求方法');
+  }
+}
+
+/**
+ * 获取任务列表
+ */
+async function handleGetRecitingTasks(path, userId, collection) {
+  const url = new URL(path, 'http://localhost');
+  const date = url.searchParams.get('date');
+  const taskId = path.split('/').pop();
+  
+  let query = collection.where({
+    userId: userId,
+  });
+  
+  // 根据 ID 查询单个任务
+  if (taskId && taskId !== 'tasks') {
+    const task = await query.where({ id: taskId }).get();
+    return {
+      code: 0,
+      message: 'success',
+      data: task.data[0] || null,
+    };
+  }
+  
+  // 根据日期筛选
+  if (date) {
+    query = query.where({ date: date });
+  }
+  
+  const result = await query.orderBy('date', 'desc').orderBy('createdAt', 'desc').get();
+  
+  return {
+    code: 0,
+    message: 'success',
+    data: result.data || [],
+  };
+}
+
+/**
+ * 创建任务
+ */
+async function handleCreateRecitingTask(body, userId, collection) {
+  const taskData = {
+    ...body,
+    userId: userId,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  
+  const result = await collection.add(taskData);
+  
+  return {
+    code: 0,
+    message: '创建成功',
+    data: { ...taskData, _id: result.id },
+  };
+}
+
+/**
+ * 更新任务
+ */
+async function handleUpdateRecitingTask(path, body, userId, collection) {
+  const taskId = path.split('/').pop();
+  
+  if (!taskId || taskId === 'tasks') {
+    throw new Error('任务 ID 不能为空');
+  }
+  
+  const updateData = {
+    ...body,
+    updatedAt: new Date().toISOString(),
+  };
+  
+  await collection.where({
+    id: taskId,
+    userId: userId,
+  }).update(updateData);
+  
+  const task = await collection.where({
+    id: taskId,
+    userId: userId,
+  }).get();
+  
+  return {
+    code: 0,
+    message: '更新成功',
+    data: task.data[0] || null,
+  };
+}
+
+/**
+ * 删除任务
+ */
+async function handleDeleteRecitingTask(path, userId, collection) {
+  const taskId = path.split('/').pop();
+  
+  if (!taskId || taskId === 'tasks') {
+    throw new Error('任务 ID 不能为空');
+  }
+  
+  await collection.where({
+    id: taskId,
+    userId: userId,
+  }).remove();
+  
+  return {
+    code: 0,
+    message: '删除成功',
+    data: null,
+  };
+}
+
+/**
+ * 处理我爱背书 - 内容相关请求
+ */
+async function handleRecitingContents(method, path, body, headers) {
+  const userId = getUserIdFromHeaders(headers);
+  const contentsCollection = db.collection('reciting_contents');
+
+  switch (method) {
+    case 'GET':
+      return await handleGetRecitingContents(path, userId, contentsCollection);
+    case 'POST':
+      return await handleCreateRecitingContent(body, userId, contentsCollection);
+    case 'DELETE':
+      return await handleDeleteRecitingContent(path, userId, contentsCollection);
+    default:
+      throw new Error('不支持的请求方法');
+  }
+}
+
+/**
+ * 获取内容列表
+ */
+async function handleGetRecitingContents(path, userId, collection) {
+  const url = new URL(path, 'http://localhost');
+  const type = url.searchParams.get('type'); // 'audio' 或 'document'
+  const contentId = path.split('/').pop();
+  
+  let query = collection.where({
+    userId: userId,
+  });
+  
+  // 根据 ID 查询单个内容
+  if (contentId && contentId !== 'contents') {
+    const content = await query.where({ id: contentId }).get();
+    return {
+      code: 0,
+      message: 'success',
+      data: content.data[0] || null,
+    };
+  }
+  
+  // 根据类型筛选
+  if (type) {
+    query = query.where({ type: type });
+  }
+  
+  const result = await query.orderBy('uploadDate', 'desc').get();
+  
+  return {
+    code: 0,
+    message: 'success',
+    data: result.data || [],
+  };
+}
+
+/**
+ * 创建内容
+ */
+async function handleCreateRecitingContent(body, userId, collection) {
+  const contentData = {
+    ...body,
+    userId: userId,
+    uploadDate: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  
+  const result = await collection.add(contentData);
+  
+  return {
+    code: 0,
+    message: '创建成功',
+    data: { ...contentData, _id: result.id },
+  };
+}
+
+/**
+ * 删除内容
+ */
+async function handleDeleteRecitingContent(path, userId, collection) {
+  const contentId = path.split('/').pop();
+  
+  if (!contentId || contentId === 'contents') {
+    throw new Error('内容 ID 不能为空');
+  }
+  
+  await collection.where({
+    id: contentId,
+    userId: userId,
+  }).remove();
+  
+  return {
+    code: 0,
+    message: '删除成功',
+    data: null,
+  };
 }
 ```
 
@@ -359,11 +866,44 @@ function getUserIdFromHeaders(headers) {
    - 在云开发控制台中选择"云函数"
    - 点击"新建云函数"
    - 函数名称：`task-collection-api`
-   - 运行环境：Node.js 16
-   - 上传代码文件
+   - 运行环境：Node.js 16 或 Node.js 18
+   - **上传方式：** 选择"本地上传文件夹"或"在线编辑"
+   
+   **重要步骤 - 安装依赖：**
+   
+   如果使用"本地上传文件夹"方式：
+   1. 在本地创建云函数目录：
+      ```bash
+      mkdir task-collection-function
+      cd task-collection-function
+      ```
+   
+   2. 创建 `package.json` 文件（内容见上方）
+   
+   3. 安装依赖：
+      ```bash
+      npm install @cloudbase/node-sdk
+      ```
+   
+   4. 创建 `index.js` 文件（复制下方完整代码）
+   
+   5. 将整个文件夹压缩为 zip 文件
+   
+   6. 在云函数控制台上传 zip 文件
+   
+   如果使用"在线编辑"方式：
+   1. 在云函数控制台点击"在线编辑"
+   2. 在终端中执行：
+      ```bash
+      npm install @cloudbase/node-sdk
+      ```
+   3. 复制 `index.js` 代码到编辑器
+   4. 保存并部署
 
 3. **配置环境变量**
    - `TCB_ENV`: 你的云开发环境 ID
+   - `API_KEY_1`: 你的 API Key（用于验证请求）
+   - `API_KEY_2`: 可选的第二个 API Key（如果需要多个）
 
 4. **设置 HTTP 触发器**
    - 在云函数详情页，点击"触发管理"
@@ -398,9 +938,39 @@ function getUserIdFromHeaders(headers) {
 }
 ```
 
-## 认证方案（可选）
+## 认证方案
 
-如果需要用户认证，可以：
+### API Key 验证（当前实现）
+
+使用 Bearer Token 方式验证 API Key：
+
+**请求格式：**
+```
+GET /api/resource HTTP/1.1
+Host: example.com
+Authorization: Bearer YOUR_API_KEY
+```
+
+**配置步骤：**
+1. 在云函数环境变量中设置 API Key：
+   - `API_KEY_1`: 你的 API Key
+   - `API_KEY_2`: 可选的第二个 API Key
+
+2. 在前端配置 API Key：
+   ```typescript
+   import { apiService } from './services/api.service';
+   apiService.setToken('your-api-key');
+   ```
+
+**安全建议：**
+- 使用强随机字符串作为 API Key（建议32位以上）
+- 定期更换 API Key
+- 不要在代码中硬编码 API Key，使用环境变量
+- 为不同用户或应用使用不同的 API Key
+
+### 其他认证方案（可选）
+
+如果需要更复杂的用户认证，可以：
 
 1. **使用云开发的登录能力**
    - 集成微信登录、匿名登录等

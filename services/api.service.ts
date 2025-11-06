@@ -70,13 +70,40 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // 尝试读取错误响应体
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          // 如果无法解析 JSON，尝试读取文本
+          try {
+            const errorText = await response.text();
+            if (errorText) {
+              errorMessage = errorText;
+            }
+          } catch {
+            // 忽略文本读取错误
+          }
+        }
+        
+        const error = new Error(errorMessage) as any;
+        error.status = response.status;
+        error.statusText = response.statusText;
+        throw error;
       }
 
       const data = await response.json();
       return data;
-    } catch (error) {
-      console.error('API Request Error:', error);
+    } catch (error: any) {
+      console.error('API Request Error:', {
+        url,
+        method: options.method || 'GET',
+        status: error.status,
+        message: error.message,
+        hasApiKey: !!API_CONFIG.API_KEY,
+        apiKeyPrefix: API_CONFIG.API_KEY ? API_CONFIG.API_KEY.substring(0, 8) + '...' : '未配置',
+      });
       throw error;
     }
   }
@@ -255,6 +282,128 @@ class ApiService {
       return response.data;
     }
     throw new Error(response.message || '获取月度统计失败');
+  }
+
+  // ========== 我爱背书模块 API ==========
+
+  /**
+   * 获取所有计划
+   */
+  async getRecitingPlans(): Promise<any[]> {
+    const response = await this.get<any[]>('/reciting/plans');
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取计划列表失败');
+  }
+
+  /**
+   * 创建计划
+   */
+  async createRecitingPlan(plan: any): Promise<any> {
+    const response = await this.post<any>('/reciting/plans', plan);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建计划失败');
+  }
+
+  /**
+   * 更新计划
+   */
+  async updateRecitingPlan(planId: string, plan: any): Promise<any> {
+    const response = await this.put<any>(`/reciting/plans/${planId}`, plan);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '更新计划失败');
+  }
+
+  /**
+   * 删除计划
+   */
+  async deleteRecitingPlan(planId: string): Promise<void> {
+    const response = await this.delete<void>(`/reciting/plans/${planId}`);
+    if (response.code !== 0) {
+      throw new Error(response.message || '删除计划失败');
+    }
+  }
+
+  /**
+   * 获取所有任务
+   */
+  async getRecitingTasks(date?: string): Promise<any[]> {
+    const endpoint = date ? `/reciting/tasks?date=${date}` : '/reciting/tasks';
+    const response = await this.get<any[]>(endpoint);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取任务列表失败');
+  }
+
+  /**
+   * 创建任务
+   */
+  async createRecitingTask(task: any): Promise<any> {
+    const response = await this.post<any>('/reciting/tasks', task);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建任务失败');
+  }
+
+  /**
+   * 更新任务
+   */
+  async updateRecitingTask(taskId: string, task: any): Promise<any> {
+    const response = await this.put<any>(`/reciting/tasks/${taskId}`, task);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '更新任务失败');
+  }
+
+  /**
+   * 删除任务
+   */
+  async deleteRecitingTask(taskId: string): Promise<void> {
+    const response = await this.delete<void>(`/reciting/tasks/${taskId}`);
+    if (response.code !== 0) {
+      throw new Error(response.message || '删除任务失败');
+    }
+  }
+
+  /**
+   * 获取所有内容
+   */
+  async getRecitingContents(type?: 'audio' | 'document'): Promise<any[]> {
+    const endpoint = type ? `/reciting/contents?type=${type}` : '/reciting/contents';
+    const response = await this.get<any[]>(endpoint);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取内容列表失败');
+  }
+
+  /**
+   * 创建内容
+   */
+  async createRecitingContent(content: any): Promise<any> {
+    const response = await this.post<any>('/reciting/contents', content);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建内容失败');
+  }
+
+  /**
+   * 删除内容
+   */
+  async deleteRecitingContent(contentId: string): Promise<void> {
+    const response = await this.delete<void>(`/reciting/contents/${contentId}`);
+    if (response.code !== 0) {
+      throw new Error(response.message || '删除内容失败');
+    }
   }
 }
 

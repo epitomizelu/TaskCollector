@@ -4,10 +4,16 @@
 
 expo-env.d.ts
 # @end expo-cli
-android
+/android/
+/ios/
 node_modules/
 .expo/
 *.log
 .DS_Store
 build/
 dist/
+
+# 环境变量文件（包含 API Key）
+.env
+.env.local
+.env.*.local

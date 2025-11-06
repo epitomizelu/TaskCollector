@@ -1,12 +1,12 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Sidebar, MenuItem } from '../../components/Sidebar';
+import { taskService } from '../../services/task.service';
 import styles from './styles';
 
 interface TaskData {
@@ -20,109 +20,53 @@ interface TaskData {
   recordYear: string;
 }
 
-interface TaskStats {
-  totalTasks: number;
-  completedTasks: number;
-  completionRate: string;
-}
-
 const HomeScreen: React.FC = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const textInputRef = useRef<TextInput>(null);
   
   const [taskInputText, setTaskInputText] = useState<string>('');
-  const [taskStats, setTaskStats] = useState<TaskStats>({
-    totalTasks: 8,
-    completedTasks: 6,
-    completionRate: '75%'
-  });
-  const [recentTasks, setRecentTasks] = useState<TaskData[]>([]);
   const [isToastVisible, setIsToastVisible] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>('');
+  const [sidebarVisible, setSidebarVisible] = useState<boolean>(false);
+
+  // 监听 URL 参数变化，显示操作成功的提示
+  useEffect(() => {
+    if (params.success === 'true') {
+      showToast('操作成功 ✅');
+    }
+  }, [params]);
 
   // 初始化数据
   useEffect(() => {
     initializeData();
   }, []);
 
-  // 监听 URL 参数变化，显示操作成功的提示
-  useEffect(() => {
-    const message = params.message as string | undefined;
-    if (message === 'today_cleared') {
-      showToast('今日任务已清空');
-    } else if (message === 'all_cleared') {
-      showToast('所有数据已清空');
-    }
-  }, [params.message]);
-
-  // 使用useFocusEffect监听页面焦点变化，当从其他页面返回时刷新数据
-  useFocusEffect(
-    React.useCallback(() => {
-      initializeData();
-    }, [])
-  );
-
   const initializeData = async () => {
     try {
-      const tasksJson = await AsyncStorage.getItem('@taskCollection');
-      if (!tasksJson) {
-        // 添加示例数据
+      const tasks = await taskService.getAllTasks();
+      if (tasks.length === 0) {
+        // 初始化示例数据（仅本地存储，用于演示）
         const sampleTasks: TaskData[] = [
           {
             taskId: 'task_1',
-            rawText: '我完成了晨跑5公里，用时28分钟',
-            taskName: '晨跑锻炼',
-            completionTime: '2025-11-02 07:30',
-            quantity: { '公里': 5 },
-            recordDate: '2025-11-02',
-            recordMonth: '2025-11',
-            recordYear: '2025'
-          },
-          {
-            taskId: 'task_2',
-            rawText: '完成了《产品设计》第3章的阅读，收获很多',
-            taskName: '阅读学习',
-            completionTime: '2025-11-02 09:15',
-            quantity: { '分钟': 45 },
-            recordDate: '2025-11-02',
-            recordMonth: '2025-11',
-            recordYear: '2025'
-          },
-          {
-            taskId: 'task_3',
-            rawText: '我完成了俯卧撑45个，分3组完成',
-            taskName: '俯卧撑训练',
-            completionTime: '2025-11-02 12:30',
-            quantity: { '个': 45 },
-            recordDate: '2025-11-02',
-            recordMonth: '2025-11',
+            rawText: '完成代码审查 3个',
+            taskName: '代码审查',
+            completionTime: new Date().toISOString(),
+            quantity: { '个': 3 },
+            recordDate: new Date().toISOString().split('T')[0],
+            recordMonth: String(new Date().getMonth() + 1),
             recordYear: '2025'
           }
         ];
-        
-        await AsyncStorage.setItem('@taskCollection', JSON.stringify(sampleTasks));
-        setRecentTasks(sampleTasks.slice(0, 3));
-        updateTaskStats(sampleTasks);
-      } else {
-        const tasks = JSON.parse(tasksJson);
-        setRecentTasks(tasks.slice(0, 3));
-        updateTaskStats(tasks);
+        // 使用taskService保存，会自动同步到云端（如果已启用）
+        for (const task of sampleTasks) {
+          await taskService.createTask(task);
+        }
       }
     } catch (error) {
       console.error('初始化数据失败:', error);
     }
-  };
-
-  const updateTaskStats = (tasks: TaskData[]) => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayTasks = tasks.filter(task => task.recordDate === today);
-    
-    setTaskStats({
-      totalTasks: todayTasks.length,
-      completedTasks: todayTasks.length,
-      completionRate: todayTasks.length > 0 ? '100%' : '0%'
-    });
   };
 
   const handleTaskFormSubmit = async () => {
@@ -173,12 +117,8 @@ const HomeScreen: React.FC = () => {
     try {
       const taskData = parseTaskText(text);
       
-      // 保存任务到本地存储
-      await saveTaskToStorage(taskData);
-      
-      // 更新UI显示
-      await updateTaskStatsFromStorage();
-      addTaskToRecentList(taskData);
+      // 使用taskService保存，会自动同步到云端（如果已启用）
+      await taskService.createTask(taskData);
       
       // 显示成功提示
       showToast('任务已记录 ✅');
@@ -197,69 +137,37 @@ const HomeScreen: React.FC = () => {
       taskId: 'task_' + Date.now(),
       rawText: text,
       taskName: taskName,
-      completionTime: now.toLocaleString('zh-CN'),
+      completionTime: now.toISOString(),
       quantity: quantity,
       recordDate: now.toISOString().split('T')[0],
-      recordMonth: now.toISOString().slice(0, 7),
-      recordYear: now.toISOString().slice(0, 4)
+      recordMonth: String(now.getMonth() + 1),
+      recordYear: String(now.getFullYear())
     };
   };
 
   const extractTaskName = (text: string): string => {
+    // 移除数量信息，提取任务名称
     const patterns = [
-      /我完成了(.*?)(?:[\d个只条本]|$)/i,
-      /完成了(.*?)(?:[\d个只条本]|$)/i,
-      /做了(.*?)(?:[\d个只条本]|$)/i,
-      /完成(.*?)(?:[\d个只条本]|$)/i
+      /(\d+)(个|件|次|条|项|份|篇|本|张|块|瓶|杯|碗|盘|份|套|组|批|场|节|章|段|句|字|词)/g,
+      /\d+/g
     ];
     
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        return match[1].trim() || '未命名任务';
-      }
-    }
+    let taskName = text;
+    patterns.forEach(pattern => {
+      taskName = taskName.replace(pattern, '').trim();
+    });
     
-    return text.length > 10 ? text.substring(0, 10) + '...' : text;
+    return taskName || '未命名任务';
   };
 
   const extractQuantity = (text: string): { [key: string]: number } => {
-    const quantityPattern = /(\d+)\s*(个|只|条|本|公里|分钟|次)/i;
-    const match = text.match(quantityPattern);
+    const match = text.match(/(\d+)(个|件|次|条|项|份|篇|本|张|块|瓶|杯|碗|盘|份|套|组|批|场|节|章|段|句|字|词)/);
     if (match) {
       return { [match[2]]: parseInt(match[1]) };
     }
     return {};
   };
 
-  const saveTaskToStorage = async (taskData: TaskData) => {
-    try {
-      const tasksJson = await AsyncStorage.getItem('@taskCollection');
-      let tasks: TaskData[] = tasksJson ? JSON.parse(tasksJson) : [];
-      tasks.unshift(taskData); // 添加到开头
-      await AsyncStorage.setItem('@taskCollection', JSON.stringify(tasks));
-    } catch (error) {
-      console.error('保存任务失败:', error);
-      throw error;
-    }
-  };
-
-  const updateTaskStatsFromStorage = async () => {
-    try {
-      const tasksJson = await AsyncStorage.getItem('@taskCollection');
-      const tasks: TaskData[] = tasksJson ? JSON.parse(tasksJson) : [];
-      updateTaskStats(tasks);
-    } catch (error) {
-      console.error('更新统计失败:', error);
-    }
-  };
-
-  const addTaskToRecentList = (taskData: TaskData) => {
-    setRecentTasks(prevTasks => {
-      const newTasks = [taskData, ...prevTasks];
-      return newTasks.slice(0, 3); // 保持最多3个最近任务
-    });
-  };
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -270,39 +178,27 @@ const HomeScreen: React.FC = () => {
     }, 3000);
   };
 
-  const handleQuickTodayReport = () => {
-    router.push('/p-report_view?type=today');
-  };
-
-  const handleQuickMonthReport = () => {
-    router.push('/p-report_view?type=month');
-  };
-
-  const handleQuickRecentTasks = () => {
-    router.push('/p-data_view');
-  };
-
-  const handleQuickExportData = () => {
-    router.push('/p-export_success');
-  };
-
-  const handleViewAllTasks = () => {
-    router.push('/p-data_view');
-  };
-
-  const formatQuantity = (quantity: { [key: string]: number }): string => {
-    if (Object.keys(quantity).length === 0) {
-      return '';
-    }
-    const key = Object.keys(quantity)[0];
-    return `${quantity[key]}${key}`;
-  };
-
-
-  const formatTime = (timeString: string): string => {
-    const timePart = timeString.split(' ')[1];
-    return `今天 ${timePart}`;
-  };
+  // 侧边栏菜单项 - 只保留三个
+  const menuItems: MenuItem[] = [
+    {
+      id: 'app-home',
+      label: '回到APP首页',
+      icon: 'grid',
+      path: '/module-home',
+    },
+    {
+      id: 'core-function',
+      label: '任务输入',
+      icon: 'plus-circle',
+      path: '/p-home',
+    },
+    {
+      id: 'full-home',
+      label: '完整首页',
+      icon: 'house',
+      path: '/p-full-home',
+    },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -312,8 +208,20 @@ const HomeScreen: React.FC = () => {
       >
         {/* 顶部导航栏 */}
         <View style={styles.header}>
-          <Text style={styles.appTitle}>任务收集助手</Text>
-          <Text style={styles.appSubtitle}>记录每一个成就的瞬间 ✨</Text>
+          <View style={styles.headerTop}>
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => setSidebarVisible(true)}
+              activeOpacity={0.7}
+            >
+              <FontAwesome6 name="bars" size={20} color="#6366f1" />
+            </TouchableOpacity>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.appTitle}>任务收集</Text>
+              <Text style={styles.appSubtitle}>快速记录你的任务</Text>
+            </View>
+            <View style={styles.headerPlaceholder} />
+          </View>
         </View>
 
         <ScrollView 
@@ -321,35 +229,6 @@ const HomeScreen: React.FC = () => {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 今日概览卡片 */}
-          <LinearGradient
-            colors={['#4f46e5', '#7c3aed']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.overviewCard}
-          >
-            <View style={styles.overviewHeader}>
-              <Text style={styles.overviewTitle}>今日概览</Text>
-              <View style={styles.overviewIcon}>
-                <FontAwesome6 name="chart-line" size={24} color="#ffffff" />
-              </View>
-            </View>
-            <View style={styles.overviewStats}>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{taskStats.totalTasks}</Text>
-                <Text style={styles.statLabel}>总任务</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{taskStats.completedTasks}</Text>
-                <Text style={styles.statLabel}>已完成</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{taskStats.completionRate}</Text>
-                <Text style={styles.statLabel}>完成率</Text>
-              </View>
-            </View>
-          </LinearGradient>
-
           {/* 输入区域 */}
           <View style={styles.inputSection}>
             <View style={styles.inputCard}>
@@ -379,115 +258,6 @@ const HomeScreen: React.FC = () => {
               </Text>
             </View>
           </View>
-
-          {/* 快速操作按钮 */}
-          <View style={styles.quickActionsSection}>
-            <Text style={styles.quickActionsTitle}>快速操作</Text>
-            <View style={styles.quickActionsGrid}>
-              <TouchableOpacity
-                style={styles.quickActionButton}
-                onPress={handleQuickTodayReport}
-                activeOpacity={0.7}
-              >
-                <View style={styles.quickActionContent}>
-                  <View style={[styles.quickActionIcon, styles.primaryIconBg]}>
-                    <FontAwesome6 name="calendar-day" size={16} color="#6366f1" />
-                  </View>
-                  <View style={styles.quickActionText}>
-                    <Text style={styles.quickActionTitle}>今日报表</Text>
-                    <Text style={styles.quickActionSubtitle}>查看今日成果</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionButton}
-                onPress={handleQuickMonthReport}
-                activeOpacity={0.7}
-              >
-                <View style={styles.quickActionContent}>
-                  <View style={[styles.quickActionIcon, styles.secondaryIconBg]}>
-                    <FontAwesome6 name="calendar" size={16} color="#8b5cf6" />
-                  </View>
-                  <View style={styles.quickActionText}>
-                    <Text style={styles.quickActionTitle}>月度报表</Text>
-                    <Text style={styles.quickActionSubtitle}>月度总结回顾</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionButton}
-                onPress={handleQuickRecentTasks}
-                activeOpacity={0.7}
-              >
-                <View style={styles.quickActionContent}>
-                  <View style={[styles.quickActionIcon, styles.infoIconBg]}>
-                    <FontAwesome6 name="list" size={16} color="#3b82f6" />
-                  </View>
-                  <View style={styles.quickActionText}>
-                    <Text style={styles.quickActionTitle}>最近任务</Text>
-                    <Text style={styles.quickActionSubtitle}>查看任务历史</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickActionButton}
-                onPress={handleQuickExportData}
-                activeOpacity={0.7}
-              >
-                <View style={styles.quickActionContent}>
-                  <View style={[styles.quickActionIcon, styles.tertiaryIconBg]}>
-                    <FontAwesome6 name="download" size={16} color="#06b6d4" />
-                  </View>
-                  <View style={styles.quickActionText}>
-                    <Text style={styles.quickActionTitle}>导出数据</Text>
-                    <Text style={styles.quickActionSubtitle}>备份你的数据</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* 最近任务列表 */}
-          <View style={styles.recentTasksSection}>
-            <View style={styles.recentTasksHeader}>
-              <Text style={styles.recentTasksTitle}>最近任务</Text>
-              <TouchableOpacity onPress={handleViewAllTasks} activeOpacity={0.7}>
-                <View style={styles.viewAllButton}>
-                  <Text style={styles.viewAllText}>查看全部</Text>
-                  <FontAwesome6 name="chevron-right" size={10} color="#6366f1" />
-                </View>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.recentTasksList}>
-              {recentTasks.map((task) => (
-                <TouchableOpacity 
-                  key={task.taskId} 
-                  style={styles.taskCard}
-                  onPress={handleViewAllTasks}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.taskContent}>
-                    <View style={styles.taskLeft}>
-                      <View style={styles.taskStatusIcon}>
-                        <FontAwesome6 name="check" size={12} color="#ffffff" />
-                      </View>
-                      <View style={styles.taskInfo}>
-                        <Text style={styles.taskName}>{task.taskName}</Text>
-                        <Text style={styles.taskTime}>{formatTime(task.completionTime)}</Text>
-                      </View>
-                    </View>
-                    {formatQuantity(task.quantity) ? (
-                      <Text style={styles.taskQuantity}>{formatQuantity(task.quantity)}</Text>
-                    ) : null}
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
         </ScrollView>
 
         {/* Toast提示框 */}
@@ -498,10 +268,18 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
         )}
+
+        {/* 侧边栏 */}
+        <Sidebar
+          visible={sidebarVisible}
+          onClose={() => setSidebarVisible(false)}
+          menuItems={menuItems}
+          moduleName="任务收集"
+          moduleIcon="list-check"
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 export default HomeScreen;
-

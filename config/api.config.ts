@@ -8,7 +8,7 @@ export const API_CONFIG = {
   // 格式: https://<region>.apigw.tencentcs.com/release/<function-name>
   // 或者使用 API 网关地址
   BASE_URL: __DEV__
-    ? 'https://your-region.apigw.tencentcs.com/release/task-collection-api' // 开发环境
+    ? 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api' // 开发环境
     : 'https://your-region.apigw.tencentcs.com/release/task-collection-api', // 生产环境
   
   // 请求超时时间（毫秒）
@@ -16,6 +16,11 @@ export const API_CONFIG = {
   
   // API 版本
   VERSION: 'v1',
+  
+  // API Key 配置（用于 Bearer Token 认证）
+  // 建议从环境变量或配置服务中读取，不要硬编码
+  // 格式: Authorization: Bearer YOUR_API_KEY
+  API_KEY: process.env.EXPO_PUBLIC_API_KEY || '', // 从环境变量读取
 };
 
 // API 端点
@@ -37,8 +42,13 @@ export const getHeaders = (token?: string) => {
     'Content-Type': 'application/json',
   };
   
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  // 优先使用环境变量中的 API_KEY（用于云函数认证）
+  // 只有在没有配置 API_KEY 时，才使用传入的 token（用于向后兼容）
+  // 注意：API_KEY 应该始终从环境变量读取，不应该被 JWT Token 覆盖
+  const apiKey = API_CONFIG.API_KEY || token;
+  
+  if (apiKey) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
   }
   
   return headers;

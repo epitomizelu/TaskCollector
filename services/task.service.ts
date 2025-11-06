@@ -1,8 +1,14 @@
 /**
  * 任务数据服务层 - 整合本地存储和云端同步
- * 根据用户会员类型自动选择存储位置：
- * - 付费用户：云端同步
- * - 免费用户：仅本地存储
+ * 
+ * 存储策略：
+ * - 所有操作都先保存到本地存储（确保离线可用）
+ * - 如果启用云端存储，再异步同步到云端
+ * - 云端同步失败不影响本地操作，保证数据不丢失
+ * 
+ * 根据 API Key 配置自动判断是否启用云端同步：
+ * - 如果配置了 API Key（EXPO_PUBLIC_API_KEY），自动启用云端同步
+ * - 如果未配置 API Key，仅使用本地存储
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,16 +23,21 @@ const USE_CLOUD_KEY = '@useCloudStorage';
 class TaskService {
   /**
    * 是否应该使用云端存储
-   * 基于用户会员类型自动判断
+   * 基于 API Key 配置判断：如果配置了 API Key，则启用云端存储
    */
   private shouldUseCloud(): boolean {
-    // 如果用户未登录，使用本地存储
-    if (!authService.isLoggedIn()) {
+    // 检查是否配置了 API Key（从环境变量读取）
+    // 如果配置了 API Key，说明云函数已配置好，可以使用云端存储
+    const { API_CONFIG } = require('../config/api.config');
+    const hasApiKey = !!API_CONFIG.API_KEY;
+    
+    if (!hasApiKey) {
       return false;
     }
 
-    // 付费用户使用云端存储
-    return authService.isPaidUser();
+    // 如果配置了 API Key，允许使用云端存储
+    // 注意：可以根据需要添加其他条件，比如用户登录状态等
+    return true;
   }
 
   /**
@@ -109,7 +120,7 @@ class TaskService {
    * 获取所有任务
    */
   async getAllTasks(): Promise<TaskData[]> {
-    if (this.useCloud) {
+    if (this.shouldUseCloud()) {
       try {
         return await this.syncFromCloud();
       } catch (error) {
@@ -138,6 +149,7 @@ class TaskService {
 
   /**
    * 创建任务
+   * 策略：先保存到本地存储，再异步同步到云端（如果启用）
    */
   async createTask(task: Omit<TaskData, 'taskId' | 'createdAt' | 'updatedAt'>): Promise<TaskData> {
     const user = authService.getCurrentUser();
@@ -149,26 +161,43 @@ class TaskService {
       updatedAt: new Date().toISOString(),
     };
 
-    // 先保存到本地
+    // 第一步：先保存到本地存储（确保数据不丢失）
     const localTasks = await this.getTasksFromLocal();
     localTasks.unshift(taskData);
     await this.saveTasksToLocal(localTasks);
 
-    // 如果是付费用户，同步到云端
+    // 第二步：如果启用云端存储，异步同步到云端（失败不影响本地）
     if (this.shouldUseCloud()) {
-      try {
-        await apiService.createTask(taskData);
-      } catch (error) {
-        console.error('创建任务到云端失败:', error);
-        // 不抛出错误，本地已保存成功
-      }
+      // 异步执行，不阻塞主流程
+      this.syncTaskToCloud(taskData).catch(error => {
+        console.error('异步同步任务到云端失败:', error);
+        // 云端同步失败不影响本地数据，已保存成功
+      });
     }
 
     return taskData;
   }
 
   /**
+   * 异步同步单个任务到云端
+   */
+  private async syncTaskToCloud(taskData: TaskData): Promise<void> {
+    try {
+      await apiService.createTask(taskData);
+    } catch (error) {
+      // 如果任务已存在，尝试更新
+      try {
+        await apiService.updateTask(taskData.taskId, taskData);
+      } catch (updateError) {
+        console.error('同步任务到云端失败:', taskData.taskId, updateError);
+        throw updateError;
+      }
+    }
+  }
+
+  /**
    * 更新任务
+   * 策略：先更新本地存储，再异步同步到云端（如果启用）
    */
   async updateTask(taskId: string, updates: Partial<TaskData>): Promise<TaskData> {
     const localTasks = await this.getTasksFromLocal();
@@ -184,16 +213,17 @@ class TaskService {
       updatedAt: new Date().toISOString(),
     };
 
+    // 第一步：先更新本地存储
     localTasks[taskIndex] = updatedTask;
     await this.saveTasksToLocal(localTasks);
 
-    // 如果是付费用户，同步到云端
+    // 第二步：如果启用云端存储，异步同步到云端（失败不影响本地）
     if (this.shouldUseCloud()) {
-      try {
-        await apiService.updateTask(taskId, updatedTask);
-      } catch (error) {
-        console.error('更新任务到云端失败:', error);
-      }
+      // 异步执行，不阻塞主流程
+      apiService.updateTask(taskId, updatedTask).catch(error => {
+        console.error('异步更新任务到云端失败:', error);
+        // 云端更新失败不影响本地数据，已更新成功
+      });
     }
 
     return updatedTask;
@@ -201,64 +231,69 @@ class TaskService {
 
   /**
    * 删除任务
+   * 策略：先删除本地存储，再异步同步删除到云端（如果启用）
    */
   async deleteTask(taskId: string): Promise<void> {
+    // 第一步：先删除本地存储
     const localTasks = await this.getTasksFromLocal();
     const filteredTasks = localTasks.filter(t => t.taskId !== taskId);
     await this.saveTasksToLocal(filteredTasks);
 
-    // 如果是付费用户，同步删除到云端
+    // 第二步：如果启用云端存储，异步同步删除到云端（失败不影响本地）
     if (this.shouldUseCloud()) {
-      try {
-        await apiService.deleteTask(taskId);
-      } catch (error) {
-        console.error('从云端删除任务失败:', error);
-        // 不抛出错误，本地已删除成功
-      }
+      // 异步执行，不阻塞主流程
+      apiService.deleteTask(taskId).catch(error => {
+        console.error('异步从云端删除任务失败:', error);
+        // 云端删除失败不影响本地数据，已删除成功
+      });
     }
   }
 
   /**
    * 删除指定日期的所有任务
+   * 策略：先删除本地存储，再异步同步删除到云端（如果启用）
    */
   async deleteTasksByDate(date: string): Promise<void> {
+    // 第一步：先删除本地存储
     const localTasks = await this.getTasksFromLocal();
     const filteredTasks = localTasks.filter(t => t.recordDate !== date);
     await this.saveTasksToLocal(filteredTasks);
 
-    // 如果是付费用户，同步删除到云端
+    // 第二步：如果启用云端存储，异步同步删除到云端（失败不影响本地）
     if (this.shouldUseCloud()) {
-      try {
-        await apiService.deleteTasksByDate(date);
-      } catch (error) {
-        console.error('从云端删除任务失败:', error);
-      }
+      // 异步执行，不阻塞主流程
+      apiService.deleteTasksByDate(date).catch(error => {
+        console.error('异步从云端删除任务失败:', error);
+        // 云端删除失败不影响本地数据，已删除成功
+      });
     }
   }
 
   /**
    * 删除所有任务
+   * 策略：先删除本地存储，再异步同步删除到云端（如果启用）
    */
   async deleteAllTasks(): Promise<void> {
+    // 第一步：先删除本地存储
     await AsyncStorage.removeItem(STORAGE_KEY);
     await AsyncStorage.removeItem(SYNC_KEY);
 
-    // 如果是付费用户，同步删除到云端
+    // 第二步：如果启用云端存储，异步同步删除到云端（失败不影响本地）
     if (this.shouldUseCloud()) {
-      try {
-        await apiService.deleteAllTasks();
-      } catch (error) {
-        console.error('从云端删除所有任务失败:', error);
-      }
+      // 异步执行，不阻塞主流程
+      apiService.deleteAllTasks().catch(error => {
+        console.error('异步从云端删除所有任务失败:', error);
+        // 云端删除失败不影响本地数据，已删除成功
+      });
     }
   }
 
   /**
-   * 手动同步（仅付费用户可用）
+   * 手动同步（需要配置 API Key）
    */
   async manualSync(): Promise<void> {
     if (!this.shouldUseCloud()) {
-      throw new Error('只有付费用户可以使用云端同步');
+      throw new Error('未配置 API Key，无法使用云端同步。请在 .env 文件中配置 EXPO_PUBLIC_API_KEY');
     }
 
     const localTasks = await this.getTasksFromLocal();

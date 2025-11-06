@@ -3,6 +3,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, usePathname, useGlobalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { LogBox } from 'react-native';
+import { AppShell } from '../core/app-shell';
 
 LogBox.ignoreLogs([
   "TurboModuleRegistry.getEnforcing(...): 'RNMapsAirModule' could not be found",
@@ -44,22 +45,41 @@ export default function RootLayout() {
   }, [pathname, searchParams])
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="dark"></StatusBar>
-      <Stack screenOptions={{
-        // 设置所有页面的切换动画为从右侧滑入，适用于iOS 和 Android
-        animation: 'slide_from_right',
-        gestureEnabled: true,
-        gestureDirection: 'horizontal',
-        // 隐藏自带的头部
-        headerShown: false 
-      }}>
-        <Stack.Screen name="p-home" options={{ title: "首页" }} />
-        <Stack.Screen name="p-report_view" options={{ title: "报表查看页" }} />
-        <Stack.Screen name="p-data_view" options={{ title: "数据查看页" }} />
-        <Stack.Screen name="p-confirm_dialog" options={{ title: "确认弹窗" }} />
-        <Stack.Screen name="p-export_success" options={{ title: "导出成功提示页" }} />
-      </Stack>
-    </GestureHandlerRootView>
+    <AppShell>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="dark"></StatusBar>
+        <Stack screenOptions={{
+          // 设置所有页面的切换动画为从右侧滑入，适用于iOS 和 Android
+          animation: 'slide_from_right',
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+          // 隐藏自带的头部
+          headerShown: false 
+        }}>
+          <Stack.Screen name="index" options={{ title: "首页" }} />
+          <Stack.Screen name="module-home" options={{ title: "模块首页" }} />
+          <Stack.Screen name="p-home" options={{ title: "任务收集" }} />
+          <Stack.Screen name="p-full-home" options={{ title: "任务收集完整首页" }} />
+          <Stack.Screen name="p-report_view" options={{ title: "报表查看页" }} />
+          <Stack.Screen name="p-data_view" options={{ title: "数据查看页" }} />
+          <Stack.Screen name="p-confirm_dialog" options={{ title: "确认弹窗" }} />
+          <Stack.Screen name="p-export_success" options={{ title: "导出成功提示页" }} />
+          {/* 我爱背书模块路由 */}
+          <Stack.Screen name="ilove-reciting-home" options={{ title: "我爱背书" }} />
+          <Stack.Screen name="ilove-reciting-full-home" options={{ title: "我爱背书完整首页" }} />
+          <Stack.Screen name="ilove-reciting-plan-list" options={{ title: "计划列表" }} />
+          <Stack.Screen name="ilove-reciting-plan-create" options={{ title: "创建计划" }} />
+          <Stack.Screen name="ilove-reciting-task-list" options={{ title: "任务列表" }} />
+          <Stack.Screen name="ilove-reciting-task-detail" options={{ title: "任务详情" }} />
+          <Stack.Screen name="ilove-reciting-content-manage" options={{ title: "内容管理" }} />
+          <Stack.Screen name="ilove-reciting-profile" options={{ title: "个人资料" }} />
+          <Stack.Screen name="ilove-reciting-settings" options={{ title: "设置" }} />
+          <Stack.Screen name="ilove-reciting-about-us" options={{ title: "关于我们" }} />
+                <Stack.Screen name="ilove-reciting-upload-audio" options={{ title: "上传音频" }} />
+                <Stack.Screen name="ilove-reciting-upload-document" options={{ title: "上传文档" }} />
+                <Stack.Screen name="test-api" options={{ title: "云函数测试" }} />
+              </Stack>
+      </GestureHandlerRootView>
+    </AppShell>
   );
 }

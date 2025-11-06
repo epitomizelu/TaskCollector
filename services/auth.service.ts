@@ -29,7 +29,9 @@ class AuthService {
       if (token && userInfoJson) {
         this.token = token;
         this.currentUser = JSON.parse(userInfoJson);
-        apiService.setToken(token);
+        // 注意：不要将 JWT Token 设置为 API Key
+        // apiService 应该使用环境变量中的 API Key，而不是用户认证 Token
+        // apiService.setToken(token); // ❌ 移除此行
         
         // 验证Token是否有效，并刷新用户信息
         try {
@@ -105,7 +107,9 @@ class AuthService {
   private async setAuthData(token: string, userInfo: UserInfo): Promise<void> {
     this.token = token;
     this.currentUser = userInfo;
-    apiService.setToken(token);
+    // 注意：不要将 JWT Token 设置为 API Key
+    // apiService 应该使用环境变量中的 API Key，而不是用户认证 Token
+    // apiService.setToken(token); // ❌ 移除此行
 
     await Promise.all([
       AsyncStorage.setItem(STORAGE_KEYS.USER_TOKEN, token),
@@ -148,7 +152,8 @@ class AuthService {
   async logout(): Promise<void> {
     this.token = null;
     this.currentUser = null;
-    apiService.clearToken();
+    // 注意：不要清除 API Key，API Key 应该始终从环境变量读取
+    // apiService.clearToken(); // ❌ 移除此行
 
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEYS.USER_TOKEN),
