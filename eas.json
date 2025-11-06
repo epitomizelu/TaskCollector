@@ -6,6 +6,9 @@
         "buildType": "apk",
         "image": "latest",
         "withoutCredentials": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_KEY": "${EXPO_PUBLIC_API_KEY}"
       }
     },
     "production": {
@@ -13,6 +16,9 @@
         "gradleCommand": ":app:bundleRelease",
         "image": "latest",
         "withoutCredentials": false
+      },
+      "env": {
+        "EXPO_PUBLIC_API_KEY": "${EXPO_PUBLIC_API_KEY}"
       }
     }
   },

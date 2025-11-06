@@ -29,6 +29,9 @@ jobs:
           # expo-cache: false  # 禁用 Expo CLI 缓存（可选）
 
       - name: Run EAS Build with Retry
+        env:
+          # 从 GitHub Secrets 读取 API Key，EAS Build 会自动将其编译到 APK 中
+          EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
         run: |
           # 重试逻辑：如果 408 超时，自动重跑
           for i in {1..3}; do
