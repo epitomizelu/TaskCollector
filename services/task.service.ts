@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiService, TaskData } from './api.service';
 import { authService } from './auth.service';
 import { Platform } from 'react-native';
+import { API_CONFIG } from '../config/api.config';
 
 const STORAGE_KEY = '@taskCollection';
 const SYNC_KEY = '@lastSyncTime';
@@ -28,7 +29,6 @@ class TaskService {
   private shouldUseCloud(): boolean {
     // 检查是否配置了 API Key（从环境变量读取）
     // 如果配置了 API Key，说明云函数已配置好，可以使用云端存储
-    const { API_CONFIG } = require('../config/api.config');
     const hasApiKey = !!API_CONFIG.API_KEY;
     
     if (!hasApiKey) {

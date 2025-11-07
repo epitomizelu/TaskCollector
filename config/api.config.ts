@@ -34,6 +34,13 @@ export const API_ENDPOINTS = {
   // 统计相关
   STATS_TODAY: '/stats/today',
   STATS_MONTH: (month: string) => `/stats/month?month=${month}`,
+  
+  // 任务清单相关
+  TASK_LIST_PRESET: '/task-list/preset',
+  TASK_LIST_PRESET_BY_ID: (id: string) => `/task-list/preset/${id}`,
+  TASK_LIST_DAILY: '/task-list/daily',
+  TASK_LIST_DAILY_BY_ID: (id: string) => `/task-list/daily/${id}`,
+  TASK_LIST_DAILY_BY_DATE: (date: string) => `/task-list/daily?date=${date}`,
 };
 
 // 请求头配置

@@ -70,6 +70,31 @@ class ModuleRegistry {
       // 不抛出错误，允许其他模块继续加载
     }
 
+    // 注册任务清单模块
+    try {
+      const taskListModule = await import('../modules/task-list/module.definition');
+      console.log('任务清单模块导入结果:', taskListModule);
+      
+      if (taskListModule.taskListModule) {
+        const moduleDef = taskListModule.taskListModule;
+        console.log('任务清单模块定义:', {
+          id: moduleDef.metadata?.id,
+          name: moduleDef.metadata?.name,
+          enabled: moduleDef.metadata?.enabled,
+          status: moduleDef.metadata?.status,
+        });
+        
+        moduleDefinitions.push(moduleDef);
+        this.registeredModuleIds.add('task-list');
+      } else {
+        console.error('任务清单模块未找到: taskListModule 不存在');
+        console.log('可用导出:', Object.keys(taskListModule));
+      }
+    } catch (error) {
+      console.error('加载任务清单模块失败:', error);
+      // 不抛出错误，允许其他模块继续加载
+    }
+
     // 批量注册所有模块
     await moduleManager.registerModules(moduleDefinitions);
     

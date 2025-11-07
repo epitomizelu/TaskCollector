@@ -1,39 +1,3 @@
-# 腾讯云云函数示例代码
-
-## 云函数目录结构
-
-```
-task-collection-function/
-├── index.js              # 主入口文件
-├── package.json          # 依赖配置
-└── config.json           # 云函数配置
-```
-
-## package.json
-
-**重要：** 必须包含 `@cloudbase/node-sdk` 依赖，否则云函数会报错！
-
-```json
-{
-  "name": "task-collection-api",
-  "version": "1.0.0",
-  "description": "任务收集应用后端 API",
-  "main": "index.js",
-  "dependencies": {
-    "@cloudbase/node-sdk": "^2.5.0"
-  }
-}
-```
-
-**安装依赖：**
-```bash
-# 在云函数目录中执行
-npm install @cloudbase/node-sdk
-```
-
-## index.js - Node.js 云函数主文件
-
-```javascript
 const cloudbase = require('@cloudbase/node-sdk');
 
 // 初始化云开发环境
@@ -201,6 +165,89 @@ exports.main = async (event, context) => {
     };
   }
 };
+
+/**
+ * API Key 验证配置
+ * 在云函数环境变量中设置有效的 API Key
+ */
+const VALID_API_KEYS = [
+  process.env.API_KEY_1,  // 环境变量中的 API Key
+  process.env.API_KEY_2,  // 可以配置多个 API Key
+  // 也可以从数据库或配置服务中读取
+].filter(key => key); // 过滤掉空值
+
+/**
+ * 验证 API Key 并获取用户信息
+ * 使用 Bearer Token 方式：Authorization: Bearer YOUR_API_KEY
+ */
+function verifyApiKey(headers) {
+  // 添加调试日志
+  console.log('验证 API Key:', {
+    hasHeaders: !!headers,
+    headerKeys: headers ? Object.keys(headers) : [],
+    validApiKeysCount: VALID_API_KEYS.length,
+    validApiKeysPrefix: VALID_API_KEYS.map(k => k ? k.substring(0, 8) + '...' : '空'),
+  });
+  
+  // headers 已经是标准化后的（小写键名）
+  const authHeader = headers.authorization || headers['authorization'];
+  
+  if (!authHeader) {
+    console.log('缺少 Authorization 头');
+    throw new Error('缺少授权信息，请在请求头中添加: Authorization: Bearer YOUR_API_KEY');
+  }
+  
+  if (!authHeader.startsWith('Bearer ')) {
+    console.log('Authorization 格式错误:', authHeader.substring(0, 20));
+    throw new Error('授权格式错误，应为: Authorization: Bearer YOUR_API_KEY');
+  }
+  
+  const apiKey = authHeader.substring(7).trim(); // 移除 "Bearer " 前缀并去除空格
+  
+  console.log('提取的 API Key:', {
+    length: apiKey.length,
+    prefix: apiKey.substring(0, 8) + '...',
+    suffix: '...' + apiKey.substring(apiKey.length - 4),
+  });
+  
+  // 验证 API Key 是否有效
+  if (VALID_API_KEYS.length === 0) {
+    console.error('警告: 未配置有效的 API Key，请检查环境变量 API_KEY_1 和 API_KEY_2');
+    throw new Error('服务器未配置 API Key');
+  }
+  
+  if (!VALID_API_KEYS.includes(apiKey)) {
+    console.log('API Key 验证失败:', {
+      receivedPrefix: apiKey.substring(0, 8) + '...',
+      validKeysPrefix: VALID_API_KEYS.map(k => k ? k.substring(0, 8) + '...' : '空'),
+    });
+    throw new Error('无效的 API Key');
+  }
+  
+  console.log('API Key 验证成功');
+  
+  // 可以根据 API Key 映射到用户 ID（如果需要）
+  // 这里简单返回一个基于 API Key 的用户标识
+  return {
+    userId: `user_${apiKey.substring(0, 8)}`, // 使用 API Key 前8位作为用户标识
+    apiKey: apiKey,
+  };
+}
+
+/**
+ * 从请求头获取用户 ID（使用 API Key 验证）
+ */
+function getUserIdFromHeaders(headers) {
+  try {
+    const userInfo = verifyApiKey(headers);
+    return userInfo.userId;
+  } catch (error) {
+    // 如果验证失败，抛出错误
+    throw error;
+  }
+}
+
+// ========== 任务收集模块处理函数 ==========
 
 /**
  * 处理任务相关请求
@@ -429,87 +476,6 @@ async function handleMonthStats(month, userId, collection) {
       averageTasksPerDay: parseFloat(averageTasksPerDay),
     },
   };
-}
-
-/**
- * API Key 验证配置
- * 在云函数环境变量中设置有效的 API Key
- */
-const VALID_API_KEYS = [
-  process.env.API_KEY_1,  // 环境变量中的 API Key
-  process.env.API_KEY_2,  // 可以配置多个 API Key
-  // 也可以从数据库或配置服务中读取
-].filter(key => key); // 过滤掉空值
-
-/**
- * 验证 API Key 并获取用户信息
- * 使用 Bearer Token 方式：Authorization: Bearer YOUR_API_KEY
- */
-function verifyApiKey(headers) {
-  // 添加调试日志
-  console.log('验证 API Key:', {
-    hasHeaders: !!headers,
-    headerKeys: headers ? Object.keys(headers) : [],
-    validApiKeysCount: VALID_API_KEYS.length,
-    validApiKeysPrefix: VALID_API_KEYS.map(k => k ? k.substring(0, 8) + '...' : '空'),
-  });
-  
-  // headers 已经是标准化后的（小写键名）
-  const authHeader = headers.authorization || headers['authorization'];
-  
-  if (!authHeader) {
-    console.log('缺少 Authorization 头');
-    throw new Error('缺少授权信息，请在请求头中添加: Authorization: Bearer YOUR_API_KEY');
-  }
-  
-  if (!authHeader.startsWith('Bearer ')) {
-    console.log('Authorization 格式错误:', authHeader.substring(0, 20));
-    throw new Error('授权格式错误，应为: Authorization: Bearer YOUR_API_KEY');
-  }
-  
-  const apiKey = authHeader.substring(7).trim(); // 移除 "Bearer " 前缀并去除空格
-  
-  console.log('提取的 API Key:', {
-    length: apiKey.length,
-    prefix: apiKey.substring(0, 8) + '...',
-    suffix: '...' + apiKey.substring(apiKey.length - 4),
-  });
-  
-  // 验证 API Key 是否有效
-  if (VALID_API_KEYS.length === 0) {
-    console.error('警告: 未配置有效的 API Key，请检查环境变量 API_KEY_1 和 API_KEY_2');
-    throw new Error('服务器未配置 API Key');
-  }
-  
-  if (!VALID_API_KEYS.includes(apiKey)) {
-    console.log('API Key 验证失败:', {
-      receivedPrefix: apiKey.substring(0, 8) + '...',
-      validKeysPrefix: VALID_API_KEYS.map(k => k.substring(0, 8) + '...'),
-    });
-    throw new Error('无效的 API Key');
-  }
-  
-  console.log('API Key 验证成功');
-  
-  // 可以根据 API Key 映射到用户 ID（如果需要）
-  // 这里简单返回一个基于 API Key 的用户标识
-  return {
-    userId: `user_${apiKey.substring(0, 8)}`, // 使用 API Key 前8位作为用户标识
-    apiKey: apiKey,
-  };
-}
-
-/**
- * 从请求头获取用户 ID（使用 API Key 验证）
- */
-function getUserIdFromHeaders(headers) {
-  try {
-    const userInfo = verifyApiKey(headers);
-    return userInfo.userId;
-  } catch (error) {
-    // 如果验证失败，抛出错误
-    throw error;
-  }
 }
 
 // ========== 我爱背书模块处理函数 ==========
@@ -870,6 +836,194 @@ async function handleDeleteRecitingContent(path, userId, collection) {
   };
 }
 
+// ========== 用户认证处理函数 ==========
+
+/**
+ * 处理用户注册
+ */
+async function handleUserRegister(method, path, body, headers) {
+  if (method !== 'POST') {
+    throw new Error('不支持的请求方法');
+  }
+
+  const { phone, nickname, ...extraFields } = body;
+
+  // 验证必填字段
+  if (!phone || !nickname) {
+    throw new Error('手机号和昵称不能为空');
+  }
+
+  // 验证手机号格式
+  const phoneRegex = /^1[3-9]\d{9}$/;
+  if (!phoneRegex.test(phone)) {
+    throw new Error('手机号格式不正确');
+  }
+
+  // 验证昵称长度
+  if (nickname.length < 2 || nickname.length > 20) {
+    throw new Error('昵称长度应在2-20个字符之间');
+  }
+
+  const usersCollection = db.collection('users');
+
+  // 检查手机号是否已注册
+  const existingUser = await usersCollection.where({
+    phone: phone,
+  }).get();
+
+  if (existingUser.data.length > 0) {
+    throw new Error('该手机号已注册，请直接登录');
+  }
+
+  // 生成用户ID
+  const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // 创建用户数据（具有扩展性）
+  const userData = {
+    userId: userId,
+    phone: phone,
+    nickname: nickname,
+    membershipType: 'free', // 默认免费用户
+    membershipStatus: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...extraFields, // 包含所有扩展字段
+  };
+
+  // 保存到数据库
+  const result = await usersCollection.add(userData);
+
+  // 生成简单的 Token（实际应该使用 JWT）
+  const token = generateSimpleToken(userId);
+
+  return {
+    code: 0,
+    message: '注册成功',
+    data: {
+      token: token,
+      userInfo: { ...userData, _id: result.id },
+      expiresIn: 30 * 24 * 60 * 60, // 30天
+    },
+  };
+}
+
+/**
+ * 处理用户登录
+ */
+async function handleUserLogin(method, path, body, headers) {
+  if (method !== 'POST') {
+    throw new Error('不支持的请求方法');
+  }
+
+  const { phone } = body;
+
+  if (!phone) {
+    throw new Error('手机号不能为空');
+  }
+
+  // 验证手机号格式
+  const phoneRegex = /^1[3-9]\d{9}$/;
+  if (!phoneRegex.test(phone)) {
+    throw new Error('手机号格式不正确');
+  }
+
+  const usersCollection = db.collection('users');
+
+  // 查找用户
+  const userResult = await usersCollection.where({
+    phone: phone,
+  }).get();
+
+  if (userResult.data.length === 0) {
+    throw new Error('该手机号未注册，请先注册');
+  }
+
+  const userData = userResult.data[0];
+
+  // 生成 Token
+  const token = generateSimpleToken(userData.userId);
+
+  // 更新最后登录时间
+  await usersCollection.where({
+    userId: userData.userId,
+  }).update({
+    updatedAt: new Date().toISOString(),
+  });
+
+  return {
+    code: 0,
+    message: '登录成功',
+    data: {
+      token: token,
+      userInfo: userData,
+      expiresIn: 30 * 24 * 60 * 60, // 30天
+    },
+  };
+}
+
+/**
+ * 处理获取用户信息
+ */
+async function handleGetUserInfo(method, path, body, headers) {
+  if (method !== 'GET') {
+    throw new Error('不支持的请求方法');
+  }
+
+  // 从 Token 中获取用户ID
+  const userId = getUserIdFromToken(headers);
+
+  const usersCollection = db.collection('users');
+
+  // 查找用户
+  const userResult = await usersCollection.where({
+    userId: userId,
+  }).get();
+
+  if (userResult.data.length === 0) {
+    throw new Error('用户不存在');
+  }
+
+  return {
+    code: 0,
+    message: 'success',
+    data: userResult.data[0],
+  };
+}
+
+/**
+ * 生成简单的 Token（实际应该使用 JWT）
+ */
+function generateSimpleToken(userId) {
+  // 简单的 Token 生成（实际应该使用 JWT）
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substr(2, 9);
+  return Buffer.from(`${userId}_${timestamp}_${random}`).toString('base64');
+}
+
+/**
+ * 从 Token 中获取用户ID
+ */
+function getUserIdFromToken(headers) {
+  const authHeader = headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('未授权访问');
+  }
+
+  const token = authHeader.substring(7);
+  
+  try {
+    // 简单的 Token 解析（实际应该使用 JWT）
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const parts = decoded.split('_');
+    if (parts.length >= 1) {
+      return parts[0]; // 返回 userId
+    }
+    throw new Error('无效的 Token');
+  } catch (error) {
+    throw new Error('无效的 Token');
+  }
+}
+
 // ========== 任务清单模块处理函数 ==========
 
 /**
@@ -1129,185 +1283,4 @@ async function handleDeleteTaskListDailyTask(path, userId, collection) {
     data: null,
   };
 }
-```
-
-## 部署步骤
-
-1. **登录腾讯云控制台**
-   - 进入 [云开发控制台](https://console.cloud.tencent.com/tcb)
-   - 创建环境或使用现有环境
-
-2. **创建云函数**
-   - 在云开发控制台中选择"云函数"
-   - 点击"新建云函数"
-   - 函数名称：`task-collection-api`
-   - 运行环境：Node.js 16 或 Node.js 18
-   - **上传方式：** 选择"本地上传文件夹"或"在线编辑"
-   
-   **重要步骤 - 安装依赖：**
-   
-   如果使用"本地上传文件夹"方式：
-   1. 在本地创建云函数目录：
-      ```bash
-      mkdir task-collection-function
-      cd task-collection-function
-      ```
-   
-   2. 创建 `package.json` 文件（内容见上方）
-   
-   3. 安装依赖：
-      ```bash
-      npm install @cloudbase/node-sdk
-      ```
-   
-   4. 创建 `index.js` 文件（复制下方完整代码）
-   
-   5. 将整个文件夹压缩为 zip 文件
-   
-   6. 在云函数控制台上传 zip 文件
-   
-   如果使用"在线编辑"方式：
-   1. 在云函数控制台点击"在线编辑"
-   2. 在终端中执行：
-      ```bash
-      npm install @cloudbase/node-sdk
-      ```
-   3. 复制 `index.js` 代码到编辑器
-   4. 保存并部署
-
-3. **配置环境变量**
-   - `TCB_ENV`: 你的云开发环境 ID
-   - `API_KEY_1`: 你的 API Key（用于验证请求）
-   - `API_KEY_2`: 可选的第二个 API Key（如果需要多个）
-
-4. **设置 HTTP 触发器**
-   - 在云函数详情页，点击"触发管理"
-   - 添加 HTTP 触发器
-   - 获取触发器的 URL，配置到 `config/api.config.ts` 中
-
-5. **创建数据库集合**
-   - 在云开发控制台中选择"数据库"
-   - 创建集合：
-     - `tasks` - 任务收集模块
-     - `reciting_plans` - 我爱背书模块 - 计划
-     - `reciting_tasks` - 我爱背书模块 - 任务
-     - `reciting_contents` - 我爱背书模块 - 内容
-     - `users` - 用户信息
-     - `task_list_preset` - 任务清单模块 - 预设任务
-     - `task_list_daily` - 任务清单模块 - 每日任务
-   - 设置权限为：仅创建者可读写
-
-## 数据库结构
-
-### task_list_preset 集合（任务清单 - 预设任务）
-
-```javascript
-{
-  _id: "数据库自动生成",
-  id: "preset_1234567890_abc123",  // 预设任务唯一标识
-  userId: "user_123",              // 用户 ID
-  name: "晨跑",                     // 任务名称
-  description: "每天早上跑步",       // 任务描述（可选）
-  order: 1,                        // 排序顺序
-  enabled: true,                   // 是否启用
-  createdAt: "2025-11-06T08:00:00.000Z",
-  updatedAt: "2025-11-06T08:00:00.000Z"
-}
-```
-
-### task_list_daily 集合（任务清单 - 每日任务）
-
-```javascript
-{
-  _id: "数据库自动生成",
-  id: "daily_1234567890_abc123",   // 每日任务唯一标识
-  userId: "user_123",              // 用户 ID
-  presetTaskId: "preset_1234567890_abc123", // 关联的预设任务 ID（可选）
-  name: "晨跑",                     // 任务名称
-  description: "每天早上跑步",     // 任务描述（可选）
-  date: "2025-11-06",             // 任务日期（YYYY-MM-DD）
-  completed: false,                // 是否完成
-  completedAt: "2025-11-06T08:30:00.000Z", // 完成时间（可选）
-  syncedToCollection: false,       // 是否已同步到任务收集模块
-  createdAt: "2025-11-06T08:00:00.000Z",
-  updatedAt: "2025-11-06T08:00:00.000Z"
-}
-```
-
-### tasks 集合
-
-```javascript
-{
-  _id: "数据库自动生成",
-  taskId: "task_1234567890_abc123",      // 任务唯一标识
-  userId: "user_123",                    // 用户 ID
-  rawText: "我完成了晨跑5公里",            // 原始文本
-  taskName: "晨跑锻炼",                   // 任务名称
-  completionTime: "2025-11-02 07:30",   // 完成时间
-  quantity: {                             // 数量信息
-    "公里": 5
-  },
-  recordDate: "2025-11-02",              // 记录日期
-  recordMonth: "2025-11",                 // 记录月份
-  recordYear: "2025",                    // 记录年份
-  createdAt: "2025-11-02T07:30:00.000Z", // 创建时间
-  updatedAt: "2025-11-02T07:30:00.000Z"  // 更新时间
-}
-```
-
-## 认证方案
-
-### API Key 验证（当前实现）
-
-使用 Bearer Token 方式验证 API Key：
-
-**请求格式：**
-```
-GET /api/resource HTTP/1.1
-Host: example.com
-Authorization: Bearer YOUR_API_KEY
-```
-
-**配置步骤：**
-1. 在云函数环境变量中设置 API Key：
-   - `API_KEY_1`: 你的 API Key
-   - `API_KEY_2`: 可选的第二个 API Key
-
-2. 在前端配置 API Key：
-   ```typescript
-   import { apiService } from './services/api.service';
-   apiService.setToken('your-api-key');
-   ```
-
-**安全建议：**
-- 使用强随机字符串作为 API Key（建议32位以上）
-- 定期更换 API Key
-- 不要在代码中硬编码 API Key，使用环境变量
-- 为不同用户或应用使用不同的 API Key
-
-### 其他认证方案（可选）
-
-如果需要更复杂的用户认证，可以：
-
-1. **使用云开发的登录能力**
-   - 集成微信登录、匿名登录等
-
-2. **自定义 JWT Token**
-   - 在云函数中验证 JWT Token
-   - 从 Token 中解析 userId
-
-3. **使用云开发的 Auth 能力**
-   ```javascript
-   const auth = app.auth();
-   const loginState = await auth.getLoginState();
-   const userId = loginState.userInfo.openId;
-   ```
-
-## 注意事项
-
-1. **CORS 配置**：确保设置了正确的 CORS 头
-2. **错误处理**：所有接口都应该有错误处理
-3. **数据验证**：在云函数中验证输入数据
-4. **权限控制**：确保用户只能访问自己的数据
-5. **性能优化**：对于大量数据，考虑分页查询
 

@@ -4,18 +4,21 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { moduleManager } from '../core/module-manager';
 import { ModuleInstance } from '../types/module.types';
+import { userService } from '../services/user.service';
 
 const ModuleHome: React.FC = () => {
   const router = useRouter();
   const [modules, setModules] = useState<ModuleInstance[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+  const [userNickname, setUserNickname] = useState<string>('');
 
   // 页面获取焦点时刷新模块列表
   useFocusEffect(
@@ -26,7 +29,16 @@ const ModuleHome: React.FC = () => {
 
   useEffect(() => {
     loadModules();
+    loadUserInfo();
   }, []);
+
+  const loadUserInfo = async () => {
+    await userService.initialize();
+    const user = userService.getCurrentUser();
+    if (user) {
+      setUserNickname(user.nickname || user.phone || '用户');
+    }
+  };
 
   const loadModules = () => {
     const activeModules = moduleManager.getOrderedActiveModules();
@@ -54,16 +66,48 @@ const ModuleHome: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    setIsLogoutModalVisible(true);
+  };
+
+  const handleLogoutConfirm = async () => {
+    try {
+      await userService.logout();
+      setIsLogoutModalVisible(false);
+      router.replace('/p-login-phone');
+    } catch (error: any) {
+      console.error('退出登录失败:', error);
+      Alert.alert('错误', '退出登录失败，请重试');
+    }
+  };
+
+  const handleLogoutCancel = () => {
+    setIsLogoutModalVisible(false);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View>
             <Text style={styles.title}>功能模块</Text>
-            <Text style={styles.subtitle}>选择要使用的功能</Text>
+            <Text style={styles.subtitle}>
+              {userNickname ? `欢迎，${userNickname}` : '选择要使用的功能'}
+            </Text>
           </View>
-          <View style={styles.headerIcon}>
-            <FontAwesome6 name="grid" size={24} color="#6366f1" />
+          <View style={styles.headerRight}>
+            {userService.isLoggedIn() && (
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={handleLogout}
+                activeOpacity={0.7}
+              >
+                <FontAwesome6 name="right-from-bracket" size={18} color="#EF4444" />
+              </TouchableOpacity>
+            )}
+            <View style={styles.headerIcon}>
+              <FontAwesome6 name="grid" size={24} color="#6366f1" />
+            </View>
           </View>
         </View>
       </View>
@@ -142,6 +186,46 @@ const ModuleHome: React.FC = () => {
           </View>
         )}
       </ScrollView>
+
+      {/* 退出登录确认对话框 */}
+      <Modal
+        visible={isLogoutModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleLogoutCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={styles.modalOverlayTouchable}
+            activeOpacity={1}
+            onPress={handleLogoutCancel}
+          />
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>退出登录</Text>
+              <Text style={styles.modalMessage}>
+                确定要退出当前账户吗？退出后需要重新登录才能继续使用应用。
+              </Text>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={handleLogoutCancel}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalCancelButtonText}>取消</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.modalConfirmButton}
+                  onPress={handleLogoutConfirm}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalConfirmButtonText}>确认</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -162,6 +246,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoutButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   headerIcon: {
     width: 48,
     height: 48,
@@ -169,6 +266,72 @@ const styles = StyleSheet.create({
     backgroundColor: '#f3f4f6',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlayTouchable: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  modalContainer: {
+    width: '80%',
+    maxWidth: 400,
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  modalConfirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#EF4444',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalConfirmButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#FFFFFF',
   },
   title: {
     fontSize: 28,

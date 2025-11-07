@@ -54,6 +54,27 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
+    const isLoginRequest = endpoint.includes('/auth/login');
+    
+    const addRequestLog = (message: string) => {
+      if (isLoginRequest) {
+        const timestamp = new Date().toLocaleTimeString();
+        console.log(`[ApiService.request ${timestamp}] ${message}`);
+      }
+    };
+    
+    if (isLoginRequest) {
+      addRequestLog(`=== 开始HTTP请求 ===`);
+      addRequestLog(`URL: ${url}`);
+      addRequestLog(`Method: ${options.method || 'GET'}`);
+      addRequestLog(`BaseURL: ${this.baseUrl}`);
+      addRequestLog(`Endpoint: ${endpoint}`);
+      addRequestLog(`API_KEY配置: ${API_CONFIG.API_KEY ? '已配置' : '未配置'}`);
+      if (API_CONFIG.API_KEY) {
+        addRequestLog(`API_KEY前缀: ${API_CONFIG.API_KEY.substring(0, 8)}...`);
+      }
+      addRequestLog(`Token: ${this.token ? '已设置' : '未设置'}`);
+    }
     
     const config: RequestInit = {
       ...options,
@@ -63,24 +84,70 @@ class ApiService {
       },
     };
 
+    if (isLoginRequest) {
+      addRequestLog(`请求头: ${JSON.stringify(Object.keys(config.headers || {}))}`);
+      if (config.body) {
+        try {
+          const bodyStr = typeof config.body === 'string' ? config.body : JSON.stringify(config.body);
+          addRequestLog(`请求体: ${bodyStr.substring(0, 200)}`);
+        } catch (e) {
+          addRequestLog(`请求体: [无法序列化]`);
+        }
+      }
+    }
+
+    // 创建 AbortController 用于超时控制（兼容 React Native）
+    const controller = new AbortController();
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const requestStartTime = Date.now();
+
     try {
+      timeoutId = setTimeout(() => {
+        controller.abort();
+      }, API_CONFIG.TIMEOUT);
+
+      if (isLoginRequest) {
+        addRequestLog(`发送fetch请求 (超时: ${API_CONFIG.TIMEOUT}ms)`);
+      }
+
       const response = await fetch(url, {
         ...config,
-        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
+        signal: controller.signal,
       });
+
+      const requestDuration = Date.now() - requestStartTime;
+
+      // 清除超时定时器
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      if (isLoginRequest) {
+        addRequestLog(`收到响应 (耗时: ${requestDuration}ms)`);
+        addRequestLog(`状态码: ${response.status} ${response.statusText}`);
+        addRequestLog(`响应头: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`);
+      }
 
       if (!response.ok) {
         // 尝试读取错误响应体
         let errorMessage = `HTTP error! status: ${response.status}`;
+        let errorData: any = null;
         try {
-          const errorData = await response.json();
+          errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
+          if (isLoginRequest) {
+            addRequestLog(`错误响应体: ${JSON.stringify(errorData)}`);
+          }
         } catch {
           // 如果无法解析 JSON，尝试读取文本
           try {
             const errorText = await response.text();
             if (errorText) {
               errorMessage = errorText;
+              if (isLoginRequest) {
+                addRequestLog(`错误响应文本: ${errorText.substring(0, 200)}`);
+              }
             }
           } catch {
             // 忽略文本读取错误
@@ -90,12 +157,49 @@ class ApiService {
         const error = new Error(errorMessage) as any;
         error.status = response.status;
         error.statusText = response.statusText;
+        error.response = errorData;
+        if (isLoginRequest) {
+          addRequestLog(`抛出错误: ${errorMessage}`);
+        }
         throw error;
       }
 
       const data = await response.json();
+      if (isLoginRequest) {
+        addRequestLog(`响应数据解析成功`);
+        addRequestLog(`响应code: ${data.code || 'N/A'}`);
+        addRequestLog(`响应message: ${data.message || 'N/A'}`);
+        addRequestLog(`响应data: ${data.data ? '存在' : '不存在'}`);
+      }
       return data;
     } catch (error: any) {
+      const requestDuration = Date.now() - requestStartTime;
+      
+      // 清除超时定时器（如果请求失败）
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      // 检查是否是超时错误
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        if (isLoginRequest) {
+          addRequestLog(`请求超时 (耗时: ${requestDuration}ms, 超时限制: ${API_CONFIG.TIMEOUT}ms)`);
+        }
+        const timeoutError = new Error('请求超时，请检查网络连接') as any;
+        timeoutError.status = 408;
+        timeoutError.statusText = 'Request Timeout';
+        throw timeoutError;
+      }
+
+      if (isLoginRequest) {
+        addRequestLog(`请求失败 (耗时: ${requestDuration}ms)`);
+        addRequestLog(`错误名称: ${error.name || 'N/A'}`);
+        addRequestLog(`错误消息: ${error.message || 'N/A'}`);
+        addRequestLog(`HTTP状态: ${error.status || 'N/A'}`);
+        addRequestLog(`错误堆栈: ${error.stack?.substring(0, 300) || 'N/A'}`);
+      }
+
       console.error('API Request Error:', {
         url,
         method: options.method || 'GET',
@@ -406,6 +510,97 @@ class ApiService {
     }
   }
 
+  // ========== 任务清单相关 API ==========
+
+  /**
+   * 获取所有预设任务
+   */
+  async getTaskListPresets(): Promise<any[]> {
+    const response = await this.get<any[]>(API_ENDPOINTS.TASK_LIST_PRESET);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取预设任务列表失败');
+  }
+
+  /**
+   * 创建预设任务
+   */
+  async createTaskListPreset(preset: any): Promise<any> {
+    const response = await this.post<any>(API_ENDPOINTS.TASK_LIST_PRESET, preset);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建预设任务失败');
+  }
+
+  /**
+   * 更新预设任务
+   */
+  async updateTaskListPreset(presetId: string, preset: any): Promise<any> {
+    const response = await this.put<any>(API_ENDPOINTS.TASK_LIST_PRESET_BY_ID(presetId), preset);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '更新预设任务失败');
+  }
+
+  /**
+   * 删除预设任务
+   */
+  async deleteTaskListPreset(presetId: string): Promise<void> {
+    const response = await this.delete<void>(API_ENDPOINTS.TASK_LIST_PRESET_BY_ID(presetId));
+    if (response.code !== 0) {
+      throw new Error(response.message || '删除预设任务失败');
+    }
+  }
+
+  /**
+   * 获取每日任务（可按日期筛选）
+   */
+  async getTaskListDailyTasks(date?: string): Promise<any[]> {
+    const endpoint = date 
+      ? API_ENDPOINTS.TASK_LIST_DAILY_BY_DATE(date)
+      : API_ENDPOINTS.TASK_LIST_DAILY;
+    const response = await this.get<any[]>(endpoint);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取每日任务列表失败');
+  }
+
+  /**
+   * 创建每日任务
+   */
+  async createTaskListDailyTask(dailyTask: any): Promise<any> {
+    const response = await this.post<any>(API_ENDPOINTS.TASK_LIST_DAILY, dailyTask);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建每日任务失败');
+  }
+
+  /**
+   * 更新每日任务
+   */
+  async updateTaskListDailyTask(dailyTaskId: string, dailyTask: any): Promise<any> {
+    const response = await this.put<any>(API_ENDPOINTS.TASK_LIST_DAILY_BY_ID(dailyTaskId), dailyTask);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '更新每日任务失败');
+  }
+
+  /**
+   * 删除每日任务
+   */
+  async deleteTaskListDailyTask(dailyTaskId: string): Promise<void> {
+    const response = await this.delete<void>(API_ENDPOINTS.TASK_LIST_DAILY_BY_ID(dailyTaskId));
+    if (response.code !== 0) {
+      throw new Error(response.message || '删除每日任务失败');
+    }
+  }
+
   // ========== 用户认证相关 API ==========
 
   /**
@@ -439,15 +634,57 @@ class ApiService {
     userInfo: any;
     expiresIn: number;
   }> {
-    const response = await this.post<{
-      token: string;
-      userInfo: any;
-      expiresIn: number;
-    }>('/auth/login', { phone });
-    if (response.code === 0) {
-      return response.data;
+    const logs: string[] = [];
+    const addLog = (message: string) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const logMessage = `[ApiService ${timestamp}] ${message}`;
+      logs.push(logMessage);
+      console.log(logMessage);
+    };
+
+    try {
+      addLog(`开始登录API调用，手机号: ${phone}`);
+      addLog(`API配置: BASE_URL=${API_CONFIG.BASE_URL}, API_KEY=${API_CONFIG.API_KEY ? '已配置' : '未配置'}`);
+      
+      const startTime = Date.now();
+      const response = await this.post<{
+        token: string;
+        userInfo: any;
+        expiresIn: number;
+      }>('/auth/login', { phone });
+      const duration = Date.now() - startTime;
+      
+      addLog(`API请求完成 (耗时: ${duration}ms)`);
+      addLog(`响应状态: code=${response.code}, message=${response.message || 'N/A'}`);
+      addLog(`响应数据: ${response.data ? '存在' : '不存在'}`);
+      
+      if (response.code === 0) {
+        if (response.data) {
+          addLog(`登录成功: token=${response.data.token ? '存在' : '不存在'}, userInfo=${response.data.userInfo ? '存在' : '不存在'}`);
+          if (response.data.userInfo) {
+            addLog(`用户详情: userId=${response.data.userInfo.userId || 'N/A'}, phone=${response.data.userInfo.phone || 'N/A'}, nickname=${response.data.userInfo.nickname || 'N/A'}`);
+          }
+        }
+        return response.data;
+      }
+      
+      const errorMsg = response.message || '登录失败';
+      addLog(`登录失败: ${errorMsg}`);
+      throw new Error(errorMsg);
+    } catch (error: any) {
+      const errorMsg = `ApiService.login 失败: ${error?.message || '未知错误'}`;
+      addLog(errorMsg);
+      addLog(`错误类型: ${error?.constructor?.name || 'Unknown'}`);
+      if (error?.response) {
+        addLog(`HTTP响应: status=${error.response.status || 'N/A'}, statusText=${error.response.statusText || 'N/A'}`);
+      }
+      if (error?.request) {
+        addLog(`请求对象: ${error.request ? '存在' : '不存在'}`);
+      }
+      console.error('ApiService.login 错误:', error);
+      console.error('ApiService 日志:', logs.join('\n'));
+      throw error;
     }
-    throw new Error(response.message || '登录失败');
   }
 
   /**

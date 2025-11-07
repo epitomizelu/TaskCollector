@@ -59,17 +59,23 @@ export default StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     padding: 12,
+    paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
     backgroundColor: '#f9fafb',
+    minHeight: 56, // 增大点击区域
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderRadius: 8,
-    marginLeft: 8,
+    marginLeft: 12,
+    minHeight: 44, // 增大最小高度（符合触摸目标最佳实践）
+    minWidth: 80, // 增大最小宽度
+    backgroundColor: 'transparent',
   },
   actionText: {
     fontSize: 14,

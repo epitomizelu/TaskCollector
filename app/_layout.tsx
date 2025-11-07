@@ -76,9 +76,12 @@ export default function RootLayout() {
           <Stack.Screen name="ilove-reciting-profile" options={{ title: "个人资料" }} />
           <Stack.Screen name="ilove-reciting-settings" options={{ title: "设置" }} />
           <Stack.Screen name="ilove-reciting-about-us" options={{ title: "关于我们" }} />
-                <Stack.Screen name="ilove-reciting-upload-audio" options={{ title: "上传音频" }} />
-                <Stack.Screen name="ilove-reciting-upload-document" options={{ title: "上传文档" }} />
-                <Stack.Screen name="test-api" options={{ title: "云函数测试" }} />
+          <Stack.Screen name="ilove-reciting-upload-audio" options={{ title: "上传音频" }} />
+          <Stack.Screen name="ilove-reciting-upload-document" options={{ title: "上传文档" }} />
+          <Stack.Screen name="test-api" options={{ title: "云函数测试" }} />
+          {/* 任务清单模块路由 */}
+          <Stack.Screen name="task-list-today" options={{ title: "今日任务" }} />
+          <Stack.Screen name="task-list-preset" options={{ title: "预设任务" }} />
               </Stack>
       </GestureHandlerRootView>
     </AppShell>

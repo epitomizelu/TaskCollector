@@ -5,6 +5,7 @@ import { View, Text, ScrollView, TouchableOpacity, Modal, Alert, Linking, } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
+import { userService } from '../../../services/user.service';
 import styles from './styles';
 
 interface SettingItemProps {
@@ -152,11 +153,18 @@ const SettingsScreen: React.FC = () => {
   const handleLogout = () => {
     showConfirmModal(
       '退出登录',
-      '确定要退出当前账户吗？您需要重新登录才能继续使用应用。',
-      () => {
-        setTimeout(() => {
-          router.replace('/p-login_register');
-        }, 500);
+      '确定要退出当前账户吗？退出后需要重新登录才能继续使用应用。',
+      async () => {
+        try {
+          // 调用退出登录服务
+          await userService.logout();
+          
+          // 跳转到登录页面
+          router.replace('/p-login-phone');
+        } catch (error: any) {
+          console.error('退出登录失败:', error);
+          Alert.alert('错误', '退出登录失败，请重试');
+        }
       }
     );
   };

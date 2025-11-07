@@ -54,6 +54,17 @@ const PhoneLoginScreen: React.FC = () => {
    * 处理登录
    */
   const handleLogin = async () => {
+    const logs: string[] = [];
+    const addLog = (message: string) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const logMessage = `[${timestamp}] ${message}`;
+      logs.push(logMessage);
+      console.log(logMessage);
+    };
+
+    addLog('=== 开始登录流程 ===');
+    addLog(`手机号: ${phone.trim()}`);
+
     if (!phone.trim()) {
       Alert.alert('提示', '请输入手机号');
       return;
@@ -66,33 +77,81 @@ const PhoneLoginScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
+      addLog('1. 验证通过，开始调用 userService.login');
+      
+      const startTime = Date.now();
       const userInfo = await userService.login(phone.trim());
+      const duration = Date.now() - startTime;
+      
+      addLog(`2. userService.login 完成 (耗时: ${duration}ms)`);
+      addLog(`3. 返回用户信息: ${userInfo ? '存在' : '不存在'}`);
       
       // 检查 userInfo 是否存在
       if (!userInfo) {
-        throw new Error('登录失败：未获取到用户信息');
+        const errorMsg = '登录失败：未获取到用户信息';
+        addLog(`4. 错误: ${errorMsg}`);
+        throw new Error(errorMsg);
       }
+      
+      addLog(`4. 用户信息详情: userId=${userInfo.userId || 'N/A'}, nickname=${userInfo.nickname || 'N/A'}, phone=${userInfo.phone || 'N/A'}`);
+      addLog('5. 登录成功，准备跳转');
       
       // 登录成功后跳转到首页
       router.replace('/module-home');
       
-      // 显示欢迎消息
+      // 显示欢迎消息和日志
       const nickname = userInfo?.nickname || userInfo?.phone || '用户';
-      Alert.alert('登录成功', `欢迎回来，${nickname}！`);
+      const logSummary = logs.join('\n');
+      // 限制日志长度，避免弹窗过大（保留最后30行）
+      const maxLogLines = 30;
+      const logLines = logs;
+      const displayLogs = logLines.length > maxLogLines 
+        ? ['... (省略部分日志) ...', ...logLines.slice(-maxLogLines)]
+        : logLines;
+      const logSummaryToShow = displayLogs.join('\n');
+      
+      Alert.alert(
+        '登录成功',
+        `欢迎回来，${nickname}！\n\n调试信息:\n${logSummaryToShow}\n\n(完整日志请查看控制台)`,
+        [{ text: '确定' }]
+      );
     } catch (error: any) {
-      console.error('登录失败:', error);
+      addLog(`错误捕获: ${error?.message || '未知错误'}`);
+      addLog(`错误类型: ${error?.constructor?.name || 'Unknown'}`);
+      addLog(`错误堆栈: ${error?.stack?.substring(0, 200) || 'N/A'}`);
+      
+      const logSummary = logs.join('\n');
+      console.error('登录失败详情:', error);
+      console.error('完整日志:', logSummary);
+      
+      // 限制日志长度，避免弹窗过大（保留最后30行）
+      const maxLogLines = 30;
+      const logLines = logs;
+      const displayLogs = logLines.length > maxLogLines 
+        ? ['... (省略部分日志) ...', ...logLines.slice(-maxLogLines)]
+        : logLines;
+      const logSummaryToShow = displayLogs.join('\n');
       
       // 如果用户不存在，提示注册
       if (error.message?.includes('不存在') || error.message?.includes('未找到') || error.message?.includes('未注册')) {
-        Alert.alert('提示', '该手机号未注册，请先注册', [
-          { text: '取消', style: 'cancel' },
-          { text: '去注册', onPress: () => setIsRegister(true) },
-        ]);
+        Alert.alert(
+          '提示',
+          `该手机号未注册，请先注册\n\n调试信息:\n${logSummaryToShow}\n\n(完整日志请查看控制台)`,
+          [
+            { text: '取消', style: 'cancel' },
+            { text: '去注册', onPress: () => setIsRegister(true) },
+          ]
+        );
       } else {
-        Alert.alert('登录失败', error.message || '请重试');
+        Alert.alert(
+          '登录失败',
+          `${error.message || '请重试'}\n\n调试信息:\n${logSummaryToShow}\n\n(完整日志请查看控制台)`,
+          [{ text: '确定' }]
+        );
       }
     } finally {
       setIsLoading(false);
+      addLog('=== 登录流程结束 ===');
     }
   };
 

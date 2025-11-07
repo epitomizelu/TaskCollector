@@ -48,12 +48,46 @@ class UserService {
         AsyncStorage.getItem(STORAGE_KEYS.USER_INFO),
       ]);
 
+      // 验证数据有效性
       if (token && userInfoJson) {
-        this.token = token;
-        this.currentUser = JSON.parse(userInfoJson);
+        // 检查是否是有效的 JSON 字符串（不是 "undefined" 或 "null"）
+        const trimmedJson = userInfoJson.trim();
+        if (
+          trimmedJson === 'undefined' ||
+          trimmedJson === 'null' ||
+          trimmedJson === '' ||
+          !trimmedJson.startsWith('{')
+        ) {
+          // 数据无效，清除
+          console.warn('检测到无效的用户信息，清除本地数据');
+          await this.logout();
+          return;
+        }
+
+        try {
+          this.token = token;
+          this.currentUser = JSON.parse(userInfoJson);
+          
+          // 验证解析后的数据是否有效
+          if (!this.currentUser || !this.currentUser.userId) {
+            console.warn('用户信息格式不正确，清除本地数据');
+            await this.logout();
+            return;
+          }
+        } catch (parseError) {
+          console.error('解析用户信息失败:', parseError);
+          // 解析失败，清除无效数据
+          await this.logout();
+        }
       }
     } catch (error) {
       console.error('初始化用户服务失败:', error);
+      // 如果初始化失败，清除可能损坏的数据
+      try {
+        await this.logout();
+      } catch (logoutError) {
+        // 忽略退出登录的错误
+      }
     }
   }
 
@@ -91,24 +125,54 @@ class UserService {
    * 登录 - 使用手机号
    */
   async login(phone: string): Promise<UserInfo> {
+    const logs: string[] = [];
+    const addLog = (message: string) => {
+      const timestamp = new Date().toLocaleTimeString();
+      const logMessage = `[UserService ${timestamp}] ${message}`;
+      logs.push(logMessage);
+      console.log(logMessage);
+    };
+
     try {
+      addLog(`开始登录，手机号: ${phone}`);
+      
       // 调用云端API登录（使用 apiService.login 方法，已处理响应结构）
+      addLog('调用 apiService.login');
+      const startTime = Date.now();
       const response = await apiService.login(phone);
+      const duration = Date.now() - startTime;
+      addLog(`apiService.login 完成 (耗时: ${duration}ms)`);
 
       // 检查响应数据
+      addLog(`检查响应数据: response=${response ? '存在' : '不存在'}`);
       if (!response || !response.userInfo) {
+        addLog(`响应数据格式错误: response=${JSON.stringify(response)}`);
         throw new Error('登录响应数据格式错误');
       }
 
+      addLog(`响应数据验证通过: token=${response.token ? '存在' : '不存在'}, userInfo=${response.userInfo ? '存在' : '不存在'}`);
+      addLog(`用户信息: userId=${response.userInfo.userId || 'N/A'}, nickname=${response.userInfo.nickname || 'N/A'}`);
+
       // 保存用户信息和Token
+      addLog('保存用户信息和Token到本地');
       await this.setAuthData(response.token, response.userInfo);
+      addLog('本地数据保存完成');
 
       // 登录成功后，同步云端数据到本地（并集）
+      addLog('开始同步云端数据到本地');
+      const syncStartTime = Date.now();
       await this.syncCloudDataToLocal();
+      const syncDuration = Date.now() - syncStartTime;
+      addLog(`数据同步完成 (耗时: ${syncDuration}ms)`);
 
+      addLog('登录流程全部完成');
       return response.userInfo;
     } catch (error: any) {
+      const errorMsg = `UserService.login 失败: ${error?.message || '未知错误'}`;
+      addLog(errorMsg);
+      addLog(`错误详情: ${JSON.stringify(error)}`);
       console.error('登录失败:', error);
+      console.error('UserService 日志:', logs.join('\n'));
       throw new Error(error.message || '登录失败');
     }
   }

@@ -1,0 +1,10 @@
+{
+  "name": "task-collection-api",
+  "version": "1.0.0",
+  "description": "任务收集应用后端 API",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^2.5.0"
+  }
+}
+
