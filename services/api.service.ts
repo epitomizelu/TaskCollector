@@ -192,6 +192,38 @@ class ApiService {
         throw timeoutError;
       }
 
+      // 检查是否是网络连接错误
+      const isNetworkError = 
+        error.message?.includes('Network request failed') ||
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('NetworkError') ||
+        error.name === 'TypeError' ||
+        !error.status;
+
+      if (isNetworkError) {
+        const networkError = new Error(
+          `网络请求失败: ${error.message || '无法连接到服务器'}\n\n` +
+          `可能的原因：\n` +
+          `1. 网络连接不可用\n` +
+          `2. 服务器地址配置错误\n` +
+          `3. API Key 未正确配置\n` +
+          `4. 防火墙或代理阻止了请求\n\n` +
+          `服务器地址: ${this.baseUrl}\n` +
+          `API Key: ${API_CONFIG.API_KEY ? '已配置' : '未配置'}`
+        ) as any;
+        networkError.status = 0;
+        networkError.statusText = 'Network Error';
+        networkError.originalError = error;
+        
+        if (isLoginRequest) {
+          addRequestLog(`网络错误: ${error.message || 'N/A'}`);
+          addRequestLog(`BASE_URL: ${this.baseUrl}`);
+          addRequestLog(`API_KEY: ${API_CONFIG.API_KEY ? '已配置' : '未配置'}`);
+        }
+        
+        throw networkError;
+      }
+
       if (isLoginRequest) {
         addRequestLog(`请求失败 (耗时: ${requestDuration}ms)`);
         addRequestLog(`错误名称: ${error.name || 'N/A'}`);
@@ -207,6 +239,7 @@ class ApiService {
         message: error.message,
         hasApiKey: !!API_CONFIG.API_KEY,
         apiKeyPrefix: API_CONFIG.API_KEY ? API_CONFIG.API_KEY.substring(0, 8) + '...' : '未配置',
+        baseUrl: this.baseUrl,
       });
       throw error;
     }

@@ -9,7 +9,7 @@ export const API_CONFIG = {
   // 或者使用 API 网关地址
   BASE_URL: __DEV__
     ? 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api' // 开发环境
-    : 'https://your-region.apigw.tencentcs.com/release/task-collection-api', // 生产环境
+    : 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api', // 生产环境（使用相同的云函数地址）
   
   // 请求超时时间（毫秒）
   TIMEOUT: 10000,

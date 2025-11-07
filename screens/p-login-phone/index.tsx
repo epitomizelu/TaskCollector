@@ -143,9 +143,21 @@ const PhoneLoginScreen: React.FC = () => {
           ]
         );
       } else {
+        // 提取更详细的错误信息
+        let errorDetails = error.message || '请重试';
+        
+        // 如果是网络错误，显示更详细的信息
+        if (error.message?.includes('Network request failed') || error.message?.includes('网络请求失败')) {
+          errorDetails = error.message;
+          // 如果错误对象包含更多信息，添加到详情中
+          if (error.originalError) {
+            errorDetails += `\n\n原始错误: ${error.originalError.message || 'N/A'}`;
+          }
+        }
+        
         Alert.alert(
           '登录失败',
-          `${error.message || '请重试'}\n\n调试信息:\n${logSummaryToShow}\n\n(完整日志请查看控制台)`,
+          `${errorDetails}\n\n调试信息:\n${logSummaryToShow}\n\n(完整日志请查看控制台)`,
           [{ text: '确定' }]
         );
       }
