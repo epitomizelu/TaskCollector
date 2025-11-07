@@ -4,6 +4,7 @@ import { Stack, usePathname, useGlobalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { LogBox } from 'react-native';
 import { AppShell } from '../core/app-shell';
+import { updateService } from '../services/update.service';
 
 LogBox.ignoreLogs([
   "TurboModuleRegistry.getEnforcing(...): 'RNMapsAirModule' could not be found",
@@ -13,6 +14,24 @@ LogBox.ignoreLogs([
 export default function RootLayout() {
   const pathname = usePathname();
   const searchParams = useGlobalSearchParams();
+
+  // 应用启动时检查更新（静默检查，不阻塞启动）
+  useEffect(() => {
+    const checkForUpdates = async () => {
+      try {
+        // 静默检查更新，不阻塞应用启动
+        updateService.checkForUpdate().catch(error => {
+          console.error('[RootLayout] 更新检查失败:', error);
+        });
+      } catch (error) {
+        console.error('[RootLayout] 更新检查异常:', error);
+      }
+    };
+
+    // 延迟检查，确保应用已启动
+    const timer = setTimeout(checkForUpdates, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!pathname) {
@@ -82,6 +101,7 @@ export default function RootLayout() {
           {/* 任务清单模块路由 */}
           <Stack.Screen name="task-list-today" options={{ title: "今日任务" }} />
           <Stack.Screen name="task-list-preset" options={{ title: "预设任务" }} />
+          <Stack.Screen name="app-update" options={{ title: "检查更新" }} />
               </Stack>
       </GestureHandlerRootView>
     </AppShell>

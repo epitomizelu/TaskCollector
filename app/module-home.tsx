@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { moduleManager } from '../core/module-manager';
 import { ModuleInstance } from '../types/module.types';
 import { userService } from '../services/user.service';
+import { Sidebar, MenuItem } from '../components/Sidebar';
 
 const ModuleHome: React.FC = () => {
   const router = useRouter();
@@ -19,6 +20,7 @@ const ModuleHome: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [userNickname, setUserNickname] = useState<string>('');
+  const [sidebarVisible, setSidebarVisible] = useState(false);
 
   // 页面获取焦点时刷新模块列表
   useFocusEffect(
@@ -85,28 +87,39 @@ const ModuleHome: React.FC = () => {
     setIsLogoutModalVisible(false);
   };
 
+  // 侧边栏菜单项
+  const menuItems: MenuItem[] = [
+    {
+      id: 'app-update',
+      label: '检查更新',
+      icon: 'arrow-rotate-right',
+      path: '/app-update',
+    },
+    {
+      id: 'logout',
+      label: '退出登录',
+      icon: 'right-from-bracket',
+      onPress: handleLogout,
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.title}>功能模块</Text>
-            <Text style={styles.subtitle}>
-              {userNickname ? `欢迎，${userNickname}` : '选择要使用的功能'}
-            </Text>
-          </View>
-          <View style={styles.headerRight}>
-            {userService.isLoggedIn() && (
-              <TouchableOpacity
-                style={styles.logoutButton}
-                onPress={handleLogout}
-                activeOpacity={0.7}
-              >
-                <FontAwesome6 name="right-from-bracket" size={18} color="#EF4444" />
-              </TouchableOpacity>
-            )}
-            <View style={styles.headerIcon}>
-              <FontAwesome6 name="grid" size={24} color="#6366f1" />
+          <View style={styles.headerLeft}>
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => setSidebarVisible(true)}
+              activeOpacity={0.7}
+            >
+              <FontAwesome6 name="bars" size={20} color="#6366f1" />
+            </TouchableOpacity>
+            <View>
+              <Text style={styles.title}>功能模块</Text>
+              <Text style={styles.subtitle}>
+                {userNickname ? `欢迎，${userNickname}` : '选择要使用的功能'}
+              </Text>
             </View>
           </View>
         </View>
@@ -226,6 +239,15 @@ const ModuleHome: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      {/* 侧边栏 */}
+      <Sidebar
+        visible={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+        menuItems={menuItems}
+        moduleName="功能模块"
+        moduleIcon="house"
+      />
     </SafeAreaView>
   );
 };
@@ -243,27 +265,20 @@ const styles = StyleSheet.create({
   },
   headerContent: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
   },
-  headerRight: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
-  logoutButton: {
+  menuButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#FEE2E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
   },

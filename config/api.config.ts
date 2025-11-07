@@ -41,6 +41,10 @@ export const API_ENDPOINTS = {
   TASK_LIST_DAILY: '/task-list/daily',
   TASK_LIST_DAILY_BY_ID: (id: string) => `/task-list/daily/${id}`,
   TASK_LIST_DAILY_BY_DATE: (date: string) => `/task-list/daily?date=${date}`,
+  
+  // 应用更新相关
+  APP_CHECK_UPDATE: (currentVersion: string, versionCode: number, platform: string = 'android') => 
+    `/app/check-update?currentVersion=${currentVersion}&versionCode=${versionCode}&platform=${platform}`,
 };
 
 // 请求头配置

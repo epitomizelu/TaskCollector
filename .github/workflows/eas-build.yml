@@ -42,6 +42,42 @@ jobs:
             sleep 30
           done
 
+      - name: Download APK
+        if: success()
+        run: |
+          echo "等待构建完成..."
+          sleep 10
+          eas build:download --platform android --latest --output ./app-release.apk || echo "下载失败，将在后续步骤重试"
+
+      - name: Get Version Info
+        if: success()
+        id: version
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "versionCode=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "版本: v$VERSION (Build $VERSION_CODE)"
+
+      - name: Upload APK to TCB Storage
+        if: success()
+        env:
+          API_BASE_URL: https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api
+          EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
+        run: |
+          if [ -f "./app-release.apk" ]; then
+            echo "开始上传 APK 到腾讯云存储..."
+            node scripts/upload-apk-to-tcb.js ./app-release.apk
+          else
+            echo "APK 文件不存在，尝试重新下载..."
+            eas build:download --platform android --latest --output ./app-release.apk
+            if [ -f "./app-release.apk" ]; then
+              node scripts/upload-apk-to-tcb.js ./app-release.apk
+            else
+              echo "警告: 无法下载 APK，请手动上传"
+            fi
+          fi
+
       - name: Upload Build Artifact (If Success)
         if: success()
         uses: actions/upload-artifact@v4

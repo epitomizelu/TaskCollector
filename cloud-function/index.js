@@ -132,6 +132,12 @@ exports.main = async (event, context) => {
     } else if (path === '/task-list/daily' || path.startsWith('/task-list/daily')) {
       // 任务清单模块 - 每日任务
       result = await handleTaskListDaily(method, path, body, normalizedHeaders);
+    } else if (path === '/app/check-update' || path.startsWith('/app/check-update')) {
+      // 应用更新检查
+      result = await handleAppCheckUpdate(method, path, body, normalizedHeaders);
+    } else if (path === '/storage/upload' || path.startsWith('/storage/upload')) {
+      // 文件上传到云存储
+      result = await handleStorageUpload(method, path, body, normalizedHeaders);
     } else {
       return {
         statusCode: 404,
@@ -1282,5 +1288,106 @@ async function handleDeleteTaskListDailyTask(path, userId, collection) {
     message: '删除成功',
     data: null,
   };
+}
+
+/**
+ * 应用更新检查接口
+ * GET /app/check-update?currentVersion=1.0.0&versionCode=1&platform=android
+ */
+async function handleAppCheckUpdate(method, path, body, headers) {
+  if (method !== 'GET') {
+    throw new Error('只支持 GET 请求');
+  }
+
+  // 从查询参数获取当前版本信息
+  const queryParams = new URLSearchParams(path.split('?')[1] || '');
+  const currentVersion = queryParams.get('currentVersion') || '1.0.0';
+  const currentVersionCode = parseInt(queryParams.get('versionCode') || '1', 10);
+  const platform = queryParams.get('platform') || 'android';
+
+  console.log('检查更新:', { currentVersion, currentVersionCode, platform });
+
+  // 从数据库或配置中获取最新版本信息
+  // 这里使用硬编码，实际应该从数据库读取
+  const latestVersion = {
+    version: '1.0.1',
+    versionCode: 2,
+    platform: 'android',
+    downloadUrl: `https://636c-cloud1-4gee45pq61cd6f19-1259499058.tcb.qcloud.la/task_collection_apks/v1.0.1/app-release.apk`,
+    forceUpdate: false,
+    updateLog: '修复了一些 bug，优化了性能',
+    fileSize: 0, // 可以从云存储获取文件大小
+    releaseDate: new Date().toISOString(),
+  };
+
+  // 对比版本号
+  const hasUpdate = latestVersion.versionCode > currentVersionCode;
+
+  return {
+    code: 0,
+    message: 'success',
+    data: {
+      hasUpdate: hasUpdate,
+      latestVersion: latestVersion.version,
+      latestVersionCode: latestVersion.versionCode,
+      downloadUrl: latestVersion.downloadUrl,
+      forceUpdate: latestVersion.forceUpdate,
+      updateLog: latestVersion.updateLog,
+      fileSize: latestVersion.fileSize,
+      releaseDate: latestVersion.releaseDate,
+    },
+  };
+}
+
+/**
+ * 文件上传到云存储接口
+ * POST /storage/upload
+ */
+async function handleStorageUpload(method, path, body, headers) {
+  if (method !== 'POST') {
+    throw new Error('只支持 POST 请求');
+  }
+
+  const { fileName, filePath, fileContent, contentType } = body;
+
+  if (!fileName || !filePath || !fileContent) {
+    throw new Error('缺少必要参数: fileName, filePath, fileContent');
+  }
+
+  try {
+    const storage = app.storage();
+    
+    // fileContent 是 Base64 编码的字符串
+    const fileBuffer = Buffer.from(fileContent, 'base64');
+    
+    // 上传文件
+    const uploadResult = await storage.uploadFile({
+      cloudPath: filePath,
+      fileContent: fileBuffer,
+    });
+
+    // 获取文件访问 URL
+    const fileUrlResult = await storage.getTempFileURL({
+      fileList: [filePath],
+    });
+
+    const fileUrl = fileUrlResult.fileList[0]?.tempFileURL || 
+      `https://636c-cloud1-4gee45pq61cd6f19-1259499058.tcb.qcloud.la/${filePath}`;
+
+    console.log('文件上传成功:', { filePath, fileUrl });
+
+    return {
+      code: 0,
+      message: '上传成功',
+      data: {
+        fileId: uploadResult.fileID,
+        filePath: filePath,
+        fileUrl: fileUrl,
+      },
+    };
+  } catch (error) {
+    console.error('上传文件到存储失败:', error);
+    throw new Error(`上传失败: ${error.message || '未知错误'}`);
+  }
 }
 

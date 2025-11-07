@@ -22,7 +22,8 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE"
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.REQUEST_INSTALL_PACKAGES"
       ],
       "usesCleartextTraffic": false
     },
@@ -59,6 +60,15 @@
       "eas": {
         "projectId": "6871505d-550b-4d0e-8e87-b6537f15a5b4"
       }
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/6871505d-550b-4d0e-8e87-b6537f15a5b4"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "owner": "epitomizelu"
   }

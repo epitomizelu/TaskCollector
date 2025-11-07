@@ -730,6 +730,37 @@ class ApiService {
     }
     throw new Error(response.message || '获取用户信息失败');
   }
+
+  // ========== 应用更新 API ==========
+
+  /**
+   * 检查应用更新
+   */
+  async checkAppUpdate(currentVersion: string, versionCode: number, platform: string = 'android'): Promise<{
+    hasUpdate: boolean;
+    latestVersion: string;
+    latestVersionCode: number;
+    downloadUrl: string;
+    forceUpdate: boolean;
+    updateLog: string;
+    fileSize: number;
+    releaseDate: string;
+  }> {
+    const response = await this.get<{
+      hasUpdate: boolean;
+      latestVersion: string;
+      latestVersionCode: number;
+      downloadUrl: string;
+      forceUpdate: boolean;
+      updateLog: string;
+      fileSize: number;
+      releaseDate: string;
+    }>(API_ENDPOINTS.APP_CHECK_UPDATE(currentVersion, versionCode, platform));
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '检查更新失败');
+  }
 }
 
 // 导出单例
