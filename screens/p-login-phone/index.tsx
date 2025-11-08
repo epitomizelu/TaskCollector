@@ -118,87 +118,37 @@ const PhoneLoginScreen: React.FC = () => {
       // 登录成功后跳转到首页
       router.replace('/module-home');
       
-      // 显示欢迎消息和日志
+      // 显示欢迎消息
       const nickname = userInfo?.nickname || userInfo?.phone || '用户';
-      const logSummary = logs.join('\n');
-      // 限制日志长度，避免弹窗过大（保留最后30行）
-      const maxLogLines = 30;
-      const logLines = logs;
-      const displayLogs = logLines.length > maxLogLines 
-        ? ['... (省略部分日志) ...', ...logLines.slice(-maxLogLines)]
-        : logLines;
-      const logSummaryToShow = displayLogs.join('\n');
-      
-      Alert.alert(
-        '登录成功',
-        `欢迎回来，${nickname}！\n\n调试信息:\n${logSummaryToShow}\n\n(完整日志请查看控制台)`,
-        [{ text: '确定' }]
-      );
+      Alert.alert('登录成功', `欢迎回来，${nickname}！`, [{ text: '确定' }]);
     } catch (error: any) {
-      addLog(`错误捕获: ${error?.message || '未知错误'}`);
-      addLog(`错误类型: ${error?.constructor?.name || 'Unknown'}`);
-      addLog(`错误堆栈: ${error?.stack?.substring(0, 200) || 'N/A'}`);
-      
-      const logSummary = logs.join('\n');
+      // 记录错误日志到控制台（不显示在弹窗中）
       console.error('登录失败详情:', error);
+      const logSummary = logs.join('\n');
       console.error('完整日志:', logSummary);
-      
-      // 限制日志长度，避免弹窗过大（保留最后30行）
-      const maxLogLines = 30;
-      const logLines = logs;
-      const displayLogs = logLines.length > maxLogLines 
-        ? ['... (省略部分日志) ...', ...logLines.slice(-maxLogLines)]
-        : logLines;
-      const logSummaryToShow = displayLogs.join('\n');
       
       // 如果用户不存在，提示注册
       if (error.message?.includes('不存在') || error.message?.includes('未找到') || error.message?.includes('未注册')) {
         Alert.alert(
           '提示',
-          `该手机号未注册，请先注册\n\n调试信息:\n${logSummaryToShow}\n\n(完整日志请查看控制台)`,
+          '该手机号未注册，请先注册',
           [
             { text: '取消', style: 'cancel' },
             { text: '去注册', onPress: () => setIsRegister(true) },
           ]
         );
       } else {
-        // 提取更详细的错误信息
-        let errorDetails = error.message || '请重试';
+        // 显示简化的错误信息
+        let errorMessage = error.message || '登录失败，请稍后重试';
         
-        // 如果是网络错误，显示更详细的信息
-        if (error.message?.includes('Network request failed') || error.message?.includes('网络请求失败')) {
-          errorDetails = error.message;
-          // 如果错误对象包含更多信息，添加到详情中
-          if (error.originalError) {
-            errorDetails += `\n\n原始错误: ${error.originalError.message || 'N/A'}`;
-          }
+        // 如果是凭证错误，显示友好提示
+        if (error.message?.includes('Credentials are invalid') || error.message?.includes('凭证无效')) {
+          errorMessage = '登录失败，请检查网络连接或联系管理员';
         }
-        
-        // 添加 API Key 配置信息到错误详情
-        const apiKeyInfo = {
-          hasApiKey: !!API_CONFIG.API_KEY,
-          apiKeyLength: API_CONFIG.API_KEY.length,
-          apiKeyPrefix: API_CONFIG.API_KEY ? API_CONFIG.API_KEY.substring(0, 8) + '...' : '空',
-          apiKeySuffix: API_CONFIG.API_KEY ? '...' + API_CONFIG.API_KEY.substring(API_CONFIG.API_KEY.length - 4) : '空',
-          baseUrl: API_CONFIG.BASE_URL,
-          envVarExists: !!process.env.EXPO_PUBLIC_API_KEY,
-        };
-        
-        // 构建完整的错误信息（包含所有调试信息）
-        const fullErrorInfo = 
-          `错误信息: ${errorDetails}\n\n` +
-          `=== API Key 配置信息 ===\n` +
-          `API Key 已配置: ${apiKeyInfo.hasApiKey ? '是' : '否'}\n` +
-          `API Key 长度: ${apiKeyInfo.apiKeyLength}\n` +
-          `API Key 前缀: ${apiKeyInfo.apiKeyPrefix}\n` +
-          `API Key 后缀: ${apiKeyInfo.apiKeySuffix}\n` +
-          `BASE_URL: ${apiKeyInfo.baseUrl}\n` +
-          `环境变量存在: ${apiKeyInfo.envVarExists ? '是' : '否'}\n\n` +
-          `=== 调试日志 ===\n${logSummaryToShow}`;
         
         Alert.alert(
           '登录失败',
-          fullErrorInfo,
+          errorMessage,
           [
             { text: '确定' },
             {

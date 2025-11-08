@@ -207,6 +207,9 @@ exports.main = async (event, context) => {
     } else if (path === '/app/versions' || path.startsWith('/app/versions')) {
       // 应用版本管理（保存/获取版本信息）
       result = await handleAppVersions(method, path, body, normalizedHeaders);
+    } else if (path === '/app/download-and-upload' || path.startsWith('/app/download-and-upload')) {
+      // 从 EAS URL 下载 APK 并上传到云存储
+      result = await handleDownloadAndUpload(method, path, body, normalizedHeaders);
     } else if (path === '/storage/upload-chunk' || path.startsWith('/storage/upload-chunk')) {
       // 分片上传
       result = await handleChunkUpload(method, path, body, normalizedHeaders);
@@ -1629,6 +1632,150 @@ async function handleAppVersions(method, path, body, headers) {
     }
   } else {
     throw new Error('不支持的请求方法');
+  }
+}
+
+/**
+ * 从 EAS URL 下载 APK 并上传到云存储
+ * POST /app/download-and-upload
+ * 请求体: { easDownloadUrl, version, versionCode, platform }
+ */
+async function handleDownloadAndUpload(method, path, body, headers) {
+  if (method !== 'POST') {
+    throw new Error('只支持 POST 请求');
+  }
+
+  try {
+    // 解析请求体
+    let requestData;
+    if (typeof body === 'string') {
+      try {
+        requestData = JSON.parse(body);
+      } catch (e) {
+        throw new Error('无法解析请求体 JSON');
+      }
+    } else {
+      requestData = body;
+    }
+
+    // 验证必要字段
+    const { easDownloadUrl, version, versionCode, platform = 'android' } = requestData;
+    if (!easDownloadUrl || !version || !versionCode) {
+      throw new Error('缺少必要字段: easDownloadUrl, version, versionCode');
+    }
+
+    console.log('开始从 EAS 下载并上传 APK:', {
+      easDownloadUrl,
+      version,
+      versionCode,
+      platform,
+    });
+
+    // 步骤1: 从 EAS URL 下载 APK
+    console.log('步骤 1: 从 EAS 下载 APK...');
+    const apkBuffer = await downloadFileFromUrl(easDownloadUrl);
+    const fileSize = apkBuffer.length;
+    console.log(`下载完成，文件大小: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
+
+    // 步骤2: 构造云存储路径
+    const fileName = `app-release-v${version}.apk`;
+    const cloudPath = `task_collection_apks/v${version}/${fileName}`;
+
+    // 步骤3: 上传到云存储
+    console.log('步骤 2: 上传到云存储...');
+    const storage = checkStorageSupport();
+    
+    const uploadResult = await storage.uploadFile({
+      cloudPath: cloudPath,
+      fileContent: apkBuffer,
+    });
+
+    console.log('上传成功:', uploadResult);
+
+    // 步骤4: 获取文件访问 URL
+    console.log('步骤 3: 获取文件访问 URL...');
+    // 辅助函数：将路径转换为 cloud:// 格式的 fileID
+    const envId = process.env.TCB_ENV || 'cloud1-4gee45pq61cd6f19';
+    const storageDomain = '636c-cloud1-4gee45pq61cd6f19-1259499058.tcb.qcloud.la';
+    const cloudPrefix = `${envId}.${storageDomain}`;
+    function pathToCloudFileID(path) {
+      // 如果已经是 cloud:// 格式，直接返回
+      if (path && path.startsWith('cloud://')) {
+        return path;
+      }
+      // 否则转换为 cloud://环境ID.存储域名/路径 格式
+      const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+      return `cloud://${cloudPrefix}/${cleanPath}`;
+    }
+    
+    const fileCloudID = pathToCloudFileID(cloudPath);
+    const fileUrlResult = await storage.getTempFileURL({
+      fileList: [fileCloudID],
+    });
+
+    const fileUrl = fileUrlResult.fileList[0]?.tempFileURL ||
+      `https://636c-cloud1-4gee45pq61cd6f19-1259499058.tcb.qcloud.la/${cloudPath}`;
+
+    console.log('文件 URL:', fileUrl);
+
+    // 步骤5: 保存版本信息到数据库
+    console.log('步骤 4: 保存版本信息到数据库...');
+    const versionsCollection = db.collection('app_versions');
+    
+    const versionInfo = {
+      version: version,
+      versionCode: versionCode,
+      platform: platform,
+      filePath: cloudPath,
+      easDownloadUrl: easDownloadUrl,
+      downloadUrl: fileUrl,
+      fileSize: fileSize,
+      releaseDate: new Date().toISOString(),
+      uploadId: null,
+      totalChunks: null,
+      useChunkedDownload: false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // 检查是否已存在该版本
+    const existing = await versionsCollection
+      .where({
+        versionCode: versionCode,
+        platform: platform,
+      })
+      .get();
+
+    if (existing.data && existing.data.length > 0) {
+      // 更新现有版本
+      await versionsCollection
+        .where({
+          versionCode: versionCode,
+          platform: platform,
+        })
+        .update(versionInfo);
+      console.log('版本信息已更新');
+    } else {
+      // 创建新版本
+      versionInfo.createdAt = new Date().toISOString();
+      await versionsCollection.add(versionInfo);
+      console.log('版本信息已创建');
+    }
+
+    return {
+      code: 0,
+      message: '下载并上传成功',
+      data: {
+        filePath: cloudPath,
+        fileUrl: fileUrl,
+        fileSize: fileSize,
+        easDownloadUrl: easDownloadUrl,
+        version: version,
+        versionCode: versionCode,
+      },
+    };
+  } catch (error) {
+    console.error('下载并上传失败:', error);
+    throw new Error(`下载并上传失败: ${error.message}`);
   }
 }
 

@@ -412,18 +412,19 @@ async function uploadDirectly(filePath, cloudPath) {
 
 /**
  * 保存版本信息到数据库（通过云函数 API）
+ * 注意：此函数会更新已存在的版本信息（添加腾讯云下载地址）
  */
 async function saveVersionInfo(version, versionCode, filePath, uploadResult, easDownloadUrl = null) {
   try {
-    console.log('保存版本信息到数据库...');
+    console.log('更新版本信息到数据库（添加上传结果）...');
     
-    // 构造版本信息
+    // 构造版本信息（更新现有记录）
     const versionInfo = {
       version: version,
       versionCode: versionCode,
       platform: 'android',
       filePath: filePath,
-      // EAS Build 下载地址（优先使用）
+      // EAS Build 下载地址（优先使用，如果之前已保存则保持不变）
       easDownloadUrl: easDownloadUrl || null,
       // 腾讯云存储下载地址（备用）
       downloadUrl: uploadResult.fileUrl || `https://${TCB_STORAGE_DOMAIN}/${filePath}`,
@@ -433,7 +434,6 @@ async function saveVersionInfo(version, versionCode, filePath, uploadResult, eas
       uploadId: uploadResult.uploadId || null,
       totalChunks: uploadResult.totalChunks || null,
       useChunkedDownload: !!(uploadResult.chunkUrls && uploadResult.chunkUrls.length > 0),
-      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     

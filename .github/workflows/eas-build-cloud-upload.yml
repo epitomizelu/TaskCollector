@@ -1,8 +1,6 @@
-name: EAS Build Android Preview
+name: EAS Build Android Preview (Cloud Upload)
 
 on:
-  # push:
-  #   branches: [ main ]
   workflow_dispatch:  # 仅手动触发
 
 jobs:
@@ -65,8 +63,6 @@ jobs:
               echo "✅ 验证成功: eas.json 中的 API Key 已正确替换"
             else
               echo "❌ 警告: eas.json 中的 API Key 替换可能失败"
-              echo "eas.json 内容:"
-              cat eas.json
             fi
             
             # 同时将 API Key 注入到 app.json 的 extra.apiKey 字段（作为备用方案）
@@ -134,21 +130,15 @@ jobs:
             sleep 30
           done
 
-      - name: Download APK
+      - name: Get Version Info
         if: success() && steps.build.outputs.download_url != ''
+        id: version
         run: |
-          echo "开始下载 APK..."
-          DOWNLOAD_URL="${{ steps.build.outputs.download_url }}"
-          echo "下载地址: $DOWNLOAD_URL"
-          curl -L -o ./app-release.apk "$DOWNLOAD_URL" || wget -O ./app-release.apk "$DOWNLOAD_URL"
-          
-          if [ -f "./app-release.apk" ]; then
-            echo "✅ APK 下载成功"
-            ls -lh ./app-release.apk
-          else
-            echo "❌ APK 下载失败"
-            exit 1
-          fi
+          VERSION=$(node -p "require('./app.json').expo.version")
+          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "versionCode=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "版本: v$VERSION (Build $VERSION_CODE)"
 
       - name: Save Version Info (EAS URL)
         if: success() && steps.build.outputs.download_url != ''
@@ -158,41 +148,101 @@ jobs:
         run: |
           echo "保存版本信息到数据库（EAS URL）..."
           DOWNLOAD_URL="${{ steps.build.outputs.download_url }}"
-          node scripts/save-version-info.js "$DOWNLOAD_URL" "./app-release.apk"
+          node scripts/save-version-info.js "$DOWNLOAD_URL"
           echo "✅ 版本信息已保存，即使后续上传失败，也可以从 EAS 下载 APK"
 
-      - name: Get Version Info
-        if: success()
-        id: version
-        run: |
-          VERSION=$(node -p "require('./app.json').expo.version")
-          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "versionCode=$VERSION_CODE" >> $GITHUB_OUTPUT
-          echo "版本: v$VERSION (Build $VERSION_CODE)"
-
-      - name: Upload APK to TCB Storage
-        if: success() && steps.build.outputs.download_url != ''
+      - name: Cloud Function Download and Upload
+        if: success() && steps.build.outputs.download_url != '' && steps.version.outputs.version != ''
         env:
           API_BASE_URL: https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api
           EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
-          EAS_DOWNLOAD_URL: ${{ steps.build.outputs.download_url }}
         run: |
-          if [ -f "./app-release.apk" ]; then
-            echo "开始上传 APK 到腾讯云存储..."
-            echo "EAS 下载地址: $EAS_DOWNLOAD_URL"
-            node scripts/upload-apk-to-tcb.js ./app-release.apk "$EAS_DOWNLOAD_URL"
-          else
-            echo "❌ APK 文件不存在，无法上传"
-            exit 1
-          fi
+          echo "调用云函数下载并上传 APK..."
+          DOWNLOAD_URL="${{ steps.build.outputs.download_url }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION_CODE="${{ steps.version.outputs.versionCode }}"
+          
+          echo "参数:"
+          echo "  EAS URL: $DOWNLOAD_URL"
+          echo "  版本: v$VERSION (Build $VERSION_CODE)"
+          
+          # 调用云函数接口
+          node -e "
+            const https = require('https');
+            const apiKey = process.env.EXPO_PUBLIC_API_KEY;
+            const apiBaseUrl = process.env.API_BASE_URL;
+            const easUrl = process.argv[2];
+            const version = process.argv[3];
+            const versionCode = parseInt(process.argv[4], 10);
+            
+            const requestData = JSON.stringify({
+              easDownloadUrl: easUrl,
+              version: version,
+              versionCode: versionCode,
+              platform: 'android'
+            });
+            
+            const url = new URL(apiBaseUrl + '/app/download-and-upload');
+            const options = {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + apiKey,
+                'Content-Length': Buffer.byteLength(requestData)
+              },
+              timeout: 300000  // 5分钟超时（大文件下载和上传需要时间）
+            };
+            
+            console.log('发送请求到:', url.toString());
+            
+            const req = https.request(url, options, (res) => {
+              let data = '';
+              res.on('data', (chunk) => { data += chunk; });
+              res.on('end', () => {
+                try {
+                  const result = JSON.parse(data);
+                  if (res.statusCode === 200 && result.code === 0) {
+                    console.log('✅ 云函数下载并上传成功');
+                    console.log('文件路径:', result.data.filePath);
+                    console.log('文件 URL:', result.data.fileUrl);
+                    console.log('文件大小:', (result.data.fileSize / 1024 / 1024).toFixed(2), 'MB');
+                    process.exit(0);
+                  } else {
+                    console.error('❌ 云函数返回错误:', result.message || '未知错误');
+                    console.error('响应:', JSON.stringify(result, null, 2));
+                    process.exit(1);
+                  }
+                } catch (e) {
+                  console.error('❌ 解析响应失败:', e.message);
+                  console.error('原始响应:', data);
+                  process.exit(1);
+                }
+              });
+            });
+            
+            req.on('error', (error) => {
+              console.error('❌ 请求失败:', error.message);
+              process.exit(1);
+            });
+            
+            req.on('timeout', () => {
+              req.destroy();
+              console.error('❌ 请求超时（5分钟）');
+              process.exit(1);
+            });
+            
+            req.write(requestData);
+            req.end();
+          " "$DOWNLOAD_URL" "$VERSION" "$VERSION_CODE"
 
       - name: Upload Build Artifact (If Success)
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: android-app
+          name: android-app-cloud-upload
           path: |
             *.aab
             *.apk
           retention-days: 7
+          if-no-files-found: ignore
+
