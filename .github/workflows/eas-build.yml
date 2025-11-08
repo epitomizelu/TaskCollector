@@ -41,14 +41,24 @@ jobs:
             echo "API Key 长度: ${#EXPO_PUBLIC_API_KEY}"
             echo "API Key 前缀: ${EXPO_PUBLIC_API_KEY:0:8}..."
             
-            # 使用 sed 替换 eas.json 中的占位符
-            if command -v sed &> /dev/null; then
-              sed -i "s|\"\\${EXPO_PUBLIC_API_KEY}\"|\"$EXPO_PUBLIC_API_KEY\"|g" eas.json
-            else
-              # Windows 环境使用 PowerShell
-              powershell -Command "(Get-Content eas.json) -replace '\\\"\\$\\{EXPO_PUBLIC_API_KEY\\}\\\"', '\"$EXPO_PUBLIC_API_KEY\"' | Set-Content eas.json"
-            fi
-            echo "✅ eas.json 已更新"
+            # 使用 Node.js 脚本来安全地替换 eas.json 中的占位符
+            # 这样可以正确处理 API Key 中的特殊字符
+            node -e "
+              const fs = require('fs');
+              const apiKey = process.env.EXPO_PUBLIC_API_KEY;
+              const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
+              
+              // 替换 preview 和 production 配置中的占位符
+              if (easJson.build?.preview?.env?.EXPO_PUBLIC_API_KEY === '\${EXPO_PUBLIC_API_KEY}') {
+                easJson.build.preview.env.EXPO_PUBLIC_API_KEY = apiKey;
+              }
+              if (easJson.build?.production?.env?.EXPO_PUBLIC_API_KEY === '\${EXPO_PUBLIC_API_KEY}') {
+                easJson.build.production.env.EXPO_PUBLIC_API_KEY = apiKey;
+              }
+              
+              fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
+              console.log('✅ eas.json 已更新');
+            "
             
             # 验证替换是否成功
             if grep -q "\"$EXPO_PUBLIC_API_KEY\"" eas.json; then
@@ -68,6 +78,15 @@ jobs:
               appJson.expo.extra.apiKey = process.env.EXPO_PUBLIC_API_KEY || '';
               fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
               console.log('✅ app.json 中的 API Key 已注入');
+            "
+            
+            # 打印 app.json 的 extra 部分内容
+            echo ""
+            echo "=== app.json extra 部分内容 ==="
+            node -e "
+              const fs = require('fs');
+              const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+              console.log(JSON.stringify(appJson.expo.extra, null, 2));
             "
           else
             echo "⚠️ 警告: EXPO_PUBLIC_API_KEY 环境变量未设置"
