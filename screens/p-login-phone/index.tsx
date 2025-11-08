@@ -20,6 +20,7 @@ import { useRouter } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { userService } from '../../services/user.service';
+import { API_CONFIG } from '../../config/api.config';
 import styles from './styles';
 
 const PhoneLoginScreen: React.FC = () => {
@@ -28,6 +29,7 @@ const PhoneLoginScreen: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false); // false=登录, true=注册
   const [phone, setPhone] = useState('');
   const [nickname, setNickname] = useState('');
+
 
   useEffect(() => {
     // 检查是否已登录
@@ -74,6 +76,19 @@ const PhoneLoginScreen: React.FC = () => {
       Alert.alert('提示', '请输入正确的手机号');
       return;
     }
+
+    // 在开始登录前，检查并显示 API Key 配置
+    const apiKeyInfo = {
+      hasApiKey: !!API_CONFIG.API_KEY,
+      apiKeyLength: API_CONFIG.API_KEY.length,
+      apiKeyPrefix: API_CONFIG.API_KEY ? API_CONFIG.API_KEY.substring(0, 8) + '...' : '空',
+      apiKeySuffix: API_CONFIG.API_KEY ? '...' + API_CONFIG.API_KEY.substring(API_CONFIG.API_KEY.length - 4) : '空',
+      baseUrl: API_CONFIG.BASE_URL,
+      envVarExists: !!process.env.EXPO_PUBLIC_API_KEY,
+    };
+    addLog(`API Key 配置检查: hasApiKey=${apiKeyInfo.hasApiKey}, length=${apiKeyInfo.apiKeyLength}, prefix=${apiKeyInfo.apiKeyPrefix}`);
+    addLog(`BASE_URL: ${apiKeyInfo.baseUrl}`);
+    addLog(`环境变量存在: ${apiKeyInfo.envVarExists}`);
 
     setIsLoading(true);
     try {
@@ -155,9 +170,31 @@ const PhoneLoginScreen: React.FC = () => {
           }
         }
         
+        // 添加 API Key 配置信息到错误详情
+        const apiKeyInfo = {
+          hasApiKey: !!API_CONFIG.API_KEY,
+          apiKeyLength: API_CONFIG.API_KEY.length,
+          apiKeyPrefix: API_CONFIG.API_KEY ? API_CONFIG.API_KEY.substring(0, 8) + '...' : '空',
+          apiKeySuffix: API_CONFIG.API_KEY ? '...' + API_CONFIG.API_KEY.substring(API_CONFIG.API_KEY.length - 4) : '空',
+          baseUrl: API_CONFIG.BASE_URL,
+          envVarExists: !!process.env.EXPO_PUBLIC_API_KEY,
+        };
+        
+        // 构建完整的错误信息（包含所有调试信息）
+        const fullErrorInfo = 
+          `错误信息: ${errorDetails}\n\n` +
+          `=== API Key 配置信息 ===\n` +
+          `API Key 已配置: ${apiKeyInfo.hasApiKey ? '是' : '否'}\n` +
+          `API Key 长度: ${apiKeyInfo.apiKeyLength}\n` +
+          `API Key 前缀: ${apiKeyInfo.apiKeyPrefix}\n` +
+          `API Key 后缀: ${apiKeyInfo.apiKeySuffix}\n` +
+          `BASE_URL: ${apiKeyInfo.baseUrl}\n` +
+          `环境变量存在: ${apiKeyInfo.envVarExists ? '是' : '否'}\n\n` +
+          `=== 调试日志 ===\n${logSummaryToShow}`;
+        
         Alert.alert(
           '登录失败',
-          `${errorDetails}\n\n调试信息:\n${logSummaryToShow}\n\n(完整日志请查看控制台)`,
+          fullErrorInfo,
           [{ text: '确定' }]
         );
       }

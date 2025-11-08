@@ -8,7 +8,7 @@
         "withoutCredentials": false
       },
       "env": {
-        "EXPO_PUBLIC_API_KEY": "EXPO_PUBLIC_API_KEY"
+        "EXPO_PUBLIC_API_KEY": "${EXPO_PUBLIC_API_KEY}"
       }
     },
     "production": {
@@ -18,7 +18,7 @@
         "withoutCredentials": false
       },
       "env": {
-        "EXPO_PUBLIC_API_KEY": "EXPO_PUBLIC_API_KEY"
+        "EXPO_PUBLIC_API_KEY": "${EXPO_PUBLIC_API_KEY}"
       }
     }
   },

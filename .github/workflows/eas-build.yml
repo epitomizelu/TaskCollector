@@ -30,10 +30,26 @@ jobs:
 
       - name: Run EAS Build with Retry
         env:
-          # 从 GitHub Secrets 读取 API Key，EAS Build 会自动将其编译到 APK 中
+          # 从 GitHub Secrets 读取 API Key
           EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
         id: build
         run: |
+          # 动态替换 eas.json 中的 ${EXPO_PUBLIC_API_KEY} 为实际值
+          # 因为 EAS Build 在 GitHub Actions 中不会自动从 EAS Secrets 读取
+          if [ -n "$EXPO_PUBLIC_API_KEY" ]; then
+            echo "替换 eas.json 中的 API Key..."
+            # 使用 sed 替换（Linux/Mac）
+            if command -v sed &> /dev/null; then
+              sed -i "s|\"\\${EXPO_PUBLIC_API_KEY}\"|\"$EXPO_PUBLIC_API_KEY\"|g" eas.json
+            else
+              # Windows 环境使用 PowerShell
+              powershell -Command "(Get-Content eas.json) -replace '\\\"\\$\\{EXPO_PUBLIC_API_KEY\\}\\\"', '\"$EXPO_PUBLIC_API_KEY\"' | Set-Content eas.json"
+            fi
+            echo "✅ eas.json 已更新"
+          else
+            echo "⚠️ 警告: EXPO_PUBLIC_API_KEY 环境变量未设置"
+          fi
+          
           # 重试逻辑：如果 408 超时，自动重跑
           for i in {1..3}; do
             BUILD_OUTPUT=$(eas build --platform android --profile preview --non-interactive 2>&1)

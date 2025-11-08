@@ -98,9 +98,9 @@ class UserService {
     try {
       // 调用云端API注册（使用 apiService.register 方法，已处理响应结构）
       const response = await apiService.register({
-        phone: data.phone,
-        nickname: data.nickname,
         ...data, // 包含所有扩展字段
+        phone: data.phone, // 确保 phone 存在
+        nickname: data.nickname, // 确保 nickname 存在
       });
 
       // 检查响应数据
