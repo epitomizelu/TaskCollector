@@ -678,6 +678,12 @@ class ApiService {
     try {
       addLog(`开始登录API调用，手机号: ${phone}`);
       addLog(`API配置: BASE_URL=${API_CONFIG.BASE_URL}, API_KEY=${API_CONFIG.API_KEY ? '已配置' : '未配置'}`);
+      if (API_CONFIG.API_KEY) {
+        addLog(`API_KEY长度: ${API_CONFIG.API_KEY.length}, 前缀: ${API_CONFIG.API_KEY.substring(0, 8)}...`);
+      } else {
+        addLog(`⚠️ 警告: API_KEY 未配置！请检查环境变量 EXPO_PUBLIC_API_KEY`);
+        addLog(`环境变量检查: process.env.EXPO_PUBLIC_API_KEY=${process.env.EXPO_PUBLIC_API_KEY ? '存在' : '不存在'}`);
+      }
       
       const startTime = Date.now();
       const response = await this.post<{

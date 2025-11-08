@@ -23,6 +23,16 @@ export const API_CONFIG = {
   API_KEY: process.env.EXPO_PUBLIC_API_KEY || '', // 从环境变量读取
 };
 
+// 调试：检查 API Key 是否正确读取（仅在开发环境）
+if (__DEV__) {
+  console.log('[API_CONFIG] 环境变量检查:', {
+    hasApiKey: !!API_CONFIG.API_KEY,
+    apiKeyLength: API_CONFIG.API_KEY.length,
+    apiKeyPrefix: API_CONFIG.API_KEY ? API_CONFIG.API_KEY.substring(0, 8) + '...' : '空',
+    allEnvKeys: Object.keys(process.env).filter(key => key.includes('API') || key.includes('KEY')),
+  });
+}
+
 // API 端点
 export const API_ENDPOINTS = {
   // 任务相关
