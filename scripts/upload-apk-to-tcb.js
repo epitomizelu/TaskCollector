@@ -27,77 +27,340 @@ function getVersionInfo() {
 
 /**
  * 上传文件到 TCB 存储（通过云函数）
+ * 对于大文件（> 10MB），使用分片上传
  */
 async function uploadToTCB(filePath, cloudPath) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       const fileContent = fs.readFileSync(filePath);
-      const fileBase64 = fileContent.toString('base64');
       const fileName = path.basename(filePath);
       const fileSize = fileContent.length;
+      const fileSizeMB = fileSize / 1024 / 1024;
 
-      console.log(`文件大小: ${(fileSize / 1024 / 1024).toFixed(2)} MB`);
+      console.log(`文件大小: ${fileSizeMB.toFixed(2)} MB`);
 
-      // 通过云函数上传（需要云函数支持文件上传接口）
-      const uploadData = {
-        fileName: fileName,
-        filePath: cloudPath,
-        fileContent: fileBase64,
-        contentType: 'application/vnd.android.package-archive',
-      };
+      // 对于大文件（> 10MB），使用分片上传
+      if (fileSizeMB > 10) {
+        console.log('文件较大，使用分片上传...');
+        return await uploadInChunks(filePath, cloudPath, fileName, fileContent, resolve, reject);
+      }
 
-      const postData = JSON.stringify(uploadData);
-      const url = new URL(`${API_BASE_URL}/storage/upload`);
-
-      const options = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Length': Buffer.byteLength(postData),
-        },
-        timeout: 300000, // 5 分钟超时（大文件需要更长时间）
-      };
-
-      const req = https.request(url, options, (res) => {
-        let data = '';
-
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-
-        res.on('end', () => {
-          try {
-            const result = JSON.parse(data);
-            if (result.code === 0) {
-              console.log('✅ 上传成功！');
-              console.log(`文件 URL: ${result.data.fileUrl}`);
-              resolve(result.data);
-            } else {
-              reject(new Error(result.message || '上传失败'));
-            }
-          } catch (error) {
-            console.error('响应数据:', data.substring(0, 500));
-            reject(new Error(`解析响应失败: ${error.message}`));
-          }
-        });
-      });
-
-      req.on('error', (error) => {
-        reject(error);
-      });
-
-      req.on('timeout', () => {
-        req.destroy();
-        reject(new Error('请求超时'));
-      });
-
-      req.write(postData);
-      req.end();
+      // 小文件使用直接上传
+      return await uploadDirectly(filePath, cloudPath, fileName, fileContent, resolve, reject);
     } catch (error) {
       reject(error);
     }
   });
+}
+
+/**
+ * 分片上传大文件
+ */
+async function uploadInChunks(filePath, cloudPath, fileName, fileContent, resolve, reject) {
+  try {
+    // 分片大小：2MB（二进制）
+    // Base64 编码后约为 2.67MB，加上 JSON 字段（缩短字段名），总大小约 2.7MB
+    // 云函数限制：文本类型请求体 100KB，其他类型请求体 6MB
+    // 但 JSON 格式可能被识别为文本类型，实际限制可能更严格（约 3-4MB）
+    // 使用 2MB 分片确保在限制内
+    const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB 每片
+    const totalChunks = Math.ceil(fileContent.length / CHUNK_SIZE);
+    const uploadId = `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log(`开始分片上传: ${totalChunks} 个分片，每片 ${(CHUNK_SIZE / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`注意: Base64 编码后每片约 ${((CHUNK_SIZE * 4 / 3) / 1024 / 1024).toFixed(2)} MB（确保在限制内）`);
+
+    // 上传所有分片
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, fileContent.length);
+      const chunk = fileContent.slice(start, end);
+      const chunkBase64 = chunk.toString('base64');
+
+      console.log(`上传分片 ${i + 1}/${totalChunks}...`);
+
+      // 优化：使用缩短的字段名，减少 JSON 大小
+      const chunkData = {
+        u: uploadId,        // uploadId
+        i: i,              // chunkIndex
+        t: totalChunks,    // totalChunks
+        p: cloudPath,      // filePath
+        d: chunkBase64,    // chunkData（最大部分）
+      };
+
+      await uploadChunk(chunkData);
+
+      const progress = ((i + 1) / totalChunks * 100).toFixed(1);
+      console.log(`进度: ${progress}%`);
+    }
+
+    // 完成分片上传
+    console.log('所有分片上传完成，获取分片 URL 列表...');
+    const result = await completeChunkUpload({
+      u: uploadId,        // uploadId
+      t: totalChunks,     // totalChunks
+      p: cloudPath,       // filePath
+      n: fileName,        // fileName
+    });
+
+    // 如果返回了 chunkUrls，说明需要客户端合并
+    if (result.chunkUrls && result.chunkUrls.length > 0) {
+      console.log('✅ 分片上传成功（需要客户端合并）！');
+      console.log(`分片数量: ${result.chunkUrls.length}`);
+      console.log(`目标文件路径: ${result.targetFilePath}`);
+      console.log(`提示: 使用脚本 download-and-merge-chunks.js 下载并合并分片`);
+    } else {
+      console.log('✅ 分片上传成功！');
+      console.log(`文件 URL: ${result.fileUrl || 'N/A'}`);
+      console.log(`文件大小: ${result.fileSize ? (result.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}`);
+    }
+    
+    resolve(result);
+  } catch (error) {
+    reject(error);
+  }
+}
+
+/**
+ * 上传单个分片
+ */
+function uploadChunk(chunkData) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify(chunkData);
+    const url = new URL(`${API_BASE_URL}/storage/upload-chunk`);
+
+    const options = {
+      method: 'POST',
+      headers: {
+        // 使用 application/octet-stream 避免被识别为文本类型（限制 100KB）
+        // 云函数限制：文本类型请求体 100KB，其他类型请求体 6MB
+        'Content-Type': 'application/octet-stream',
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Length': Buffer.byteLength(postData),
+        // 添加自定义头标识这是 JSON 数据
+        'X-Content-Format': 'json',
+      },
+      timeout: 300000, // 5 分钟超时
+    };
+
+    const req = https.request(url, options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          if (result.code === 0) {
+            resolve(result.data);
+          } else {
+            reject(new Error(result.message || '分片上传失败'));
+          }
+        } catch (error) {
+          reject(new Error(`解析响应失败: ${error.message}`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('分片上传超时'));
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
+/**
+ * 完成分片上传
+ */
+function completeChunkUpload(data) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify(data);
+    const url = new URL(`${API_BASE_URL}/storage/complete-chunk`);
+
+    const options = {
+      method: 'POST',
+      headers: {
+        // 使用 application/octet-stream 避免被识别为文本类型（限制 100KB）
+        'Content-Type': 'application/octet-stream',
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Length': Buffer.byteLength(postData),
+        // 添加自定义头标识这是 JSON 数据
+        'X-Content-Format': 'json',
+      },
+      timeout: 600000, // 10 分钟超时（合并需要时间）
+    };
+
+    const req = https.request(url, options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data);
+          if (result.code === 0) {
+            resolve(result.data);
+          } else {
+            reject(new Error(result.message || '完成分片上传失败'));
+          }
+        } catch (error) {
+          reject(new Error(`解析响应失败: ${error.message}`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('完成分片上传超时'));
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
+/**
+ * 直接上传小文件
+ */
+function uploadDirectly(filePath, cloudPath, fileName, fileContent, resolve, reject) {
+  const fileBase64 = fileContent.toString('base64');
+  const uploadData = {
+    fileName: fileName,
+    filePath: cloudPath,
+    fileContent: fileBase64,
+    contentType: 'application/vnd.android.package-archive',
+  };
+
+  const postData = JSON.stringify(uploadData);
+  const url = new URL(`${API_BASE_URL}/storage/upload`);
+
+  const options = {
+    method: 'POST',
+    headers: {
+      // 使用 application/octet-stream 避免被识别为文本类型（限制 100KB）
+      'Content-Type': 'application/octet-stream',
+      'Authorization': `Bearer ${API_KEY}`,
+      'Content-Length': Buffer.byteLength(postData),
+      // 添加自定义头标识这是 JSON 数据
+      'X-Content-Format': 'json',
+    },
+    timeout: 300000, // 5 分钟超时
+  };
+
+  const req = https.request(url, options, (res) => {
+    let data = '';
+
+    res.on('data', (chunk) => {
+      data += chunk;
+    });
+
+    res.on('end', () => {
+      try {
+        const result = JSON.parse(data);
+        if (result.code === 0) {
+          console.log('✅ 上传成功！');
+          console.log(`文件 URL: ${result.data.fileUrl}`);
+          resolve(result.data);
+        } else {
+          reject(new Error(result.message || '上传失败'));
+        }
+      } catch (error) {
+        console.error('响应数据:', data.substring(0, 500));
+        reject(new Error(`解析响应失败: ${error.message}`));
+      }
+    });
+  });
+
+  req.on('error', (error) => {
+    reject(error);
+  });
+
+  req.on('timeout', () => {
+    req.destroy();
+    reject(new Error('请求超时'));
+  });
+
+  req.write(postData);
+  req.end();
+}
+
+/**
+ * 直接上传大文件到 TCB 存储
+ * 注意：TCB 存储通常不支持直接 HTTP PUT，需要先获取上传 URL
+ */
+async function uploadDirectlyToTCB(filePath, cloudPath, resolve, reject) {
+  try {
+    // 由于 TCB 存储的限制，大文件上传需要特殊处理
+    // 这里我们仍然尝试通过云函数上传，但使用流式上传
+    // 如果云函数支持，可以分块上传
+    
+    console.log('⚠️  大文件上传功能需要云函数支持流式上传或分片上传');
+    console.log('⚠️  当前方案：尝试直接上传到 TCB 存储（可能需要配置 CORS 和权限）');
+    
+    // 尝试直接上传（需要 TCB 存储配置允许）
+    const fileContent = fs.readFileSync(filePath);
+    const uploadUrl = `https://636c-cloud1-4gee45pq61cd6f19-1259499058.tcb.qcloud.la/${cloudPath}`;
+    
+    const url = new URL(uploadUrl);
+    const options = {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/vnd.android.package-archive',
+        'Content-Length': fileContent.length,
+      },
+      timeout: 600000, // 10 分钟超时
+    };
+
+    const req = https.request(url, options, (res) => {
+      let data = '';
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        if (res.statusCode === 200 || res.statusCode === 201) {
+          console.log('✅ 直接上传成功！');
+          resolve({
+            fileUrl: uploadUrl,
+            filePath: cloudPath,
+          });
+        } else {
+          console.error(`HTTP ${res.statusCode}:`, data.substring(0, 500));
+          reject(new Error(`上传失败: HTTP ${res.statusCode}。TCB 存储可能需要配置权限或使用云函数上传`));
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(new Error(`上传失败: ${error.message}。建议：1. 检查 TCB 存储权限配置 2. 使用云函数分片上传`));
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('上传超时'));
+    });
+
+    req.write(fileContent);
+    req.end();
+  } catch (error) {
+    reject(error);
+  }
 }
 
 /**
@@ -148,15 +411,106 @@ async function uploadDirectly(filePath, cloudPath) {
 }
 
 /**
+ * 保存版本信息到数据库（通过云函数 API）
+ */
+async function saveVersionInfo(version, versionCode, filePath, uploadResult, easDownloadUrl = null) {
+  try {
+    console.log('保存版本信息到数据库...');
+    
+    // 构造版本信息
+    const versionInfo = {
+      version: version,
+      versionCode: versionCode,
+      platform: 'android',
+      filePath: filePath,
+      // EAS Build 下载地址（优先使用）
+      easDownloadUrl: easDownloadUrl || null,
+      // 腾讯云存储下载地址（备用）
+      downloadUrl: uploadResult.fileUrl || `https://${TCB_STORAGE_DOMAIN}/${filePath}`,
+      fileSize: uploadResult.fileSize || 0,
+      releaseDate: new Date().toISOString(),
+      // 分片下载相关（如果使用分片上传）
+      uploadId: uploadResult.uploadId || null,
+      totalChunks: uploadResult.totalChunks || null,
+      useChunkedDownload: !!(uploadResult.chunkUrls && uploadResult.chunkUrls.length > 0),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // 调用云函数 API 保存版本信息
+    try {
+      const postData = JSON.stringify(versionInfo);
+      const url = new URL(`${API_BASE_URL}/app/versions`);
+      
+      const options = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+          'Content-Length': Buffer.byteLength(postData),
+        },
+        timeout: 30000,
+      };
+      
+      const response = await new Promise((resolve, reject) => {
+        const req = https.request(url, options, (res) => {
+          let data = '';
+          res.on('data', (chunk) => { data += chunk; });
+          res.on('end', () => {
+            try {
+              const result = JSON.parse(data);
+              resolve({ statusCode: res.statusCode, data: result });
+            } catch (e) {
+              reject(new Error(`解析响应失败: ${e.message}`));
+            }
+          });
+        });
+        
+        req.on('error', reject);
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error('请求超时'));
+        });
+        
+        req.write(postData);
+        req.end();
+      });
+      
+      if (response.statusCode === 200 && response.data.code === 0) {
+        console.log('✅ 版本信息保存成功');
+        if (easDownloadUrl) {
+          console.log(`   EAS 下载地址: ${easDownloadUrl}`);
+        }
+        console.log(`   腾讯云下载地址: ${versionInfo.downloadUrl}`);
+      } else {
+        console.warn('⚠️  保存版本信息失败:', response.data.message || '未知错误');
+        console.log('版本信息:', JSON.stringify(versionInfo, null, 2));
+      }
+    } catch (apiError) {
+      console.warn('⚠️  调用云函数 API 保存版本信息失败:', apiError.message);
+      console.log('版本信息:', JSON.stringify(versionInfo, null, 2));
+      console.log('提示: 需要在云函数中添加保存版本信息的接口，或手动在数据库中创建 app_versions 集合');
+    }
+    
+  } catch (error) {
+    console.warn('保存版本信息失败:', error.message);
+    // 不影响上传流程，只打印警告
+  }
+}
+
+/**
  * 主函数
  */
 async function main() {
   const args = process.argv.slice(2);
   const apkPath = args[0];
+  // 从环境变量或命令行参数获取 EAS 下载地址
+  const easDownloadUrl = process.env.EAS_DOWNLOAD_URL || args[1] || null;
 
   if (!apkPath) {
     console.error('错误: 请提供 APK 文件路径');
-    console.log('用法: node upload-apk-to-tcb.js <apk-file-path>');
+    console.log('用法: node upload-apk-to-tcb.js <apk-file-path> [eas-download-url]');
+    console.log('或者设置环境变量: EAS_DOWNLOAD_URL=https://expo.dev/artifacts/...');
     process.exit(1);
   }
 
@@ -180,21 +534,41 @@ async function main() {
     console.log(`版本: v${version} (Build ${versionCode})`);
     console.log(`文件: ${apkPath}`);
     console.log(`目标路径: ${cloudPath}`);
+    if (easDownloadUrl) {
+      console.log(`EAS 下载地址: ${easDownloadUrl}`);
+    }
 
     // 尝试通过云函数上传（推荐）
+    let uploadResult;
     try {
-      const result = await uploadToTCB(apkPath, cloudPath);
+      uploadResult = await uploadToTCB(apkPath, cloudPath);
       console.log('✅ 上传成功！');
-      console.log(`文件 URL: ${result.fileUrl || `https://${TCB_STORAGE_DOMAIN}/${cloudPath}`}`);
+      
+      // 如果返回了 chunkUrls，说明需要客户端合并
+      if (uploadResult.chunkUrls && uploadResult.chunkUrls.length > 0) {
+        console.log(`分片数量: ${uploadResult.chunkUrls.length}`);
+        console.log(`目标文件路径: ${uploadResult.targetFilePath}`);
+        console.log(`提示: 使用脚本 download-and-merge-chunks.js 下载并合并分片`);
+      } else {
+        console.log(`文件 URL: ${uploadResult.fileUrl || `https://${TCB_STORAGE_DOMAIN}/${cloudPath}`}`);
+        console.log(`文件大小: ${uploadResult.fileSize ? (uploadResult.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}`);
+      }
+      
+      // 保存版本信息到数据库（包含 EAS 下载地址）
+      await saveVersionInfo(version, versionCode, cloudPath, uploadResult, easDownloadUrl);
+      
     } catch (error) {
       console.warn('通过云函数上传失败，尝试直接上传...');
       console.warn(`错误: ${error.message}`);
       
       // 如果云函数上传失败，尝试直接上传
       try {
-        const result = await uploadDirectly(apkPath, cloudPath);
+        uploadResult = await uploadDirectly(apkPath, cloudPath);
         console.log('✅ 直接上传成功！');
-        console.log(`文件 URL: ${result.fileUrl}`);
+        console.log(`文件 URL: ${uploadResult.fileUrl}`);
+        
+        // 保存版本信息到数据库（包含 EAS 下载地址）
+        await saveVersionInfo(version, versionCode, cloudPath, uploadResult, easDownloadUrl);
       } catch (directError) {
         console.error('❌ 直接上传也失败:', directError.message);
         throw directError;

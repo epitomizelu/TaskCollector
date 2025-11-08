@@ -6,13 +6,14 @@ export default StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -25,10 +26,23 @@ export default StyleSheet.create({
       },
     }),
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
+    flex: 1,
+    textAlign: 'center',
+  },
+  headerRightPlaceholder: {
+    width: 40,
   },
   scrollView: {
     flex: 1,

@@ -741,25 +741,63 @@ class ApiService {
     latestVersion: string;
     latestVersionCode: number;
     downloadUrl: string;
+    easDownloadUrl?: string;
     forceUpdate: boolean;
     updateLog: string;
     fileSize: number;
     releaseDate: string;
+    // 分片下载相关字段
+    uploadId?: string;
+    totalChunks?: number;
+    chunkUrls?: string[];
+    filePath?: string;
+    useChunkedDownload?: boolean;
   }> {
     const response = await this.get<{
       hasUpdate: boolean;
       latestVersion: string;
       latestVersionCode: number;
       downloadUrl: string;
+      easDownloadUrl?: string;
       forceUpdate: boolean;
       updateLog: string;
       fileSize: number;
       releaseDate: string;
+      uploadId?: string;
+      totalChunks?: number;
+      chunkUrls?: string[];
+      filePath?: string;
+      useChunkedDownload?: boolean;
     }>(API_ENDPOINTS.APP_CHECK_UPDATE(currentVersion, versionCode, platform));
     if (response.code === 0) {
       return response.data;
     }
     throw new Error(response.message || '检查更新失败');
+  }
+
+  /**
+   * 获取分片 URL 列表（用于分片下载）
+   */
+  async getChunkUrls(uploadId: string, totalChunks: number, filePath: string): Promise<{
+    uploadId: string;
+    totalChunks: number;
+    chunkUrls: string[];
+    targetFilePath: string;
+  }> {
+    const response = await this.post<{
+      uploadId: string;
+      totalChunks: number;
+      chunkUrls: string[];
+      targetFilePath: string;
+    }>('/storage/complete-chunk', {
+      u: uploadId,
+      t: totalChunks,
+      p: filePath,
+    });
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取分片 URL 失败');
   }
 }
 

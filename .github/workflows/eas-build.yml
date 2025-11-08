@@ -32,10 +32,28 @@ jobs:
         env:
           # 从 GitHub Secrets 读取 API Key，EAS Build 会自动将其编译到 APK 中
           EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
+        id: build
         run: |
           # 重试逻辑：如果 408 超时，自动重跑
           for i in {1..3}; do
-            if eas build --platform android --profile preview --non-interactive; then
+            BUILD_OUTPUT=$(eas build --platform android --profile preview --non-interactive 2>&1)
+            BUILD_EXIT_CODE=$?
+            echo "$BUILD_OUTPUT"
+            
+            if [ $BUILD_EXIT_CODE -eq 0 ]; then
+              # 提取下载 URL（使用更兼容的方式）
+              DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -oE 'https://expo.dev/artifacts/eas/[a-zA-Z0-9]+\.apk' | head -1)
+              if [ -n "$DOWNLOAD_URL" ]; then
+                echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+                echo "APK 下载地址: $DOWNLOAD_URL"
+              else
+                # 备用方法：从构建输出中查找包含 .apk 的行
+                DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep '\.apk' | grep -oE 'https://[^ ]+' | head -1)
+                if [ -n "$DOWNLOAD_URL" ]; then
+                  echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+                  echo "APK 下载地址（备用方法）: $DOWNLOAD_URL"
+                fi
+              fi
               break
             fi
             echo "Build $i failed, retrying in 30s..."
@@ -43,11 +61,20 @@ jobs:
           done
 
       - name: Download APK
-        if: success()
+        if: success() && steps.build.outputs.download_url != ''
         run: |
-          echo "等待构建完成..."
-          sleep 10
-          eas build:download --platform android --latest --output ./app-release.apk || echo "下载失败，将在后续步骤重试"
+          echo "开始下载 APK..."
+          DOWNLOAD_URL="${{ steps.build.outputs.download_url }}"
+          echo "下载地址: $DOWNLOAD_URL"
+          curl -L -o ./app-release.apk "$DOWNLOAD_URL" || wget -O ./app-release.apk "$DOWNLOAD_URL"
+          
+          if [ -f "./app-release.apk" ]; then
+            echo "✅ APK 下载成功"
+            ls -lh ./app-release.apk
+          else
+            echo "❌ APK 下载失败"
+            exit 1
+          fi
 
       - name: Get Version Info
         if: success()
@@ -60,22 +87,19 @@ jobs:
           echo "版本: v$VERSION (Build $VERSION_CODE)"
 
       - name: Upload APK to TCB Storage
-        if: success()
+        if: success() && steps.build.outputs.download_url != ''
         env:
           API_BASE_URL: https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api
           EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
+          EAS_DOWNLOAD_URL: ${{ steps.build.outputs.download_url }}
         run: |
           if [ -f "./app-release.apk" ]; then
             echo "开始上传 APK 到腾讯云存储..."
-            node scripts/upload-apk-to-tcb.js ./app-release.apk
+            echo "EAS 下载地址: $EAS_DOWNLOAD_URL"
+            node scripts/upload-apk-to-tcb.js ./app-release.apk "$EAS_DOWNLOAD_URL"
           else
-            echo "APK 文件不存在，尝试重新下载..."
-            eas build:download --platform android --latest --output ./app-release.apk
-            if [ -f "./app-release.apk" ]; then
-              node scripts/upload-apk-to-tcb.js ./app-release.apk
-            else
-              echo "警告: 无法下载 APK，请手动上传"
-            fi
+            echo "❌ APK 文件不存在，无法上传"
+            exit 1
           fi
 
       - name: Upload Build Artifact (If Success)

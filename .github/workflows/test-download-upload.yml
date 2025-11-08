@@ -1,0 +1,112 @@
+name: Test Download and Upload APK
+
+on:
+  workflow_dispatch:  # 手动触发
+    inputs:
+      download_url:
+        description: 'APK 下载 URL（可选，如果不提供会尝试从最新构建获取）'
+        required: false
+        type: string
+
+jobs:
+  test-download-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Get Latest Build URL (if not provided)
+        if: ${{ github.event.inputs.download_url == '' }}
+        id: get_build_url
+        run: |
+          echo "获取最新的构建信息..."
+          BUILD_LIST=$(eas build:list --platform android --limit 1 --json --non-interactive || echo "[]")
+          
+          # 使用 Node.js 解析 JSON
+          DOWNLOAD_URL=$(node -e "
+            const builds = JSON.parse(process.argv[1]);
+            if (builds && builds.length > 0 && builds[0].artifacts && builds[0].artifacts.buildUrl) {
+              console.log(builds[0].artifacts.buildUrl);
+            }
+          " "$BUILD_LIST" || echo "")
+          
+          if [ -n "$DOWNLOAD_URL" ]; then
+            echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+            echo "找到下载 URL: $DOWNLOAD_URL"
+          else
+            echo "未找到下载 URL"
+            exit 1
+          fi
+
+      - name: Set Download URL
+        id: set_url
+        run: |
+          if [ -n "${{ github.event.inputs.download_url }}" ]; then
+            echo "download_url=${{ github.event.inputs.download_url }}" >> $GITHUB_OUTPUT
+            echo "使用提供的 URL: ${{ github.event.inputs.download_url }}"
+          else
+            echo "download_url=${{ steps.get_build_url.outputs.download_url }}" >> $GITHUB_OUTPUT
+            echo "使用获取的 URL: ${{ steps.get_build_url.outputs.download_url }}"
+          fi
+
+      - name: Download APK
+        run: |
+          DOWNLOAD_URL="${{ steps.set_url.outputs.download_url }}"
+          echo "📥 下载 URL: $DOWNLOAD_URL"
+          echo "开始下载 APK..."
+          
+          curl -L -o ./test-app-release.apk "$DOWNLOAD_URL" || wget -O ./test-app-release.apk "$DOWNLOAD_URL"
+          
+          if [ -f "./test-app-release.apk" ]; then
+            echo "✅ APK 下载成功"
+            ls -lh ./test-app-release.apk
+          else
+            echo "❌ APK 下载失败"
+            exit 1
+          fi
+
+      - name: Get Version Info
+        id: version
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "versionCode=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "版本: v$VERSION (Build $VERSION_CODE)"
+
+      - name: Upload APK to TCB Storage
+        env:
+          API_BASE_URL: https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api
+          EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
+        run: |
+          if [ -f "./test-app-release.apk" ]; then
+            echo "开始上传 APK 到腾讯云存储..."
+            node scripts/upload-apk-to-tcb.js ./test-app-release.apk
+            echo "✅ 上传完成"
+          else
+            echo "❌ APK 文件不存在，无法上传"
+            exit 1
+          fi
+
+      - name: Upload Test Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-apk
+          path: test-app-release.apk
+          retention-days: 1
+

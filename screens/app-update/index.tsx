@@ -15,10 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome6 } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { appUpdateService, UpdateInfo, DownloadProgress } from '../../services/app-update.service';
 import styles from './styles';
 
 const AppUpdateScreen: React.FC = () => {
+  const router = useRouter();
   const [isChecking, setIsChecking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -62,8 +64,9 @@ const AppUpdateScreen: React.FC = () => {
     setDownloadProgress(null);
 
     try {
+      // 使用新的 downloadApk 方法，支持优先从 EAS 下载
       const fileUri = await appUpdateService.downloadApk(
-        updateInfo.downloadUrl,
+        updateInfo,
         (progress) => {
           setDownloadProgress(progress);
         }
@@ -114,7 +117,15 @@ const AppUpdateScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* 顶部导航栏 */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <FontAwesome6 name="arrow-left" size={20} color="#1F2937" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>检查更新</Text>
+        <View style={styles.headerRightPlaceholder} />
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
