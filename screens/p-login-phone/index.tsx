@@ -21,6 +21,7 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { userService } from '../../services/user.service';
 import { API_CONFIG } from '../../config/api.config';
+import { appUpdateService, UpdateInfo, DownloadProgress } from '../../services/app-update.service';
 import styles from './styles';
 
 const PhoneLoginScreen: React.FC = () => {
@@ -29,6 +30,9 @@ const PhoneLoginScreen: React.FC = () => {
   const [isRegister, setIsRegister] = useState(false); // false=登录, true=注册
   const [phone, setPhone] = useState('');
   const [nickname, setNickname] = useState('');
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState<DownloadProgress | null>(null);
 
 
   useEffect(() => {
@@ -195,7 +199,16 @@ const PhoneLoginScreen: React.FC = () => {
         Alert.alert(
           '登录失败',
           fullErrorInfo,
-          [{ text: '确定' }]
+          [
+            { text: '确定' },
+            {
+              text: '检查更新',
+              onPress: () => {
+                // 登录失败时也可以检查更新
+                handleCheckUpdate();
+              },
+            },
+          ]
         );
       }
     } finally {
@@ -269,6 +282,81 @@ const PhoneLoginScreen: React.FC = () => {
   const toggleMode = () => {
     setIsRegister(!isRegister);
     setNickname(''); // 切换时清空昵称
+  };
+
+  /**
+   * 处理检查更新
+   */
+  const handleCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    try {
+      const updateInfo = await appUpdateService.checkForUpdate();
+      
+      if (!updateInfo.hasUpdate) {
+        Alert.alert('提示', '当前已是最新版本');
+        return;
+      }
+
+      // 有更新，询问是否下载
+      Alert.alert(
+        '发现新版本',
+        `最新版本: v${updateInfo.latestVersion} (Build ${updateInfo.latestVersionCode})\n\n${updateInfo.updateLog || '无更新说明'}\n\n文件大小: ${appUpdateService.formatFileSize(updateInfo.fileSize)}\n\n是否立即更新？`,
+        [
+          { text: '取消', style: 'cancel' },
+          {
+            text: '立即更新',
+            onPress: () => handleDownloadUpdate(updateInfo),
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('检查更新失败:', error);
+      Alert.alert('检查更新失败', error.message || '请稍后重试');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  /**
+   * 处理下载更新
+   */
+  const handleDownloadUpdate = async (updateInfo: UpdateInfo) => {
+    setIsDownloadingUpdate(true);
+    setUpdateProgress(null);
+    
+    try {
+      const fileUri = await appUpdateService.downloadApk(
+        updateInfo,
+        (progress) => {
+          setUpdateProgress(progress);
+        }
+      );
+
+      // 下载完成，提示安装
+      Alert.alert(
+        '下载完成',
+        'APK 已下载完成，是否立即安装？',
+        [
+          { text: '稍后', style: 'cancel' },
+          {
+            text: '安装',
+            onPress: async () => {
+              try {
+                await appUpdateService.installApk(fileUri);
+              } catch (err: any) {
+                Alert.alert('安装失败', err.message || '无法启动安装程序');
+              }
+            },
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.error('下载更新失败:', error);
+      Alert.alert('下载失败', error.message || '无法下载更新文件');
+    } finally {
+      setIsDownloadingUpdate(false);
+      setUpdateProgress(null);
+    }
   };
 
   return (
@@ -358,7 +446,7 @@ const PhoneLoginScreen: React.FC = () => {
                 <TouchableOpacity
                   style={styles.switchButton}
                   onPress={toggleMode}
-                  disabled={isLoading}
+                  disabled={isLoading || isCheckingUpdate || isDownloadingUpdate}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.switchButtonText}>
@@ -367,6 +455,45 @@ const PhoneLoginScreen: React.FC = () => {
                       : '还没有账号？去注册'}
                   </Text>
                 </TouchableOpacity>
+
+                {/* 检查更新按钮 */}
+                <TouchableOpacity
+                  style={[styles.updateButton, (isLoading || isCheckingUpdate || isDownloadingUpdate) && styles.updateButtonDisabled]}
+                  onPress={handleCheckUpdate}
+                  disabled={isLoading || isCheckingUpdate || isDownloadingUpdate}
+                  activeOpacity={0.7}
+                >
+                  {isCheckingUpdate || isDownloadingUpdate ? (
+                    <View style={styles.updateButtonContent}>
+                      <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
+                      <Text style={styles.updateButtonText}>
+                        {isDownloadingUpdate ? '下载中...' : '检查中...'}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.updateButtonContent}>
+                      <FontAwesome6 name="arrow-rotate-right" size={14} color="#ffffff" style={{ marginRight: 8 }} />
+                      <Text style={styles.updateButtonText}>检查更新</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* 下载进度 */}
+                {isDownloadingUpdate && updateProgress && (
+                  <View style={styles.progressContainer}>
+                    <View style={styles.progressBar}>
+                      <View
+                        style={[
+                          styles.progressFill,
+                          { width: `${updateProgress.progress * 100}%` },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.progressText}>
+                      {Math.round(updateProgress.progress * 100)}% ({appUpdateService.formatFileSize(updateProgress.totalBytesWritten)} / {appUpdateService.formatFileSize(updateProgress.totalBytesExpectedToWrite)})
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* 功能说明 */}
