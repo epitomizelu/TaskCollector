@@ -1,0 +1,114 @@
+name: Test API Key Injection
+
+on:
+  workflow_dispatch:  # 仅手动触发
+  push:
+    paths:
+      - 'scripts/test-inject-api-key.js'
+      - 'app.json'
+      - '.github/workflows/test-api-key-injection.yml'
+
+jobs:
+  test-injection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Test API Key Injection
+        env:
+          # 从 GitHub Secrets 读取 API Key（用于测试）
+          EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
+        run: |
+          echo "=== 开始测试 API Key 注入功能 ==="
+          echo ""
+          
+          # 检查环境变量是否设置
+          if [ -z "$EXPO_PUBLIC_API_KEY" ]; then
+            echo "⚠️  警告: EXPO_PUBLIC_API_KEY 环境变量未设置"
+            echo "   将使用测试值进行测试"
+          else
+            echo "✅ EXPO_PUBLIC_API_KEY 环境变量已设置"
+            echo "   API Key 长度: ${#EXPO_PUBLIC_API_KEY}"
+            echo "   API Key 前缀: ${EXPO_PUBLIC_API_KEY:0:8}..."
+            
+            # 检查是否为占位符
+            if [[ "$EXPO_PUBLIC_API_KEY" == *'${'* ]]; then
+              echo "   ⚠️  警告: API Key 包含占位符，可能未正确设置"
+            else
+              echo "   ✅ API Key 格式正确"
+            fi
+          fi
+          
+          echo ""
+          echo "=== 运行测试脚本 ==="
+          node scripts/test-inject-api-key.js
+          
+          echo ""
+          echo "=== 验证注入结果 ==="
+          
+          # 检查测试输出文件
+          if [ -f "app.json.test-output" ]; then
+            echo "✅ 测试输出文件已生成"
+            
+            # 提取注入的 API Key
+            INJECTED_KEY=$(node -e "
+              const fs = require('fs');
+              const appJson = JSON.parse(fs.readFileSync('app.json.test-output', 'utf8'));
+              console.log(appJson.expo?.extra?.apiKey || '');
+            ")
+            
+            if [ -n "$INJECTED_KEY" ]; then
+              echo "✅ API Key 已成功注入到 app.json.test-output"
+              echo "   注入的值: ${INJECTED_KEY:0:8}...${INJECTED_KEY: -4}"
+              
+              # 验证注入的值是否正确
+              if [ -n "$EXPO_PUBLIC_API_KEY" ] && [ "$INJECTED_KEY" == "$EXPO_PUBLIC_API_KEY" ]; then
+                echo "✅ 注入的 API Key 与环境变量匹配"
+              elif [ -n "$EXPO_PUBLIC_API_KEY" ] && [[ "$EXPO_PUBLIC_API_KEY" == *'${'* ]]; then
+                echo "⚠️  环境变量包含占位符，无法验证匹配"
+              else
+                echo "ℹ️  使用测试值进行注入（环境变量未设置）"
+              fi
+            else
+              echo "❌ API Key 注入失败：未找到注入的值"
+              exit 1
+            fi
+            
+            # 显示注入后的 JSON 结构
+            echo ""
+            echo "=== 注入后的 app.json 结构（extra 部分）==="
+            node -e "
+              const fs = require('fs');
+              const appJson = JSON.parse(fs.readFileSync('app.json.test-output', 'utf8'));
+              console.log(JSON.stringify(appJson.expo.extra, null, 2));
+            "
+          else
+            echo "❌ 测试输出文件未生成"
+            exit 1
+          fi
+          
+          echo ""
+          echo "=== 清理测试文件 ==="
+          rm -f app.json.test-output app.json.backup
+          echo "✅ 测试文件已清理"
+          
+          echo ""
+          echo "=== 测试完成 ==="
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-key-injection-test-results
+          path: |
+            app.json.test-output
+            app.json.backup
+          retention-days: 1
+          if-no-files-found: ignore
+

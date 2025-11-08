@@ -2,6 +2,8 @@
  * 腾讯云云函数 API 配置
  */
 
+import Constants from 'expo-constants';
+
 // 云函数环境配置
 export const API_CONFIG = {
   // 腾讯云云函数的访问地址
@@ -18,9 +20,26 @@ export const API_CONFIG = {
   VERSION: 'v1',
   
   // API Key 配置（用于 Bearer Token 认证）
-  // 建议从环境变量或配置服务中读取，不要硬编码
+  // 优先级：1. process.env.EXPO_PUBLIC_API_KEY (运行时环境变量)
+  //         2. Constants.expoConfig.extra.apiKey (构建时注入的配置)
+  //         3. 空字符串
   // 格式: Authorization: Bearer YOUR_API_KEY
-  API_KEY: process.env.EXPO_PUBLIC_API_KEY || '', // 从环境变量读取
+  API_KEY: (() => {
+    // 首先尝试从运行时环境变量读取
+    const envApiKey = process.env.EXPO_PUBLIC_API_KEY;
+    if (envApiKey && envApiKey !== '${EXPO_PUBLIC_API_KEY}' && envApiKey.trim() !== '') {
+      return envApiKey;
+    }
+    
+    // 如果环境变量不存在或未正确设置，尝试从 app.json 的 extra 字段读取
+    const extraApiKey = Constants.expoConfig?.extra?.apiKey;
+    if (extraApiKey && typeof extraApiKey === 'string' && extraApiKey.trim() !== '') {
+      return extraApiKey;
+    }
+    
+    // 如果都不可用，返回空字符串
+    return '';
+  })(),
 };
 
 // 调试：检查 API Key 是否正确读取（始终输出，包括生产环境）

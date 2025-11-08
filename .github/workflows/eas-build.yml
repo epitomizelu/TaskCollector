@@ -38,7 +38,10 @@ jobs:
           # 因为 EAS Build 在 GitHub Actions 中不会自动从 EAS Secrets 读取
           if [ -n "$EXPO_PUBLIC_API_KEY" ]; then
             echo "替换 eas.json 中的 API Key..."
-            # 使用 sed 替换（Linux/Mac）
+            echo "API Key 长度: ${#EXPO_PUBLIC_API_KEY}"
+            echo "API Key 前缀: ${EXPO_PUBLIC_API_KEY:0:8}..."
+            
+            # 使用 sed 替换 eas.json 中的占位符
             if command -v sed &> /dev/null; then
               sed -i "s|\"\\${EXPO_PUBLIC_API_KEY}\"|\"$EXPO_PUBLIC_API_KEY\"|g" eas.json
             else
@@ -46,13 +49,35 @@ jobs:
               powershell -Command "(Get-Content eas.json) -replace '\\\"\\$\\{EXPO_PUBLIC_API_KEY\\}\\\"', '\"$EXPO_PUBLIC_API_KEY\"' | Set-Content eas.json"
             fi
             echo "✅ eas.json 已更新"
+            
+            # 验证替换是否成功
+            if grep -q "\"$EXPO_PUBLIC_API_KEY\"" eas.json; then
+              echo "✅ 验证成功: eas.json 中的 API Key 已正确替换"
+            else
+              echo "❌ 警告: eas.json 中的 API Key 替换可能失败"
+              echo "eas.json 内容:"
+              cat eas.json
+            fi
+            
+            # 同时将 API Key 注入到 app.json 的 extra.apiKey 字段（作为备用方案）
+            # 使用 Node.js 脚本来安全地修改 JSON
+            node -e "
+              const fs = require('fs');
+              const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+              if (!appJson.expo.extra) appJson.expo.extra = {};
+              appJson.expo.extra.apiKey = process.env.EXPO_PUBLIC_API_KEY || '';
+              fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
+              console.log('✅ app.json 中的 API Key 已注入');
+            "
           else
             echo "⚠️ 警告: EXPO_PUBLIC_API_KEY 环境变量未设置"
           fi
           
           # 重试逻辑：如果 408 超时，自动重跑
           for i in {1..3}; do
-            BUILD_OUTPUT=$(eas build --platform android --profile preview --non-interactive 2>&1)
+            # 通过环境变量传递 API Key，确保 EAS Build 能够读取
+            export EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY"
+            BUILD_OUTPUT=$(EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY" eas build --platform android --profile preview --non-interactive 2>&1)
             BUILD_EXIT_CODE=$?
             echo "$BUILD_OUTPUT"
             
