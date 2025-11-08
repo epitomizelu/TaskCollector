@@ -1,9 +1,9 @@
 name: EAS Build Android Preview
 
 on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:  # 手动触发
+  # push:
+  #   branches: [ main ]
+  workflow_dispatch:  # 仅手动触发
 
 jobs:
   build:
@@ -41,17 +41,31 @@ jobs:
             echo "$BUILD_OUTPUT"
             
             if [ $BUILD_EXIT_CODE -eq 0 ]; then
-              # 提取下载 URL（使用更兼容的方式）
-              DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -oE 'https://expo.dev/artifacts/eas/[a-zA-Z0-9]+\.apk' | head -1)
+              # 提取下载 URL（使用正则匹配，支持任意文件名）
+              # 格式：https://expo.dev/artifacts/eas/<随机字符串>.apk
+              # 或者：🤖 Android app: https://expo.dev/artifacts/eas/<随机字符串>.apk
+              DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -oE 'https://expo\.dev/artifacts/eas/[a-zA-Z0-9]+\.apk' | head -1)
+              
               if [ -n "$DOWNLOAD_URL" ]; then
                 echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
-                echo "APK 下载地址: $DOWNLOAD_URL"
+                echo "✅ APK 下载地址: $DOWNLOAD_URL"
               else
-                # 备用方法：从构建输出中查找包含 .apk 的行
-                DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep '\.apk' | grep -oE 'https://[^ ]+' | head -1)
+                # 备用方法1：匹配包含 "Android app:" 的行
+                DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -i "android app" | grep -oE 'https://expo\.dev/artifacts/eas/[a-zA-Z0-9]+\.apk' | head -1)
                 if [ -n "$DOWNLOAD_URL" ]; then
                   echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
-                  echo "APK 下载地址（备用方法）: $DOWNLOAD_URL"
+                  echo "✅ APK 下载地址（备用方法1）: $DOWNLOAD_URL"
+                else
+                  # 备用方法2：从构建输出中查找包含 .apk 的完整 URL
+                  DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -oE 'https://expo\.dev/[^ ]+\.apk' | head -1)
+                  if [ -n "$DOWNLOAD_URL" ]; then
+                    echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
+                    echo "✅ APK 下载地址（备用方法2）: $DOWNLOAD_URL"
+                  else
+                    echo "⚠️  警告: 无法从构建输出中提取 APK 下载地址"
+                    echo "构建输出片段:"
+                    echo "$BUILD_OUTPUT" | grep -i "android\|apk\|artifact" | head -5
+                  fi
                 fi
               fi
               break
