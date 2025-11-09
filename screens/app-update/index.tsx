@@ -224,19 +224,27 @@ const AppUpdateScreen: React.FC = () => {
 
         {/* OTA 更新信息 */}
         {unifiedUpdateInfo && unifiedUpdateInfo.otaUpdate?.isAvailable && (
-          <View style={styles.updateCard}>
+          <View style={[styles.updateCard, styles.otaUpdateCard]}>
             <View style={styles.updateHeader}>
-              <FontAwesome6 name="cloud-arrow-down" size={24} color="#3B82F6" />
-              <Text style={styles.updateTitle}>发现 OTA 更新</Text>
+              <View style={styles.updateTypeBadge}>
+                <FontAwesome6 name="cloud-arrow-down" size={20} color="#3B82F6" />
+                <Text style={styles.updateTypeText}>OTA 更新</Text>
+              </View>
             </View>
             <View style={styles.updateInfo}>
               <Text style={styles.updateInfoValue}>
                 OTA 更新可以快速更新应用代码，无需重新安装。更新后应用将自动重启。
               </Text>
+              {unifiedUpdateInfo.otaUpdate.isDownloaded && (
+                <View style={styles.downloadedBadge}>
+                  <FontAwesome6 name="check" size={12} color="#10B981" />
+                  <Text style={styles.downloadedText}>更新已下载，等待应用</Text>
+                </View>
+              )}
             </View>
             <TouchableOpacity
               style={[
-                styles.downloadButton,
+                styles.otaButton,
                 isApplyingOTA && styles.downloadButtonDisabled,
               ]}
               onPress={handleApplyOTAUpdate}
@@ -260,14 +268,14 @@ const AppUpdateScreen: React.FC = () => {
 
         {/* APK 更新信息 */}
         {updateInfo && (
-          <View style={styles.updateCard}>
+          <View style={[styles.updateCard, styles.apkUpdateCard]}>
             {updateInfo.hasUpdate ? (
               <>
                 <View style={styles.updateHeader}>
-                  <FontAwesome6 name="circle-check" size={24} color="#10B981" />
-                  <Text style={styles.updateTitle}>
-                    {unifiedUpdateInfo?.updateType === 'both' ? '发现 APK 更新' : '发现新版本'}
-                  </Text>
+                  <View style={styles.updateTypeBadge}>
+                    <FontAwesome6 name="mobile-screen-button" size={20} color="#10B981" />
+                    <Text style={styles.updateTypeText}>APK 更新</Text>
+                  </View>
                 </View>
 
                 <View style={styles.updateInfo}>
@@ -313,7 +321,7 @@ const AppUpdateScreen: React.FC = () => {
                 {/* 下载按钮 */}
                 <TouchableOpacity
                   style={[
-                    styles.downloadButton,
+                    styles.apkButton,
                     (isDownloading || isChecking) && styles.downloadButtonDisabled,
                   ]}
                   onPress={handleDownload}
@@ -328,7 +336,7 @@ const AppUpdateScreen: React.FC = () => {
                   ) : (
                     <>
                       <FontAwesome6 name="download" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-                      <Text style={styles.downloadButtonText}>立即更新</Text>
+                      <Text style={styles.downloadButtonText}>下载 APK 更新</Text>
                     </>
                   )}
                 </TouchableOpacity>

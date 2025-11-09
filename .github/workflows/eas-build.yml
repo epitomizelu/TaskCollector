@@ -206,9 +206,27 @@ jobs:
             echo "开始上传 APK 到腾讯云存储..."
             echo "EAS 下载地址: $EAS_DOWNLOAD_URL"
             node scripts/upload-apk-to-tcb.js ./app-release.apk "$EAS_DOWNLOAD_URL"
+            echo "✅ APK 上传成功，版本号已自动更新并提交到 Git"
           else
             echo "❌ APK 文件不存在，无法上传"
             exit 1
+          fi
+      
+      - name: Verify Version Update
+        if: success() && steps.build.outputs.download_url != ''
+        run: |
+          echo "验证版本号更新..."
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION_CODE="${{ steps.version.outputs.versionCode }}"
+          CURRENT_VERSION=$(node -p "require('./app.json').expo.version")
+          CURRENT_VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          
+          if [ "$CURRENT_VERSION" = "$VERSION" ] && [ "$CURRENT_VERSION_CODE" = "$VERSION_CODE" ]; then
+            echo "✅ 版本号验证通过: v$CURRENT_VERSION (Build $CURRENT_VERSION_CODE)"
+          else
+            echo "⚠️  警告: 版本号不一致"
+            echo "  期望: v$VERSION (Build $VERSION_CODE)"
+            echo "  实际: v$CURRENT_VERSION (Build $CURRENT_VERSION_CODE)"
           fi
 
       - name: Upload Build Artifact (If Success)

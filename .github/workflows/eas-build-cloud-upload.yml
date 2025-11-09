@@ -9,6 +9,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # 确保有写权限，以便推送版本号更新
 
       - name: Setup Node.js (Cache Disabled - Fix 408 Timeout)
         uses: actions/setup-node@v4
@@ -18,6 +21,29 @@ jobs:
 
       - name: Install dependencies
         run: npm ci  # 更快安装，无缓存依赖
+
+      - name: Update version for APK build
+        id: version
+        run: |
+          echo "更新版本号（APK 构建）..."
+          node scripts/update-version.js --type build
+          echo "版本号更新完成"
+          # 读取更新后的版本号
+          VERSION=$(node -p "require('./app.json').expo.version")
+          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "versionCode=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "新版本: v$VERSION (Build $VERSION_CODE)"
+
+      - name: Commit version update
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add app.json
+          git commit -m "chore: 自动更新版本号 [skip ci]" || echo "没有版本变更或已是最新"
+          # 推送到当前分支（通常是 main）
+          git push origin HEAD:${{ github.ref_name }} || echo "推送失败或无需推送"
+          echo "✅ 版本号已提交到分支: ${{ github.ref_name }}"
 
       - name: Setup EAS CLI
         uses: expo/expo-github-action@v8
@@ -130,15 +156,13 @@ jobs:
             sleep 30
           done
 
-      - name: Get Version Info
+      - name: Display Version Info
         if: success() && steps.build.outputs.download_url != ''
-        id: version
         run: |
-          VERSION=$(node -p "require('./app.json').expo.version")
-          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "versionCode=$VERSION_CODE" >> $GITHUB_OUTPUT
-          echo "版本: v$VERSION (Build $VERSION_CODE)"
+          # 版本号已在构建前更新，这里只显示
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION_CODE="${{ steps.version.outputs.versionCode }}"
+          echo "当前版本: v$VERSION (Build $VERSION_CODE)"
 
       - name: Save Version Info (EAS URL)
         if: success() && steps.build.outputs.download_url != ''
@@ -234,6 +258,24 @@ jobs:
             req.write(requestData);
             req.end();
           " "$DOWNLOAD_URL" "$VERSION" "$VERSION_CODE"
+          echo "✅ APK 上传成功，版本号已自动更新并提交到 Git"
+      
+      - name: Verify Version Update
+        if: success() && steps.build.outputs.download_url != '' && steps.version.outputs.version != ''
+        run: |
+          echo "验证版本号更新..."
+          VERSION="${{ steps.version.outputs.version }}"
+          VERSION_CODE="${{ steps.version.outputs.versionCode }}"
+          CURRENT_VERSION=$(node -p "require('./app.json').expo.version")
+          CURRENT_VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          
+          if [ "$CURRENT_VERSION" = "$VERSION" ] && [ "$CURRENT_VERSION_CODE" = "$VERSION_CODE" ]; then
+            echo "✅ 版本号验证通过: v$CURRENT_VERSION (Build $CURRENT_VERSION_CODE)"
+          else
+            echo "⚠️  警告: 版本号不一致"
+            echo "  期望: v$VERSION (Build $VERSION_CODE)"
+            echo "  实际: v$CURRENT_VERSION (Build $CURRENT_VERSION_CODE)"
+          fi
 
       - name: Upload Build Artifact (If Success)
         if: success()

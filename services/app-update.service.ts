@@ -40,9 +40,62 @@ class AppUpdateService {
   private downloadTask: FileSystem.FileSystemDownloadResumable | null = null;
 
   constructor() {
-    // 从 app.json 获取当前版本信息
-    this.currentVersion = Constants.expoConfig?.version || '1.0.0';
-    this.currentVersionCode = Constants.expoConfig?.android?.versionCode || 1;
+    // 优先使用原生版本号（实际安装的版本）
+    // Constants.nativeAppVersion: 实际安装的应用版本（如 "1.0.0"）
+    // Constants.nativeBuildVersion: 实际安装的构建版本（如 "1"）
+    // 如果原生版本不可用（Web 平台或开发环境），则使用 expoConfig 中的值
+    const nativeVersion = Constants.nativeAppVersion;
+    const nativeBuildVersion = Constants.nativeBuildVersion;
+    
+    // 详细的类型检查
+    const nativeBuildVersionType = typeof nativeBuildVersion;
+    const nativeBuildVersionValue = nativeBuildVersion;
+    const nativeBuildVersionParsed = nativeBuildVersion 
+      ? (nativeBuildVersionType === 'number' 
+          ? nativeBuildVersion 
+          : parseInt(String(nativeBuildVersion), 10))
+      : null;
+    
+    this.currentVersion = nativeVersion || Constants.expoConfig?.version || '1.0.0';
+    // 对于 Android，nativeBuildVersion 就是 versionCode
+    // 如果不可用，则从 expoConfig 读取
+    this.currentVersionCode = nativeBuildVersionParsed 
+      ? nativeBuildVersionParsed 
+      : (Constants.expoConfig?.android?.versionCode || 1);
+    
+    console.log('[AppUpdateService] 初始化版本信息:', {
+      version: this.currentVersion,
+      versionCode: this.currentVersionCode,
+      platform: Platform.OS,
+      isDev: __DEV__,
+      // 原生版本信息
+      nativeVersion,
+      nativeBuildVersion: {
+        raw: nativeBuildVersionValue,
+        type: nativeBuildVersionType,
+        parsed: nativeBuildVersionParsed,
+        isTruthy: !!nativeBuildVersion,
+        isNumber: nativeBuildVersionType === 'number',
+        isString: nativeBuildVersionType === 'string',
+      },
+      // expoConfig 版本信息
+      expoConfigVersion: Constants.expoConfig?.version,
+      expoConfigVersionCode: Constants.expoConfig?.android?.versionCode,
+      // 最终使用的版本号来源
+      versionSource: nativeVersion ? 'native' : 'expoConfig',
+      versionCodeSource: nativeBuildVersionParsed ? 'native' : 'expoConfig',
+      // 完整的 Constants 对象（用于调试）
+      constantsDebug: {
+        nativeAppVersion: Constants.nativeAppVersion,
+        nativeBuildVersion: Constants.nativeBuildVersion,
+        expoConfig: {
+          version: Constants.expoConfig?.version,
+          androidVersionCode: Constants.expoConfig?.android?.versionCode,
+        },
+        // 检查 Constants 的所有属性
+        allKeys: Object.keys(Constants),
+      },
+    });
   }
 
   /**
@@ -62,6 +115,20 @@ class AppUpdateService {
       );
 
       console.log('[AppUpdateService] 更新检查结果:', updateInfo);
+
+      // 客户端二次校验：如果服务器返回有更新，但版本号相同或更小，则标记为无更新
+      if (updateInfo.hasUpdate) {
+        if (updateInfo.latestVersionCode <= this.currentVersionCode) {
+          console.warn('[AppUpdateService] 服务器返回有更新，但版本号未增加，忽略更新', {
+            currentVersionCode: this.currentVersionCode,
+            latestVersionCode: updateInfo.latestVersionCode,
+          });
+          return {
+            ...updateInfo,
+            hasUpdate: false,
+          };
+        }
+      }
 
       return updateInfo;
     } catch (error) {
@@ -112,36 +179,92 @@ class AppUpdateService {
     downloadUrl: string,
     onProgress?: (progress: DownloadProgress) => void
   ): Promise<string> {
-    // 使用应用私有目录存储 APK
-    const fileName = `app-update-${Date.now()}.apk`;
-    const fileUri = `${FileSystem.documentDirectory}${fileName}`;
-
-    // 创建下载任务
-    this.downloadTask = FileSystem.createDownloadResumable(
-      downloadUrl,
-      fileUri,
-      {},
-      (downloadProgress) => {
-        const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;
-        if (onProgress) {
-          onProgress({
-            totalBytesWritten: downloadProgress.totalBytesWritten,
-            totalBytesExpectedToWrite: downloadProgress.totalBytesExpectedToWrite,
-            progress: isNaN(progress) ? 0 : progress,
-          });
-        }
+    try {
+      // 验证 URL
+      if (!downloadUrl || !downloadUrl.startsWith('http')) {
+        throw new Error(`无效的下载 URL: ${downloadUrl}`);
       }
-    );
 
-    // 开始下载
-    const result = await this.downloadTask.downloadAsync();
+      console.log('[AppUpdateService] 开始下载 APK:', {
+        url: downloadUrl,
+        platform: Platform.OS,
+      });
 
-    if (!result) {
-      throw new Error('下载失败：未返回结果');
+      // 使用应用私有目录存储 APK
+      const fileName = `app-update-${Date.now()}.apk`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
+      console.log('[AppUpdateService] 文件保存路径:', fileUri);
+
+      // 检查目录是否存在
+      const dirInfo = await FileSystem.getInfoAsync(FileSystem.documentDirectory || '');
+      if (!dirInfo.exists) {
+        throw new Error('文档目录不存在');
+      }
+
+      // 创建下载任务
+      this.downloadTask = FileSystem.createDownloadResumable(
+        downloadUrl,
+        fileUri,
+        {},
+        (downloadProgress) => {
+          const totalBytes = downloadProgress.totalBytesExpectedToWrite || 0;
+          const writtenBytes = downloadProgress.totalBytesWritten || 0;
+          const progress = totalBytes > 0 ? writtenBytes / totalBytes : 0;
+          
+          if (onProgress) {
+            onProgress({
+              totalBytesWritten: writtenBytes,
+              totalBytesExpectedToWrite: totalBytes,
+              progress: isNaN(progress) ? 0 : Math.min(progress, 1),
+            });
+          }
+        }
+      );
+
+      // 开始下载
+      console.log('[AppUpdateService] 启动下载任务...');
+      const result = await this.downloadTask.downloadAsync();
+
+      if (!result) {
+        throw new Error('下载失败：未返回结果');
+      }
+
+      // 验证下载的文件
+      const fileInfo = await FileSystem.getInfoAsync(result.uri);
+      if (!fileInfo.exists) {
+        throw new Error('下载的文件不存在');
+      }
+
+      const fileSize = fileInfo.exists && 'size' in fileInfo ? fileInfo.size : 0;
+      if (fileSize === 0) {
+        throw new Error('下载的文件大小为 0');
+      }
+
+      console.log('[AppUpdateService] 下载完成:', {
+        uri: result.uri,
+        size: this.formatFileSize(fileSize),
+      });
+
+      return result.uri;
+    } catch (error: any) {
+      console.error('[AppUpdateService] 下载失败:', {
+        error: error.message,
+        stack: error.stack,
+        url: downloadUrl,
+      });
+      
+      // 提供更详细的错误信息
+      if (error.message?.includes('Network')) {
+        throw new Error(`网络错误：无法连接到服务器。请检查网络连接。\n${error.message}`);
+      } else if (error.message?.includes('timeout')) {
+        throw new Error(`下载超时：请检查网络连接或稍后重试。\n${error.message}`);
+      } else if (error.message?.includes('permission')) {
+        throw new Error(`权限错误：应用没有下载文件的权限。请检查应用权限设置。\n${error.message}`);
+      } else {
+        throw new Error(`下载失败：${error.message || '未知错误'}`);
+      }
     }
-
-    console.log('[AppUpdateService] 下载完成:', result.uri);
-    return result.uri;
   }
 
   /**
@@ -391,37 +514,87 @@ class AppUpdateService {
     try {
       console.log('[AppUpdateService] 开始安装 APK:', fileUri);
 
-      // 使用 IntentLauncher 调用系统安装器
-      // 对于 Android 8.0+，需要使用 FileProvider 或直接使用 file:// URI
-      const contentUri = await FileSystem.getContentUriAsync(fileUri);
-      
-      await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-        data: contentUri,
-        flags: 1, // FLAG_ACTIVITY_NEW_TASK
-        type: 'application/vnd.android.package-archive',
+      // 验证文件是否存在
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      if (!fileInfo.exists) {
+        throw new Error(`APK 文件不存在: ${fileUri}`);
+      }
+
+      const fileSize = fileInfo.exists && 'size' in fileInfo ? fileInfo.size : 0;
+      if (fileSize === 0) {
+        throw new Error('APK 文件大小为 0');
+      }
+
+      console.log('[AppUpdateService] APK 文件验证通过:', {
+        uri: fileUri,
+        size: this.formatFileSize(fileSize),
       });
 
-      console.log('[AppUpdateService] 安装器已启动');
-    } catch (error: any) {
-      // 如果 getContentUriAsync 失败，尝试使用 Sharing API
-      if (error.message?.includes('getContentUriAsync')) {
+      // 使用 IntentLauncher 调用系统安装器
+      // 对于 Android 8.0+，需要使用 FileProvider 或直接使用 file:// URI
+      try {
+        const contentUri = await FileSystem.getContentUriAsync(fileUri);
+        console.log('[AppUpdateService] 获取 Content URI:', contentUri);
+        
+        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+          data: contentUri,
+          flags: 1, // FLAG_ACTIVITY_NEW_TASK
+          type: 'application/vnd.android.package-archive',
+        });
+
+        console.log('[AppUpdateService] 安装器已启动（使用 Content URI）');
+        return;
+      } catch (contentUriError: any) {
+        console.warn('[AppUpdateService] 使用 Content URI 失败，尝试其他方法:', contentUriError.message);
+        
+        // 如果 getContentUriAsync 失败，尝试直接使用 file:// URI
         try {
-          const canShare = await Sharing.isAvailableAsync();
-          if (canShare) {
+          // 对于 Android 7.0 以下，可以直接使用 file:// URI
+          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            data: fileUri,
+            flags: 1,
+            type: 'application/vnd.android.package-archive',
+          });
+          
+          console.log('[AppUpdateService] 安装器已启动（使用 file:// URI）');
+          return;
+        } catch (fileUriError: any) {
+          console.warn('[AppUpdateService] 使用 file:// URI 失败，尝试 Sharing API:', fileUriError.message);
+          
+          // 最后尝试使用 Sharing API
+          try {
+            const canShare = await Sharing.isAvailableAsync();
+            if (!canShare) {
+              throw new Error('Sharing API 不可用');
+            }
+            
             await Sharing.shareAsync(fileUri, {
               mimeType: 'application/vnd.android.package-archive',
               dialogTitle: '安装应用',
             });
             console.log('[AppUpdateService] 使用 Sharing API 启动安装');
             return;
+          } catch (shareError: any) {
+            console.error('[AppUpdateService] Sharing API 失败:', shareError);
+            throw new Error(`所有安装方法都失败。\n1. Content URI: ${contentUriError.message}\n2. File URI: ${fileUriError.message}\n3. Sharing API: ${shareError.message}`);
           }
-        } catch (shareError) {
-          console.error('[AppUpdateService] Sharing API 失败:', shareError);
         }
       }
+    } catch (error: any) {
+      console.error('[AppUpdateService] 安装失败:', {
+        error: error.message,
+        stack: error.stack,
+        fileUri,
+      });
       
-      console.error('[AppUpdateService] 安装失败:', error);
-      throw new Error(`无法启动安装程序: ${error.message || '未知错误'}`);
+      // 提供更详细的错误信息
+      if (error.message?.includes('权限') || error.message?.includes('permission')) {
+        throw new Error(`权限错误：应用没有安装 APK 的权限。\n请在设置中允许"安装未知来源应用"的权限。\n${error.message}`);
+      } else if (error.message?.includes('文件不存在')) {
+        throw new Error(`文件错误：APK 文件不存在或已删除。\n${error.message}`);
+      } else {
+        throw new Error(`无法启动安装程序：${error.message || '未知错误'}\n\n请确保：\n1. 已允许"安装未知来源应用"权限\n2. APK 文件完整且未损坏\n3. 设备存储空间充足`);
+      }
     }
   }
 

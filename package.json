@@ -11,7 +11,10 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "upload-apk": "node scripts/upload-apk-to-tcb.js",
-    "save-version": "node scripts/save-version-info.js"
+    "save-version": "node scripts/save-version-info.js",
+    "update-version": "node scripts/update-version.js",
+    "build-and-upload": "bash scripts/build-and-upload.sh",
+    "build-and-upload:ps1": "powershell -ExecutionPolicy Bypass -File scripts/build-and-upload.ps1"
   },
   "jest": {
     "preset": "jest-expo"

@@ -1110,8 +1110,28 @@ async function handleAppCheckUpdate(method, path, body, headers) {
       }
     }
     
-    // 对比版本号
-    const hasUpdate = latestVersion.versionCode > currentVersionCode;
+    // 确保版本号是数字类型
+    const latestVersionCode = typeof latestVersion.versionCode === 'number' 
+      ? latestVersion.versionCode 
+      : parseInt(latestVersion.versionCode, 10);
+    const currentVersionCodeNum = typeof currentVersionCode === 'number'
+      ? currentVersionCode
+      : parseInt(currentVersionCode, 10);
+    
+    // 对比版本号（只有当最新版本号严格大于当前版本号时，才需要更新）
+    const hasUpdate = latestVersionCode > currentVersionCodeNum;
+    
+    // 添加详细的版本比较日志
+    console.log('版本比较:', {
+      currentVersion,
+      currentVersionCode: currentVersionCodeNum,
+      currentVersionCodeType: typeof currentVersionCodeNum,
+      latestVersion: latestVersion.version,
+      latestVersionCode: latestVersionCode,
+      latestVersionCodeType: typeof latestVersionCode,
+      hasUpdate: hasUpdate,
+      comparison: `${latestVersionCode} > ${currentVersionCodeNum} = ${hasUpdate}`,
+    });
     
     return {
       code: 0,
@@ -1119,7 +1139,7 @@ async function handleAppCheckUpdate(method, path, body, headers) {
       data: {
         hasUpdate: hasUpdate,
         latestVersion: latestVersion.version,
-        latestVersionCode: latestVersion.versionCode,
+        latestVersionCode: latestVersionCode,
         downloadUrl: latestVersion.downloadUrl, // 腾讯云下载地址（备用）
         easDownloadUrl: latestVersion.easDownloadUrl || null, // EAS 下载地址（优先使用）
         forceUpdate: latestVersion.forceUpdate || false,
