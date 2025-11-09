@@ -1,0 +1,10 @@
+{
+  "name": "ilove-reciting-api",
+  "version": "1.0.0",
+  "description": "我爱背书模块后端 API",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.0.0"
+  }
+}
+

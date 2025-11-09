@@ -6,6 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
+import { recitingService } from '../../../services/reciting.service';
+import { apiService } from '../../../services/api.service';
+import { API_CONFIG } from '../../../config/api.config';
 import styles from './styles';
 
 interface FileInfo {
@@ -95,47 +99,141 @@ const UploadAudioScreen = () => {
     }
   };
 
-  const startUpload = () => {
+  const startUpload = async () => {
+    if (!selectedFile) return;
+
     setIsUploading(true);
     setUploadProgress(0);
-    setUploadStatus('上传中...');
+    setUploadStatus('准备上传...');
     setUploadSpeed(0);
     startTimeRef.current = Date.now();
-    
-    // 模拟上传进度
-    simulateUpload();
-  };
 
-  const simulateUpload = () => {
-    let progress = 0;
-    
-    uploadIntervalRef.current = setInterval(() => {
-      progress += Math.random() * 15; // 随机增加进度
-      
-      if (progress >= 100) {
-        progress = 100;
-        if (uploadIntervalRef.current) {
-          clearInterval(uploadIntervalRef.current);
+    try {
+      // 读取文件为 Base64
+      setUploadStatus('读取文件...');
+      const fileBase64 = await FileSystem.readAsStringAsync(selectedFile.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // 计算文件大小（Base64 编码后）
+      const fileSize = fileBase64.length;
+      const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB 每片（Base64 编码后约 2.67MB）
+      const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+
+      setUploadStatus(`上传中 (0/${totalChunks})...`);
+
+      // 分片上传
+      const uploadId = `audio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const fileName = selectedFile.name;
+      const cloudPath = `reciting/audio/${uploadId}/${fileName}`;
+
+      // 上传所有分片
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, fileSize);
+        const chunkBase64 = fileBase64.substring(start, end);
+
+        // 调用云函数上传分片
+        const response = await fetch(`${API_CONFIG.BASE_URL}/storage/upload-chunk`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_CONFIG.API_KEY || ''}`,
+          },
+          body: JSON.stringify({
+            u: uploadId,
+            i: i,
+            t: totalChunks,
+            p: cloudPath,
+            d: chunkBase64,
+            n: fileName,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`上传分片 ${i + 1}/${totalChunks} 失败`);
         }
-        
-        // 上传完成
-        setTimeout(() => {
-          uploadComplete();
-        }, 500);
-      }
-      
-      updateProgress(progress);
-    }, 200) as unknown as number;
-  };
 
-  const updateProgress = (progress: number) => {
-    const currentTime = Date.now();
-    const elapsedTime = (currentTime - startTimeRef.current) / 1000; // 秒
-    const uploadedSize = (selectedFile?.size || 0 * progress / 100) / (1024 * 1024); // MB
-    const speed = uploadedSize / elapsedTime; // MB/s
-    
-    setUploadProgress(progress);
-    setUploadSpeed(speed);
+        // 更新进度
+        const progress = ((i + 1) / totalChunks) * 100;
+        const currentTime = Date.now();
+        const elapsedTime = (currentTime - startTimeRef.current) / 1000;
+        const uploadedSize = ((i + 1) * CHUNK_SIZE) / (1024 * 1024);
+        const speed = uploadedSize / elapsedTime;
+
+        setUploadProgress(progress);
+        setUploadSpeed(speed);
+        setUploadStatus(`上传中 (${i + 1}/${totalChunks})...`);
+      }
+
+      // 完成分片上传
+      setUploadStatus('合并文件...');
+      const completeResponse = await fetch(`${API_CONFIG.BASE_URL}/storage/complete-chunk`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_CONFIG.API_KEY || ''}`,
+        },
+        body: JSON.stringify({
+          u: uploadId,
+          t: totalChunks,
+          p: cloudPath,
+          n: fileName,
+        }),
+      });
+
+      if (!completeResponse.ok) {
+        throw new Error('合并文件失败');
+      }
+
+      const completeResult = await completeResponse.json();
+      if (completeResult.code !== 0) {
+        throw new Error(completeResult.message || '合并文件失败');
+      }
+
+      // 创建内容记录并触发处理
+      setUploadStatus('创建任务...');
+      const content = await recitingService.createContent(
+        {
+          title: fileName.replace(/\.[^/.]+$/, ''), // 移除扩展名
+          type: 'audio',
+          sentenceCount: 0,
+          status: 'not_started',
+          fileSize: selectedFile.size,
+          mimeType: selectedFile.mimeType,
+        },
+        selectedFile.uri
+      );
+
+      // 触发音频处理
+      setUploadStatus('启动处理任务...');
+      try {
+        const processResponse = await fetch(`${API_CONFIG.BASE_URL}/reciting/audio/process`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_CONFIG.API_KEY || ''}`,
+          },
+          body: JSON.stringify({
+            contentId: content.id,
+            audioUrl: completeResult.data.fileUrl,
+          }),
+        });
+        if (!processResponse.ok) {
+          console.warn('触发处理任务失败，但上传已成功');
+        }
+      } catch (error) {
+        console.warn('触发处理任务失败，但上传已成功:', error);
+      }
+
+      setUploadProgress(100);
+      setUploadStatus('上传成功');
+      uploadComplete();
+    } catch (error: any) {
+      console.error('上传失败:', error);
+      showError(error.message || '上传失败，请重试');
+      setIsUploading(false);
+    }
   };
 
   const uploadComplete = () => {
@@ -342,7 +440,8 @@ const UploadAudioScreen = () => {
             </View>
             <Text style={styles.modalTitle}>上传成功</Text>
             <Text style={styles.modalMessage}>
-              音频文件已成功上传，正在处理中...
+              音频文件已成功上传，正在后台处理中。{'\n'}
+              处理完成后将通过站内信通知您。
             </Text>
             <TouchableOpacity style={styles.modalButton} onPress={handleSuccessOk}>
               <Text style={styles.modalButtonText}>确定</Text>

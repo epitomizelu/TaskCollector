@@ -51,9 +51,11 @@ class ApiService {
    */
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    customBaseUrl?: string
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseUrl}${endpoint}`;
+    const baseUrl = customBaseUrl || this.baseUrl;
+    const url = `${baseUrl}${endpoint}`;
     const isLoginRequest = endpoint.includes('/auth/login');
     
     const addRequestLog = (message: string) => {
@@ -248,39 +250,39 @@ class ApiService {
   /**
    * GET 请求
    */
-  private async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+  private async get<T>(endpoint: string, customBaseUrl?: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'GET',
-    });
+    }, customBaseUrl);
   }
 
   /**
    * POST 请求
    */
-  private async post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+  private async post<T>(endpoint: string, body?: any, customBaseUrl?: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
-    });
+    }, customBaseUrl);
   }
 
   /**
    * PUT 请求
    */
-  private async put<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+  private async put<T>(endpoint: string, body?: any, customBaseUrl?: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(body),
-    });
+    }, customBaseUrl);
   }
 
   /**
    * DELETE 请求
    */
-  private async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+  private async delete<T>(endpoint: string, customBaseUrl?: string): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
       method: 'DELETE',
-    });
+    }, customBaseUrl);
   }
 
   // ========== 任务相关 API ==========
@@ -804,6 +806,200 @@ class ApiService {
       return response.data;
     }
     throw new Error(response.message || '获取分片 URL 失败');
+  }
+
+  // ========== 站内信相关 API ==========
+
+  /**
+   * 获取所有消息
+   */
+  async getMessages(): Promise<any[]> {
+    const response = await this.get<any[]>('/messages');
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取消息列表失败');
+  }
+
+  /**
+   * 标记消息为已读
+   */
+  async markMessageAsRead(messageId: string): Promise<void> {
+    const response = await this.put<void>(`/messages/${messageId}/read`, {});
+    if (response.code !== 0) {
+      throw new Error(response.message || '标记消息已读失败');
+    }
+  }
+
+  /**
+   * 标记所有消息为已读
+   */
+  async markAllMessagesAsRead(): Promise<void> {
+    const response = await this.put<void>('/messages/read-all', {});
+    if (response.code !== 0) {
+      throw new Error(response.message || '标记所有消息已读失败');
+    }
+  }
+
+  /**
+   * 删除消息
+   */
+  async deleteMessage(messageId: string): Promise<void> {
+    const response = await this.delete<void>(`/messages/${messageId}`);
+    if (response.code !== 0) {
+      throw new Error(response.message || '删除消息失败');
+    }
+  }
+
+  // ========== 音频处理相关 API ==========
+
+  /**
+   * 上传音频文件（分片上传）
+   */
+  async uploadAudioFile(
+    fileUri: string,
+    fileName: string,
+    onProgress?: (progress: number) => void
+  ): Promise<{
+    contentId: string;
+    audioUrl: string;
+    taskId: string;
+  }> {
+    // 使用分片上传接口
+    const response = await this.post<{
+      contentId: string;
+      audioUrl: string;
+      taskId: string;
+    }>('/reciting/audio/upload', {
+      fileName,
+      fileUri, // 前端需要先读取文件并转换为base64或分片
+    });
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '上传音频文件失败');
+  }
+
+  /**
+   * 查询音频处理状态
+   */
+  async getAudioProcessingStatus(contentId: string): Promise<{
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    progress?: number;
+    sentences?: any[];
+    errorMessage?: string;
+  }> {
+    const response = await this.get<{
+      status: 'pending' | 'processing' | 'completed' | 'failed';
+      progress?: number;
+      sentences?: any[];
+      errorMessage?: string;
+    }>(`/reciting/audio/status/${contentId}`);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '查询处理状态失败');
+  }
+
+  // ========== 想法收集器相关 API ==========
+  // 注意：想法收集器使用独立的云函数地址
+
+  /**
+   * 获取所有想法
+   */
+  async getIdeas(date?: string, month?: string): Promise<any[]> {
+    let endpoint = API_ENDPOINTS.IDEAS;
+    const params: string[] = [];
+    if (date) {
+      params.push(`date=${encodeURIComponent(date)}`);
+    }
+    if (month) {
+      params.push(`month=${encodeURIComponent(month)}`);
+    }
+    if (params.length > 0) {
+      endpoint += '?' + params.join('&');
+    }
+    
+    const response = await this.get<any[]>(endpoint, API_CONFIG.IDEA_COLLECTOR_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return response.data || [];
+    }
+    throw new Error(response.message || '获取想法失败');
+  }
+
+  /**
+   * 根据ID获取想法
+   */
+  async getIdeaById(ideaId: string): Promise<any> {
+    const response = await this.get<any>(API_ENDPOINTS.IDEA_BY_ID(ideaId), API_CONFIG.IDEA_COLLECTOR_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取想法失败');
+  }
+
+  /**
+   * 创建想法
+   */
+  async createIdea(idea: any, autoAnalyze: boolean = true): Promise<any> {
+    const response = await this.post<any>(API_ENDPOINTS.IDEAS, {
+      ...idea,
+      autoAnalyze,
+    }, API_CONFIG.IDEA_COLLECTOR_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建想法失败');
+  }
+
+  /**
+   * 更新想法
+   */
+  async updateIdea(ideaId: string, updates: any, autoAnalyze: boolean = true): Promise<any> {
+    const response = await this.put<any>(API_ENDPOINTS.IDEA_BY_ID(ideaId), {
+      ...updates,
+      autoAnalyze,
+    }, API_CONFIG.IDEA_COLLECTOR_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '更新想法失败');
+  }
+
+  /**
+   * 删除想法
+   */
+  async deleteIdea(ideaId: string): Promise<void> {
+    const response = await this.delete(API_ENDPOINTS.IDEA_BY_ID(ideaId), API_CONFIG.IDEA_COLLECTOR_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return;
+    }
+    throw new Error(response.message || '删除想法失败');
+  }
+
+  /**
+   * AI分析想法
+   */
+  async analyzeIdea(content: string): Promise<{
+    insights: string[];
+    emotions: string[];
+    themes: string[];
+    suggestions: string[];
+    truth: string;
+  }> {
+    const response = await this.post<{
+      insights: string[];
+      emotions: string[];
+      themes: string[];
+      suggestions: string[];
+      truth: string;
+    }>(API_ENDPOINTS.IDEA_ANALYZE, {
+      content,
+    }, API_CONFIG.IDEA_COLLECTOR_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || 'AI分析失败');
   }
 }
 

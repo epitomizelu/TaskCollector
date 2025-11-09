@@ -52,18 +52,30 @@ export interface RecitingTask {
   updatedAt?: string;
 }
 
+export interface AudioSentence {
+  index: number;
+  text: string;
+  startTime: number; // 开始时间（秒）
+  endTime: number; // 结束时间（秒）
+  audioUrl: string; // 小音频片段 URL
+}
+
 export interface RecitingContent {
   id: string;
   title: string;
   type: 'audio' | 'document';
   audioUrl?: string; // 音频文件 URL（云存储地址）
   documentUrl?: string; // 文档文件 URL（云存储地址）
-  textContent?: string; // 文本内容（如果是文档）
+  textContent?: string; // 文本内容（如果是文档或识别后的音频文本）
   sentenceCount: number;
+  sentences?: AudioSentence[]; // 音频句子列表（仅音频类型）
   uploadDate: string; // ISO 格式
   status: 'completed' | 'learning' | 'not_started';
+  processingStatus?: 'pending' | 'processing' | 'completed' | 'failed'; // 处理状态
   fileSize?: number; // 文件大小（字节）
   mimeType?: string; // MIME 类型
+  asrProvider?: string; // ASR 服务提供商
+  taskId?: string; // 处理任务ID
   userId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -392,13 +404,16 @@ class RecitingService {
   ): Promise<RecitingContent> {
     let audioUrl: string | undefined;
     let documentUrl: string | undefined;
+    let taskId: string | undefined;
 
     // 如果提供了文件 URI，需要上传到云存储
     if (fileUri && this.shouldUseCloud()) {
       try {
         if (content.type === 'audio') {
-          // 上传音频文件到云存储
-          audioUrl = await this.uploadAudioFile(fileUri, content.title);
+          // 上传音频文件到云存储并触发处理
+          const uploadResult = await this.uploadAudioFile(fileUri, content.title);
+          audioUrl = uploadResult.audioUrl;
+          taskId = uploadResult.taskId;
         } else if (content.type === 'document') {
           // 上传文档文件到云存储
           documentUrl = await this.uploadDocumentFile(fileUri, content.title);
@@ -414,6 +429,8 @@ class RecitingService {
       id: `content_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       audioUrl: content.type === 'audio' ? audioUrl : content.audioUrl,
       documentUrl: content.type === 'document' ? documentUrl : content.documentUrl,
+      taskId: content.type === 'audio' ? taskId : content.taskId,
+      processingStatus: content.type === 'audio' && taskId ? 'pending' : content.processingStatus,
       uploadDate: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -435,16 +452,42 @@ class RecitingService {
   }
 
   /**
-   * 上传音频文件到云存储
+   * 上传音频文件到云存储并触发处理
    */
-  private async uploadAudioFile(fileUri: string, fileName: string): Promise<string> {
-    // TODO: 实现音频文件上传到腾讯云存储
-    // 使用腾讯云存储 SDK 上传文件
-    // 返回文件的 URL
-    
-    // 临时实现：返回一个占位符 URL
-    // 实际应该使用 @cloudbase/storage 或类似 SDK
-    throw new Error('音频文件上传功能待实现');
+  private async uploadAudioFile(
+    fileUri: string,
+    fileName: string
+  ): Promise<{ audioUrl: string; taskId: string }> {
+    // 使用 API 服务上传音频文件
+    const result = await apiService.uploadAudioFile(fileUri, fileName);
+    return {
+      audioUrl: result.audioUrl,
+      taskId: result.taskId,
+    };
+  }
+
+  /**
+   * 查询音频处理状态
+   */
+  async getAudioProcessingStatus(contentId: string): Promise<{
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    progress?: number;
+    sentences?: AudioSentence[];
+    errorMessage?: string;
+  }> {
+    if (this.shouldUseCloud()) {
+      return await apiService.getAudioProcessingStatus(contentId);
+    }
+    // 本地模式，从本地内容中获取状态
+    const localContents = await this.getContentsFromLocal();
+    const content = localContents.find(c => c.id === contentId);
+    if (content && content.type === 'audio') {
+      return {
+        status: content.processingStatus || 'pending',
+        sentences: content.sentences,
+      };
+    }
+    throw new Error('内容不存在');
   }
 
   /**

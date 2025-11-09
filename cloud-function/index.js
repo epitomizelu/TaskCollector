@@ -225,6 +225,15 @@ exports.main = async (event, context) => {
     } else if (path === '/storage/upload' || path.startsWith('/storage/upload')) {
       // 文件上传到云存储（小文件）
       result = await handleStorageUpload(method, path, body, normalizedHeaders);
+    } else if (path === '/reciting/audio/process' || path.startsWith('/reciting/audio/process')) {
+      // 音频处理（触发异步处理任务）
+      result = await handleAudioProcess(method, path, body, normalizedHeaders);
+    } else if (path === '/reciting/audio/status' || path.startsWith('/reciting/audio/status')) {
+      // 查询音频处理状态
+      result = await handleAudioStatus(method, path, body, normalizedHeaders);
+    } else if (path === '/messages' || path.startsWith('/messages')) {
+      // 站内信相关
+      result = await handleMessages(method, path, body, normalizedHeaders);
     } else {
       return {
         statusCode: 404,
@@ -2819,5 +2828,421 @@ async function handleStorageUpload(method, path, body, headers) {
     console.error('上传文件到存储失败:', error);
     throw new Error(`上传失败: ${error.message || '未知错误'}`);
   }
+}
+
+// ========== 音频处理相关函数 ==========
+
+/**
+ * 处理音频处理请求（触发异步处理任务）
+ * POST /reciting/audio/process
+ */
+async function handleAudioProcess(method, path, body, headers) {
+  if (method !== 'POST') {
+    throw new Error('只支持 POST 请求');
+  }
+
+  const userId = getUserIdFromToken(headers);
+  const { contentId, audioUrl } = body;
+
+  if (!contentId || !audioUrl) {
+    throw new Error('缺少必要参数: contentId, audioUrl');
+  }
+
+  // 创建处理任务
+  const taskId = `audio_task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const tasksCollection = db.collection('audio_processing_tasks');
+  
+  await tasksCollection.add({
+    taskId: taskId,
+    contentId: contentId,
+    audioUrl: audioUrl,
+    userId: userId,
+    status: 'pending',
+    progress: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  // 更新内容状态
+  const contentsCollection = db.collection('reciting_contents');
+  await contentsCollection.where({
+    id: contentId,
+    userId: userId,
+  }).update({
+    processingStatus: 'pending',
+    taskId: taskId,
+    updatedAt: new Date().toISOString(),
+  });
+
+  // 创建站内信通知
+  await createMessage(userId, {
+    type: 'audio_processing',
+    title: '音频处理任务已创建',
+    content: '您的音频文件已开始处理，处理完成后将通知您。',
+    relatedId: contentId,
+    metadata: {
+      contentId: contentId,
+      processingStatus: 'pending',
+      progress: 0,
+    },
+  });
+
+  // 异步触发处理（不等待完成）
+  processAudioAsync(taskId, contentId, audioUrl, userId).catch(error => {
+    console.error('音频处理失败:', error);
+    // 更新任务状态为失败
+    tasksCollection.where({ taskId: taskId }).update({
+      status: 'failed',
+      errorMessage: error.message,
+      updatedAt: new Date().toISOString(),
+    });
+    // 发送失败通知
+    createMessage(userId, {
+      type: 'audio_processing',
+      title: '音频处理失败',
+      content: `音频处理失败: ${error.message}`,
+      relatedId: contentId,
+      metadata: {
+        contentId: contentId,
+        processingStatus: 'failed',
+        errorMessage: error.message,
+      },
+    });
+  });
+
+  return {
+    code: 0,
+    message: '处理任务已创建',
+    data: {
+      taskId: taskId,
+      contentId: contentId,
+    },
+  };
+}
+
+/**
+ * 异步处理音频（语音识别、语义分析、音频拆分）
+ */
+async function processAudioAsync(taskId, contentId, audioUrl, userId) {
+  const tasksCollection = db.collection('audio_processing_tasks');
+  const contentsCollection = db.collection('reciting_contents');
+
+  try {
+    // 更新状态为处理中
+    await tasksCollection.where({ taskId: taskId }).update({
+      status: 'processing',
+      progress: 10,
+      updatedAt: new Date().toISOString(),
+    });
+
+    await contentsCollection.where({ id: contentId }).update({
+      processingStatus: 'processing',
+      updatedAt: new Date().toISOString(),
+    });
+
+    // 步骤1: 下载音频文件（这里简化，实际应该从云存储下载）
+    console.log('步骤1: 下载音频文件...', audioUrl);
+    // TODO: 实现音频下载逻辑
+
+    // 步骤2: 语音识别（ASR）
+    console.log('步骤2: 语音识别...');
+    // TODO: 集成腾讯云ASR或其他ASR服务
+    // 这里使用模拟数据
+    const asrResult = {
+      text: '这是模拟的识别文本。包含多个句子。第一句结束。第二句开始。第三句也完成了。',
+      words: [
+        { word: '这是', startTime: 0, endTime: 0.5 },
+        { word: '模拟', startTime: 0.5, endTime: 1.0 },
+        // ... 更多词
+      ],
+    };
+
+    await tasksCollection.where({ taskId: taskId }).update({
+      progress: 40,
+      updatedAt: new Date().toISOString(),
+    });
+
+    // 步骤3: 语义分析和句子拆分
+    console.log('步骤3: 语义分析和句子拆分...');
+    const sentences = splitIntoSentences(asrResult.text, asrResult.words);
+
+    await tasksCollection.where({ taskId: taskId }).update({
+      progress: 60,
+      updatedAt: new Date().toISOString(),
+    });
+
+    // 步骤4: 音频拆分（这里简化，实际需要使用ffmpeg）
+    console.log('步骤4: 音频拆分...');
+    // TODO: 使用ffmpeg按时间戳拆分音频
+    const audioSegments = await splitAudio(audioUrl, sentences);
+
+    await tasksCollection.where({ taskId: taskId }).update({
+      progress: 90,
+      updatedAt: new Date().toISOString(),
+    });
+
+    // 步骤5: 保存结果
+    console.log('步骤5: 保存结果...');
+    await contentsCollection.where({ id: contentId }).update({
+      processingStatus: 'completed',
+      textContent: asrResult.text,
+      sentences: audioSegments,
+      sentenceCount: audioSegments.length,
+      asrProvider: 'tencent', // 或实际使用的ASR服务商
+      updatedAt: new Date().toISOString(),
+    });
+
+    await tasksCollection.where({ taskId: taskId }).update({
+      status: 'completed',
+      progress: 100,
+      updatedAt: new Date().toISOString(),
+    });
+
+    // 发送完成通知
+    await createMessage(userId, {
+      type: 'audio_processing',
+      title: '音频处理完成',
+      content: `您的音频文件已处理完成，共识别出 ${audioSegments.length} 个句子。`,
+      relatedId: contentId,
+      metadata: {
+        contentId: contentId,
+        processingStatus: 'completed',
+        progress: 100,
+      },
+    });
+
+    console.log('音频处理完成:', taskId);
+  } catch (error) {
+    console.error('音频处理错误:', error);
+    throw error;
+  }
+}
+
+/**
+ * 将文本拆分为句子
+ */
+function splitIntoSentences(text, words) {
+  // 简单的句子拆分：基于标点符号
+  const sentenceEndings = /[。！？；]/g;
+  const sentences = [];
+  let currentSentence = '';
+  let currentStartTime = 0;
+  let sentenceIndex = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    currentSentence += text[i];
+    
+    if (sentenceEndings.test(text[i])) {
+      if (currentSentence.trim()) {
+        // 估算时间（简化处理）
+        const estimatedDuration = currentSentence.length * 0.1; // 假设每个字符0.1秒
+        
+        sentences.push({
+          index: sentenceIndex++,
+          text: currentSentence.trim(),
+          startTime: currentStartTime,
+          endTime: currentStartTime + estimatedDuration,
+          audioUrl: '', // 将在音频拆分后填充
+        });
+        
+        currentStartTime += estimatedDuration;
+        currentSentence = '';
+      }
+    }
+  }
+
+  // 处理最后一句（如果没有结束标点）
+  if (currentSentence.trim()) {
+    const estimatedDuration = currentSentence.length * 0.1;
+    sentences.push({
+      index: sentenceIndex++,
+      text: currentSentence.trim(),
+      startTime: currentStartTime,
+      endTime: currentStartTime + estimatedDuration,
+      audioUrl: '',
+    });
+  }
+
+  return sentences;
+}
+
+/**
+ * 拆分音频（简化实现，实际需要使用ffmpeg）
+ */
+async function splitAudio(audioUrl, sentences) {
+  // TODO: 使用ffmpeg按时间戳拆分音频
+  // 这里返回模拟数据
+  const storage = checkStorageSupport();
+  const audioSegments = [];
+
+  for (let i = 0; i < sentences.length; i++) {
+    const sentence = sentences[i];
+    // TODO: 实际应该使用ffmpeg拆分音频
+    // const segmentUrl = await splitAudioSegment(audioUrl, sentence.startTime, sentence.endTime);
+    
+    // 模拟：生成音频片段URL（实际应该上传拆分后的音频）
+    const segmentPath = `reciting/audio/segments/${Date.now()}_${i}.mp3`;
+    sentence.audioUrl = `https://636c-cloud1-4gee45pq61cd6f19-1259499058.tcb.qcloud.la/${segmentPath}`;
+    
+    audioSegments.push(sentence);
+  }
+
+  return audioSegments;
+}
+
+/**
+ * 查询音频处理状态
+ * GET /reciting/audio/status/:contentId
+ */
+async function handleAudioStatus(method, path, body, headers) {
+  if (method !== 'GET') {
+    throw new Error('只支持 GET 请求');
+  }
+
+  const userId = getUserIdFromToken(headers);
+  const contentId = path.split('/').pop();
+
+  if (!contentId) {
+    throw new Error('缺少 contentId');
+  }
+
+  const contentsCollection = db.collection('reciting_contents');
+  const contentResult = await contentsCollection.where({
+    id: contentId,
+    userId: userId,
+  }).get();
+
+  if (contentResult.data.length === 0) {
+    throw new Error('内容不存在');
+  }
+
+  const content = contentResult.data[0];
+
+  return {
+    code: 0,
+    message: '查询成功',
+    data: {
+      status: content.processingStatus || 'pending',
+      progress: content.progress || 0,
+      sentences: content.sentences || [],
+      errorMessage: content.errorMessage,
+    },
+  };
+}
+
+// ========== 站内信相关函数 ==========
+
+/**
+ * 处理站内信请求
+ */
+async function handleMessages(method, path, body, headers) {
+  const userId = getUserIdFromToken(headers);
+  const messagesCollection = db.collection('messages');
+
+  if (method === 'GET') {
+    // 获取所有消息
+    const url = new URL(path, 'http://localhost');
+    const messageId = path.split('/').pop();
+    
+    if (messageId && messageId !== 'messages') {
+      // 获取单个消息
+      const result = await messagesCollection.where({
+        id: messageId,
+        userId: userId,
+      }).get();
+      
+      return {
+        code: 0,
+        message: 'success',
+        data: result.data[0] || null,
+      };
+    }
+    
+    // 获取所有消息
+    const result = await messagesCollection.where({
+      userId: userId,
+    }).orderBy('createdAt', 'desc').get();
+    
+    return {
+      code: 0,
+      message: 'success',
+      data: result.data || [],
+    };
+  } else if (method === 'PUT') {
+    // 标记已读
+    if (path.includes('/read-all')) {
+      // 标记所有为已读
+      await messagesCollection.where({
+        userId: userId,
+        status: 'unread',
+      }).update({
+        status: 'read',
+        readAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      
+      return {
+        code: 0,
+        message: 'success',
+        data: null,
+      };
+    } else {
+      // 标记单个为已读
+      const messageId = path.split('/')[2]; // /messages/:id/read
+      await messagesCollection.where({
+        id: messageId,
+        userId: userId,
+      }).update({
+        status: 'read',
+        readAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      
+      return {
+        code: 0,
+        message: 'success',
+        data: null,
+      };
+    }
+  } else if (method === 'DELETE') {
+    // 删除消息
+    const messageId = path.split('/').pop();
+    await messagesCollection.where({
+      id: messageId,
+      userId: userId,
+    }).remove();
+    
+    return {
+      code: 0,
+      message: 'success',
+      data: null,
+    };
+  } else {
+    throw new Error('不支持的请求方法');
+  }
+}
+
+/**
+ * 创建站内信
+ */
+async function createMessage(userId, messageData) {
+  const messagesCollection = db.collection('messages');
+  const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  const message = {
+    id: messageId,
+    userId: userId,
+    type: messageData.type || 'notification',
+    title: messageData.title,
+    content: messageData.content,
+    status: 'unread',
+    relatedId: messageData.relatedId,
+    metadata: messageData.metadata || {},
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  
+  await messagesCollection.add(message);
+  return message;
 }
 

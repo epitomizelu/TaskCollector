@@ -13,6 +13,11 @@ export const API_CONFIG = {
     ? 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api' // 开发环境
     : 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api', // 生产环境（使用相同的云函数地址）
   
+  // 想法收集器云函数地址（独立云函数）
+  IDEA_COLLECTOR_BASE_URL: __DEV__
+    ? 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/idea-collector-api' // 开发环境
+    : 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/idea-collector-api', // 生产环境
+  
   // 请求超时时间（毫秒）
   TIMEOUT: 10000,
   
@@ -74,6 +79,24 @@ export const API_ENDPOINTS = {
   // 应用更新相关
   APP_CHECK_UPDATE: (currentVersion: string, versionCode: number, platform: string = 'android') => 
     `/app/check-update?currentVersion=${currentVersion}&versionCode=${versionCode}&platform=${platform}`,
+  
+  // 站内信相关
+  MESSAGES: '/messages',
+  MESSAGE_BY_ID: (id: string) => `/messages/${id}`,
+  MESSAGE_MARK_READ: (id: string) => `/messages/${id}/read`,
+  MESSAGE_READ_ALL: '/messages/read-all',
+  
+  // 音频处理相关
+  AUDIO_UPLOAD: '/reciting/audio/upload',
+  AUDIO_STATUS: (contentId: string) => `/reciting/audio/status/${contentId}`,
+  AUDIO_PROCESS: '/reciting/audio/process',
+  
+  // 想法收集器相关
+  IDEAS: '/ideas',
+  IDEA_BY_ID: (id: string) => `/ideas/${id}`,
+  IDEAS_BY_DATE: (date: string) => `/ideas?date=${date}`,
+  IDEAS_BY_MONTH: (month: string) => `/ideas?month=${month}`,
+  IDEA_ANALYZE: '/ideas/analyze',
 };
 
 // 请求头配置
