@@ -23,23 +23,25 @@ GitHub Actions 工作流现在支持自动更新版本号，确保每次构建�
 构建10: v1.0.1 (Build 10)  ← versionCode 是 10 的倍数，version 递增
 ```
 
-### OTA 更新时的版本号更新
+### OTA 更新时的版本号
 
 **触发时机：** 运行 "EAS Update (OTA)" 工作流时
 
-**更新规则：**
-- 根据提交信息自动判断版本类型：
-  - `feat:` 或 `feature:` → 更新 minor 版本（1.0.0 → 1.1.0）
-  - `fix:` 或 `bugfix:` 或 `hotfix:` → 更新 patch 版本（1.0.0 → 1.0.1）
-  - 其他 → 默认更新 patch 版本
+**重要说明：**
+- **OTA 更新不会改变 `version`**，因为 `runtimeVersion` 使用 `appVersion` 策略
+- 如果 `version` 改变，`runtimeVersion` 也会改变，已安装的应用将无法接收 OTA 更新
 - `versionCode` 保持不变（OTA 更新不改变原生代码）
 
-**示例：**
-```
-初始: v1.0.0 (Build 1)
-feat: 添加新功能 → v1.1.0 (Build 1)
-fix: 修复 bug → v1.1.1 (Build 1)
-```
+**为什么不能改变 version？**
+- `runtimeVersion: { policy: "appVersion" }` 意味着 runtimeVersion = `app.json` 中的 `version`
+- 已安装的应用的 runtimeVersion 是构建时的 `version`
+- 如果 OTA 更新时改变了 `version`，新发布的 OTA 更新的 runtimeVersion 会不同
+- Expo Updates 只会将更新推送给 runtimeVersion 匹配的应用
+- 因此，已安装的应用无法接收更新
+
+**正确的做法：**
+- OTA 更新时：保持 `version` 不变，只更新 JavaScript 代码
+- APK 构建时：更新 `version` 和 `versionCode`，重新构建 APK
 
 ## 工作流配置
 
