@@ -103,15 +103,21 @@ class UnifiedUpdateService {
         return {
           isAvailable: false,
           isDownloaded: false,
+          error: new Error('OTA 更新未启用'),
         };
       }
 
-      // 开发环境跳过 OTA 检查
+      // 开发环境：仍然检查，但会返回开发环境提示
       if (__DEV__) {
-        console.log('[UnifiedUpdateService] 开发环境，跳过 OTA 更新检查');
+        console.log('[UnifiedUpdateService] 开发环境，OTA 更新检查受限');
+        // 尝试获取当前更新信息（即使不检查新更新）
+        const updateInfo = updateService.getUpdateInfo();
         return {
           isAvailable: false,
           isDownloaded: false,
+          error: new Error('开发环境不支持 OTA 更新检查，请在生产环境中使用'),
+          // 添加开发环境标识，方便 UI 显示
+          manifest: updateInfo.updateId ? { updateId: updateInfo.updateId } : undefined,
         };
       }
 

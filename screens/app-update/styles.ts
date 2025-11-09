@@ -163,6 +163,20 @@ export default StyleSheet.create({
     color: '#1F2937',
     marginLeft: 8,
   },
+  infoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginLeft: 8,
+  },
   downloadedBadge: {
     flexDirection: 'row',
     alignItems: 'center',

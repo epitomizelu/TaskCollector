@@ -223,7 +223,7 @@ const AppUpdateScreen: React.FC = () => {
         )}
 
         {/* OTA 更新信息 */}
-        {unifiedUpdateInfo && unifiedUpdateInfo.otaUpdate?.isAvailable && (
+        {unifiedUpdateInfo && unifiedUpdateInfo.otaUpdate && (
           <View style={[styles.updateCard, styles.otaUpdateCard]}>
             <View style={styles.updateHeader}>
               <View style={styles.updateTypeBadge}>
@@ -232,37 +232,57 @@ const AppUpdateScreen: React.FC = () => {
               </View>
             </View>
             <View style={styles.updateInfo}>
-              <Text style={styles.updateInfoValue}>
-                OTA 更新可以快速更新应用代码，无需重新安装。更新后应用将自动重启。
-              </Text>
-              {unifiedUpdateInfo.otaUpdate.isDownloaded && (
-                <View style={styles.downloadedBadge}>
-                  <FontAwesome6 name="check" size={12} color="#10B981" />
-                  <Text style={styles.downloadedText}>更新已下载，等待应用</Text>
-                </View>
-              )}
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.otaButton,
-                isApplyingOTA && styles.downloadButtonDisabled,
-              ]}
-              onPress={handleApplyOTAUpdate}
-              disabled={isApplyingOTA}
-              activeOpacity={0.7}
-            >
-              {isApplyingOTA ? (
+              {unifiedUpdateInfo.otaUpdate.isAvailable ? (
                 <>
-                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.downloadButtonText}>应用更新中...</Text>
+                  <Text style={styles.updateInfoValue}>
+                    OTA 更新可以快速更新应用代码，无需重新安装。更新后应用将自动重启。
+                  </Text>
+                  {unifiedUpdateInfo.otaUpdate.isDownloaded && (
+                    <View style={styles.downloadedBadge}>
+                      <FontAwesome6 name="check" size={12} color="#10B981" />
+                      <Text style={styles.downloadedText}>更新已下载，等待应用</Text>
+                    </View>
+                  )}
                 </>
               ) : (
                 <>
-                  <FontAwesome6 name="cloud-arrow-down" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-                  <Text style={styles.downloadButtonText}>应用 OTA 更新</Text>
+                  <Text style={styles.updateInfoValue}>
+                    {unifiedUpdateInfo.otaUpdate.error 
+                      ? `OTA 更新状态: ${unifiedUpdateInfo.otaUpdate.error.message}`
+                      : '当前已是最新版本，无需 OTA 更新。'}
+                  </Text>
+                  {__DEV__ && (
+                    <View style={styles.infoBadge}>
+                      <FontAwesome6 name="info-circle" size={12} color="#6B7280" />
+                      <Text style={styles.infoText}>开发环境不支持 OTA 更新检查</Text>
+                    </View>
+                  )}
                 </>
               )}
-            </TouchableOpacity>
+            </View>
+            {unifiedUpdateInfo.otaUpdate.isAvailable && (
+              <TouchableOpacity
+                style={[
+                  styles.otaButton,
+                  isApplyingOTA && styles.downloadButtonDisabled,
+                ]}
+                onPress={handleApplyOTAUpdate}
+                disabled={isApplyingOTA}
+                activeOpacity={0.7}
+              >
+                {isApplyingOTA ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.downloadButtonText}>应用更新中...</Text>
+                  </>
+                ) : (
+                  <>
+                    <FontAwesome6 name="cloud-arrow-down" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.downloadButtonText}>应用 OTA 更新</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         )}
 

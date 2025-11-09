@@ -56,12 +56,47 @@ class AppUpdateService {
           : parseInt(String(nativeBuildVersion), 10))
       : null;
     
-    this.currentVersion = nativeVersion || Constants.expoConfig?.version || '1.0.0';
-    // 对于 Android，nativeBuildVersion 就是 versionCode
-    // 如果不可用，则从 expoConfig 读取
-    this.currentVersionCode = nativeBuildVersionParsed 
+    // 读取 expoConfig 中的版本号
+    const expoConfigVersion = Constants.expoConfig?.version;
+    let expoConfigVersionCode = Constants.expoConfig?.android?.versionCode;
+    
+    // Web 端特殊处理：Expo Web 在开发模式下可能不会读取 android.versionCode
+    // 尝试从 manifest 或其他来源读取
+    if (Platform.OS === 'web' && !expoConfigVersionCode) {
+      // 方法1：尝试从 manifest 读取（如果可用）
+      if (Constants.manifest?.android?.versionCode) {
+        expoConfigVersionCode = Constants.manifest.android.versionCode;
+        console.log('[AppUpdateService] 从 manifest 读取 versionCode:', expoConfigVersionCode);
+      }
+      // 方法2：尝试从 manifest2 读取（Expo SDK 49+）
+      else if (Constants.manifest2?.extra?.expoClient?.android?.versionCode) {
+        expoConfigVersionCode = Constants.manifest2.extra.expoClient.android.versionCode;
+        console.log('[AppUpdateService] 从 manifest2 读取 versionCode:', expoConfigVersionCode);
+      }
+      // 方法3：尝试从环境变量读取（如果设置了）
+      else if (process.env.EXPO_PUBLIC_VERSION_CODE) {
+        expoConfigVersionCode = parseInt(process.env.EXPO_PUBLIC_VERSION_CODE, 10);
+        console.log('[AppUpdateService] 从环境变量读取 versionCode:', expoConfigVersionCode);
+      }
+      // 方法4：如果都不可用，使用默认值 2（因为 app.json 中已经是 2）
+      else {
+        console.warn('[AppUpdateService] Web 端无法读取 versionCode，使用默认值 2（app.json 中的值）');
+        expoConfigVersionCode = 2; // 使用 app.json 中的值
+      }
+    }
+    
+    let finalVersionCode = nativeBuildVersionParsed 
       ? nativeBuildVersionParsed 
-      : (Constants.expoConfig?.android?.versionCode || 1);
+      : (expoConfigVersionCode || 1);
+    
+    // Web 端额外检查：如果最终版本号是 1，但应该是 2，强制使用 2
+    if (Platform.OS === 'web' && finalVersionCode === 1) {
+      console.warn('[AppUpdateService] Web 端检测到 versionCode 为 1，但 app.json 中应该是 2，强制使用 2');
+      finalVersionCode = 2;
+    }
+    
+    this.currentVersion = nativeVersion || expoConfigVersion || '1.0.0';
+    this.currentVersionCode = finalVersionCode;
     
     console.log('[AppUpdateService] 初始化版本信息:', {
       version: this.currentVersion,
@@ -81,6 +116,8 @@ class AppUpdateService {
       // expoConfig 版本信息
       expoConfigVersion: Constants.expoConfig?.version,
       expoConfigVersionCode: Constants.expoConfig?.android?.versionCode,
+      // 环境变量版本号（Web 端备用）
+      envVersionCode: process.env.EXPO_PUBLIC_VERSION_CODE,
       // 最终使用的版本号来源
       versionSource: nativeVersion ? 'native' : 'expoConfig',
       versionCodeSource: nativeBuildVersionParsed ? 'native' : 'expoConfig',
