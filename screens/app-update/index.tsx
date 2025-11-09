@@ -17,6 +17,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { appUpdateService, UpdateInfo, DownloadProgress } from '../../services/app-update.service';
+import { unifiedUpdateService, UnifiedUpdateInfo } from '../../services/unified-update.service';
+import { updateService } from '../../services/update.service';
 import styles from './styles';
 
 const AppUpdateScreen: React.FC = () => {
@@ -24,9 +26,11 @@ const AppUpdateScreen: React.FC = () => {
   const [isChecking, setIsChecking] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [unifiedUpdateInfo, setUnifiedUpdateInfo] = useState<UnifiedUpdateInfo | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState<{ version: string; versionCode: number } | null>(null);
+  const [isApplyingOTA, setIsApplyingOTA] = useState(false);
 
   useEffect(() => {
     // 获取当前版本信息
@@ -35,16 +39,33 @@ const AppUpdateScreen: React.FC = () => {
   }, []);
 
   /**
-   * 检查更新
+   * 检查更新（统一检查 OTA 和 APK 更新）
    */
   const handleCheckUpdate = async () => {
     setIsChecking(true);
     setError(null);
     setUpdateInfo(null);
+    setUnifiedUpdateInfo(null);
 
     try {
-      const info = await appUpdateService.checkForUpdate();
-      setUpdateInfo(info);
+      // 使用统一更新服务检查所有类型的更新
+      const unifiedInfo = await unifiedUpdateService.checkForUpdates();
+      setUnifiedUpdateInfo(unifiedInfo);
+      
+      // 为了兼容原有 UI，也设置 APK 更新信息
+      if (unifiedInfo.apkUpdate) {
+        setUpdateInfo({
+          hasUpdate: unifiedInfo.apkUpdate.hasUpdate,
+          latestVersion: unifiedInfo.apkUpdate.latestVersion,
+          latestVersionCode: unifiedInfo.apkUpdate.latestVersionCode,
+          downloadUrl: unifiedInfo.apkUpdate.downloadUrl,
+          easDownloadUrl: unifiedInfo.apkUpdate.easDownloadUrl,
+          forceUpdate: unifiedInfo.apkUpdate.forceUpdate,
+          updateLog: unifiedInfo.apkUpdate.updateLog,
+          fileSize: unifiedInfo.apkUpdate.fileSize,
+          releaseDate: unifiedInfo.apkUpdate.releaseDate,
+        });
+      }
     } catch (err: any) {
       setError(err.message || '检查更新失败，请稍后重试');
       console.error('检查更新失败:', err);
@@ -54,19 +75,53 @@ const AppUpdateScreen: React.FC = () => {
   };
 
   /**
-   * 下载更新
+   * 应用 OTA 更新
+   */
+  const handleApplyOTAUpdate = async () => {
+    setIsApplyingOTA(true);
+    setError(null);
+
+    try {
+      Alert.alert(
+        '应用更新',
+        '应用将重启以应用更新，是否继续？',
+        [
+          { text: '取消', style: 'cancel' },
+          {
+            text: '确定',
+            onPress: async () => {
+              try {
+                await unifiedUpdateService.applyOTAUpdate();
+                // reloadAsync 会重启应用，这里不会执行
+              } catch (err: any) {
+                setError(err.message || '应用更新失败');
+                Alert.alert('更新失败', err.message || '无法应用更新');
+              } finally {
+                setIsApplyingOTA(false);
+              }
+            },
+          },
+        ]
+      );
+    } catch (err: any) {
+      setError(err.message || '应用更新失败');
+      setIsApplyingOTA(false);
+    }
+  };
+
+  /**
+   * 下载 APK 更新
    */
   const handleDownload = async () => {
-    if (!updateInfo) return;
+    if (!updateInfo || !unifiedUpdateInfo?.apkUpdate) return;
 
     setIsDownloading(true);
     setError(null);
     setDownloadProgress(null);
 
     try {
-      // 使用新的 downloadApk 方法，支持优先从 EAS 下载
-      const fileUri = await appUpdateService.downloadApk(
-        updateInfo,
+      // 使用统一更新服务下载 APK
+      const fileUri = await unifiedUpdateService.downloadAPKUpdate(
         (progress) => {
           setDownloadProgress(progress);
         }
@@ -82,7 +137,7 @@ const AppUpdateScreen: React.FC = () => {
             text: '安装',
             onPress: async () => {
               try {
-                await appUpdateService.installApk(fileUri);
+                await unifiedUpdateService.installAPK(fileUri);
               } catch (err: any) {
                 Alert.alert('安装失败', err.message || '无法启动安装程序');
               }
@@ -167,14 +222,52 @@ const AppUpdateScreen: React.FC = () => {
           </View>
         )}
 
-        {/* 更新信息 */}
+        {/* OTA 更新信息 */}
+        {unifiedUpdateInfo && unifiedUpdateInfo.otaUpdate?.isAvailable && (
+          <View style={styles.updateCard}>
+            <View style={styles.updateHeader}>
+              <FontAwesome6 name="cloud-arrow-down" size={24} color="#3B82F6" />
+              <Text style={styles.updateTitle}>发现 OTA 更新</Text>
+            </View>
+            <View style={styles.updateInfo}>
+              <Text style={styles.updateInfoValue}>
+                OTA 更新可以快速更新应用代码，无需重新安装。更新后应用将自动重启。
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.downloadButton,
+                isApplyingOTA && styles.downloadButtonDisabled,
+              ]}
+              onPress={handleApplyOTAUpdate}
+              disabled={isApplyingOTA}
+              activeOpacity={0.7}
+            >
+              {isApplyingOTA ? (
+                <>
+                  <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.downloadButtonText}>应用更新中...</Text>
+                </>
+              ) : (
+                <>
+                  <FontAwesome6 name="cloud-arrow-down" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                  <Text style={styles.downloadButtonText}>应用 OTA 更新</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* APK 更新信息 */}
         {updateInfo && (
           <View style={styles.updateCard}>
             {updateInfo.hasUpdate ? (
               <>
                 <View style={styles.updateHeader}>
                   <FontAwesome6 name="circle-check" size={24} color="#10B981" />
-                  <Text style={styles.updateTitle}>发现新版本</Text>
+                  <Text style={styles.updateTitle}>
+                    {unifiedUpdateInfo?.updateType === 'both' ? '发现 APK 更新' : '发现新版本'}
+                  </Text>
                 </View>
 
                 <View style={styles.updateInfo}>
