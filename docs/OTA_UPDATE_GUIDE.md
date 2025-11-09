@@ -51,7 +51,26 @@
 
 ### 发布 OTA 更新
 
-**只修改了 JavaScript/TypeScript 代码时：**
+**方法 1：通过 GitHub Actions（推荐，适合使用 VPN 的情况）**
+
+1. **提交代码到 Git**
+   ```bash
+   git add .
+   git commit -m "feat: 添加新功能"
+   git push
+   ```
+
+2. **触发 GitHub Actions**
+   - 进入 GitHub 仓库的 Actions 页面
+   - 选择 "EAS Update (OTA)" 工作流
+   - 点击 "Run workflow"
+   - 选择分支（production 或 preview）
+   - 输入更新说明
+   - 点击 "Run workflow" 执行
+
+   **或者**：如果配置了自动触发，推送到 `main` 分支会自动发布更新
+
+**方法 2：本地命令行**
 
 ```bash
 # 1. 提交代码到 Git

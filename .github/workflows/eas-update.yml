@@ -1,0 +1,117 @@
+name: EAS Update (OTA)
+
+on:
+  workflow_dispatch:  # 仅手动触发
+    inputs:
+      branch:
+        description: '更新分支（如 production, preview）'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      message:
+        description: '更新说明'
+        required: true
+        default: 'OTA 更新'
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # 确保有写权限，以便推送版本号更新
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update version for OTA update
+        id: version
+        run: |
+          echo "更新版本号（OTA 更新）..."
+          # 根据更新说明判断版本类型
+          COMMIT_MSG="${{ github.event.inputs.message }}"
+          if echo "$COMMIT_MSG" | grep -qiE "^(feat|feature)"; then
+            echo "检测到新功能，更新 minor 版本"
+            node scripts/update-version.js --type update --minor
+          elif echo "$COMMIT_MSG" | grep -qiE "^(fix|bugfix|hotfix)"; then
+            echo "检测到 bug 修复，更新 patch 版本"
+            node scripts/update-version.js --type update --patch
+          else
+            echo "默认更新 patch 版本"
+            node scripts/update-version.js --type update --patch
+          fi
+          echo "版本号更新完成"
+          # 读取更新后的版本号
+          VERSION=$(node -p "require('./app.json').expo.version")
+          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "versionCode=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "新版本: v$VERSION (Build $VERSION_CODE)"
+
+      - name: Commit version update
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add app.json
+          git commit -m "chore: 自动更新版本号 [skip ci]" || echo "没有版本变更或已是最新"
+          # 推送到当前分支（通常是 main）
+          git push origin HEAD:${{ github.ref_name }} || echo "推送失败或无需推送"
+          echo "✅ 版本号已提交到分支: ${{ github.ref_name }}"
+
+      - name: Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Determine update branch and message
+        id: update-info
+        run: |
+          # 手动触发：使用输入参数
+          echo "branch=${{ github.event.inputs.branch }}" >> $GITHUB_OUTPUT
+          echo "message=${{ github.event.inputs.message }}" >> $GITHUB_OUTPUT
+
+      - name: Run EAS Update
+        run: |
+          BRANCH="${{ steps.update-info.outputs.branch }}"
+          MESSAGE="${{ steps.update-info.outputs.message }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          echo "发布 OTA 更新到分支: $BRANCH"
+          echo "更新说明: $MESSAGE"
+          echo "新版本号: v$VERSION"
+          
+          # 在更新说明中包含版本号
+          FULL_MESSAGE="v$VERSION - $MESSAGE"
+          
+          eas update --branch "$BRANCH" --message "$FULL_MESSAGE" --non-interactive
+
+      - name: Save OTA version info to database
+        if: success()
+        env:
+          API_BASE_URL: https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api
+          EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
+        run: |
+          echo "保存 OTA 更新版本信息到数据库..."
+          VERSION="${{ steps.version.outputs.version }}"
+          MESSAGE="${{ steps.update-info.outputs.message }}"
+          node scripts/save-ota-version.js "$MESSAGE"
+          echo "✅ OTA 更新版本信息已保存"
+
+      - name: List updates
+        run: |
+          BRANCH="${{ steps.update-info.outputs.branch }}"
+          echo "查看分支 $BRANCH 的更新列表:"
+          eas update:list --branch "$BRANCH" --non-interactive || echo "分支 $BRANCH 可能还没有更新"
+

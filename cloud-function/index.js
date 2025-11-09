@@ -1561,15 +1561,46 @@ async function handleAppVersions(method, path, body, headers) {
       
       if (existing.data && existing.data.length > 0) {
         // 更新现有版本
+        // 注意：如果已有 APK 下载地址，OTA 更新不应该覆盖它们
+        const existingVersion = existing.data[0];
+        const updateData = {
+          version: versionInfo.version, // 始终更新版本号
+          updateType: versionInfo.updateType || existingVersion.updateType || 'apk',
+          updateMessage: versionInfo.updateMessage || existingVersion.updateMessage || '',
+          updatedAt: new Date().toISOString(),
+        };
+        
+        // 如果是 OTA 更新，只更新版本号和更新信息，不覆盖下载地址
+        if (versionInfo.updateType === 'ota') {
+          // OTA 更新：保留已有的下载地址，只更新版本号和更新信息
+          if (existingVersion.easDownloadUrl) {
+            updateData.easDownloadUrl = existingVersion.easDownloadUrl;
+          }
+          if (existingVersion.downloadUrl) {
+            updateData.downloadUrl = existingVersion.downloadUrl;
+          }
+          if (existingVersion.filePath) {
+            updateData.filePath = existingVersion.filePath;
+          }
+          if (existingVersion.fileSize) {
+            updateData.fileSize = existingVersion.fileSize;
+          }
+        } else {
+          // APK 构建：更新所有字段（包括下载地址）
+          Object.assign(updateData, {
+            easDownloadUrl: versionInfo.easDownloadUrl || existingVersion.easDownloadUrl,
+            downloadUrl: versionInfo.downloadUrl || existingVersion.downloadUrl,
+            filePath: versionInfo.filePath || existingVersion.filePath,
+            fileSize: versionInfo.fileSize || existingVersion.fileSize,
+          });
+        }
+        
         await versionsCollection
           .where({
             versionCode: versionInfo.versionCode,
             platform: versionInfo.platform,
           })
-          .update({
-            ...versionInfo,
-            updatedAt: new Date().toISOString(),
-          });
+          .update(updateData);
         console.log('版本信息已更新');
       } else {
         // 创建新版本

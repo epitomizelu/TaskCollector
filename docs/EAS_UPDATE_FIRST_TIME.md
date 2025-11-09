@@ -39,7 +39,25 @@ eas branch:list
 
 ## 完整流程
 
-### 第一次使用 EAS Update
+### 方法 1：通过 GitHub Actions（推荐，适合使用 VPN 的情况）
+
+1. **配置 GitHub Secrets**
+   - 在 GitHub 仓库设置中添加 `EXPO_TOKEN`
+   - 获取 Token：登录 https://expo.dev → Account Settings → Access Tokens
+
+2. **手动触发更新**
+   - 进入 GitHub 仓库的 Actions 页面
+   - 选择 "EAS Update (OTA)" 工作流
+   - 点击 "Run workflow"
+   - 选择分支（production 或 preview）
+   - 输入更新说明
+   - 点击 "Run workflow" 执行
+
+3. **自动触发更新（可选）**
+   - 当代码推送到 `main` 分支时自动触发
+   - 只监控 JS/TS 代码变更，不监控文档和配置文件
+
+### 方法 2：本地命令行
 
 1. **确保已登录 Expo 账户**
    ```bash
