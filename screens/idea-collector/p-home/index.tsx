@@ -10,11 +10,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
+import { Sidebar, MenuItem } from '../../../components/Sidebar';
 import { ideaService, IdeaData } from '../../../services/idea.service';
 import styles from './styles';
 
 const IdeaCollectorHomeScreen = () => {
   const router = useRouter();
+  const [sidebarVisible, setSidebarVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [ideas, setIdeas] = useState<IdeaData[]>([]);
@@ -114,7 +116,14 @@ const IdeaCollectorHomeScreen = () => {
       >
         {/* 顶部标题 */}
         <View style={styles.header}>
-          <View>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => setSidebarVisible(true)}
+            activeOpacity={0.7}
+          >
+            <FontAwesome6 name="bars" size={20} color="#6366f1" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
             <Text style={styles.title}>想法收集器</Text>
             <Text style={styles.subtitle}>记录你的每一个想法</Text>
           </View>
@@ -217,6 +226,28 @@ const IdeaCollectorHomeScreen = () => {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* 侧边栏 */}
+      <Sidebar
+        visible={sidebarVisible}
+        onClose={() => setSidebarVisible(false)}
+        menuItems={[
+          {
+            id: 'app-home',
+            label: '回到APP首页',
+            icon: 'grid',
+            path: '/module-home',
+          },
+          {
+            id: 'idea-list',
+            label: '我的想法',
+            icon: 'list',
+            path: '/idea-collector-list',
+          },
+        ]}
+        moduleName="想法收集器"
+        moduleIcon="lightbulb"
+      />
     </SafeAreaView>
   );
 };

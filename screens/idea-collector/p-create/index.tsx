@@ -146,12 +146,20 @@ const IdeaCreateScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <FontAwesome6 name="arrow-left" size={20} color="#1F2937" />
-          </TouchableOpacity>
+          <View style={styles.headerLeft}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <FontAwesome6 name="arrow-left" size={20} color="#1F2937" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.homeButton}
+              onPress={() => router.push('/module-home' as any)}
+            >
+              <FontAwesome6 name="house" size={18} color="#6366f1" />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.headerTitle}>
             {ideaId ? '编辑想法' : '记录想法'}
           </Text>

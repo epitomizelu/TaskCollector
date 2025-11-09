@@ -26,6 +26,18 @@ export default StyleSheet.create({
     paddingVertical: 20,
     backgroundColor: '#FFFFFF',
   },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',

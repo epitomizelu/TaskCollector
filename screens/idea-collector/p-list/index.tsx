@@ -222,12 +222,20 @@ const IdeaListScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <FontAwesome6 name="arrow-left" size={20} color="#1F2937" />
-        </TouchableOpacity>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <FontAwesome6 name="arrow-left" size={20} color="#1F2937" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.homeButton}
+            onPress={() => router.push('/module-home' as any)}
+          >
+            <FontAwesome6 name="house" size={18} color="#6366f1" />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.headerTitle}>我的想法</Text>
         <View style={styles.headerRight}>
           <TouchableOpacity
