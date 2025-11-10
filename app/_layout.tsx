@@ -101,6 +101,11 @@ export default function RootLayout() {
           {/* 任务清单模块路由 */}
           <Stack.Screen name="task-list-today" options={{ title: "今日任务" }} />
           <Stack.Screen name="task-list-preset" options={{ title: "预设任务" }} />
+          {/* 认识自己模块路由 */}
+          <Stack.Screen name="self-awareness-home" options={{ title: "认识自己" }} />
+          <Stack.Screen name="self-awareness-teachers" options={{ title: "老师清单" }} />
+          <Stack.Screen name="self-awareness-goals" options={{ title: "人生目标" }} />
+          <Stack.Screen name="self-awareness-values" options={{ title: "价值观和原则" }} />
           <Stack.Screen name="app-update" options={{ title: "检查更新" }} />
               </Stack>
       </GestureHandlerRootView>

@@ -1001,6 +1001,227 @@ class ApiService {
     }
     throw new Error(response.message || 'AI分析失败');
   }
+
+  // ========== 认识自己模块相关 API ==========
+
+  /**
+   * 获取老师列表
+   */
+  async getSelfAwarenessTeachers(): Promise<any[]> {
+    const response = await this.get<any[]>(
+      API_ENDPOINTS.SELF_AWARENESS_TEACHERS,
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data || [];
+    }
+    throw new Error(response.message || '获取老师列表失败');
+  }
+
+  /**
+   * 获取单个老师
+   */
+  async getSelfAwarenessTeacherById(teacherId: string): Promise<any> {
+    const response = await this.get<any>(
+      API_ENDPOINTS.SELF_AWARENESS_TEACHER_BY_ID(teacherId),
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取老师失败');
+  }
+
+  /**
+   * 创建老师
+   */
+  async createSelfAwarenessTeacher(teacher: any): Promise<any> {
+    const response = await this.post<any>(
+      API_ENDPOINTS.SELF_AWARENESS_TEACHERS,
+      teacher,
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建老师失败');
+  }
+
+  /**
+   * 更新老师
+   */
+  async updateSelfAwarenessTeacher(teacherId: string, teacher: any): Promise<any> {
+    const response = await this.put<any>(
+      API_ENDPOINTS.SELF_AWARENESS_TEACHER_BY_ID(teacherId),
+      teacher,
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '更新老师失败');
+  }
+
+  /**
+   * 删除老师
+   */
+  async deleteSelfAwarenessTeacher(teacherId: string): Promise<void> {
+    const response = await this.delete(
+      API_ENDPOINTS.SELF_AWARENESS_TEACHER_BY_ID(teacherId),
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return;
+    }
+    throw new Error(response.message || '删除老师失败');
+  }
+
+  /**
+   * 获取目标列表
+   */
+  async getSelfAwarenessGoals(): Promise<any[]> {
+    const response = await this.get<any[]>(
+      API_ENDPOINTS.SELF_AWARENESS_GOALS,
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data || [];
+    }
+    throw new Error(response.message || '获取目标列表失败');
+  }
+
+  /**
+   * 获取单个目标
+   */
+  async getSelfAwarenessGoalById(goalId: string): Promise<any> {
+    const response = await this.get<any>(
+      API_ENDPOINTS.SELF_AWARENESS_GOAL_BY_ID(goalId),
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取目标失败');
+  }
+
+  /**
+   * 创建目标
+   */
+  async createSelfAwarenessGoal(goal: any): Promise<any> {
+    const response = await this.post<any>(
+      API_ENDPOINTS.SELF_AWARENESS_GOALS,
+      goal,
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建目标失败');
+  }
+
+  /**
+   * 更新目标
+   */
+  async updateSelfAwarenessGoal(goalId: string, goal: any): Promise<any> {
+    const response = await this.put<any>(
+      API_ENDPOINTS.SELF_AWARENESS_GOAL_BY_ID(goalId),
+      goal,
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '更新目标失败');
+  }
+
+  /**
+   * 删除目标
+   */
+  async deleteSelfAwarenessGoal(goalId: string): Promise<void> {
+    const response = await this.delete(
+      API_ENDPOINTS.SELF_AWARENESS_GOAL_BY_ID(goalId),
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return;
+    }
+    throw new Error(response.message || '删除目标失败');
+  }
+
+  /**
+   * 获取价值观列表
+   */
+  async getSelfAwarenessValues(type?: 'value' | 'principle'): Promise<any[]> {
+    const endpoint = type
+      ? API_ENDPOINTS.SELF_AWARENESS_VALUES_BY_TYPE(type)
+      : API_ENDPOINTS.SELF_AWARENESS_VALUES;
+    const response = await this.get<any[]>(
+      endpoint,
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data || [];
+    }
+    throw new Error(response.message || '获取价值观列表失败');
+  }
+
+  /**
+   * 获取单个价值观
+   */
+  async getSelfAwarenessValueById(valueId: string): Promise<any> {
+    const response = await this.get<any>(
+      API_ENDPOINTS.SELF_AWARENESS_VALUE_BY_ID(valueId),
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取价值观失败');
+  }
+
+  /**
+   * 创建价值观
+   */
+  async createSelfAwarenessValue(value: any): Promise<any> {
+    const response = await this.post<any>(
+      API_ENDPOINTS.SELF_AWARENESS_VALUES,
+      value,
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建价值观失败');
+  }
+
+  /**
+   * 更新价值观
+   */
+  async updateSelfAwarenessValue(valueId: string, value: any): Promise<any> {
+    const response = await this.put<any>(
+      API_ENDPOINTS.SELF_AWARENESS_VALUE_BY_ID(valueId),
+      value,
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '更新价值观失败');
+  }
+
+  /**
+   * 删除价值观
+   */
+  async deleteSelfAwarenessValue(valueId: string): Promise<void> {
+    const response = await this.delete(
+      API_ENDPOINTS.SELF_AWARENESS_VALUE_BY_ID(valueId),
+      API_CONFIG.SELF_AWARENESS_BASE_URL
+    );
+    if (response.code === 200 || response.code === 0) {
+      return;
+    }
+    throw new Error(response.message || '删除价值观失败');
+  }
 }
 
 // 导出单例

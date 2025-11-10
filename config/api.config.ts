@@ -18,6 +18,11 @@ export const API_CONFIG = {
     ? 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/idea-collector-api' // 开发环境
     : 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/idea-collector-api', // 生产环境
   
+  // 认识自己模块云函数地址（独立云函数）
+  SELF_AWARENESS_BASE_URL: __DEV__
+    ? 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/self-awareness-api' // 开发环境
+    : 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/self-awareness-api', // 生产环境
+  
   // 请求超时时间（毫秒）
   TIMEOUT: 10000,
   
@@ -97,6 +102,18 @@ export const API_ENDPOINTS = {
   IDEAS_BY_DATE: (date: string) => `/ideas?date=${date}`,
   IDEAS_BY_MONTH: (month: string) => `/ideas?month=${month}`,
   IDEA_ANALYZE: '/ideas/analyze',
+  
+  // 认识自己模块相关
+  // 老师清单
+  SELF_AWARENESS_TEACHERS: '/teachers',
+  SELF_AWARENESS_TEACHER_BY_ID: (id: string) => `/teachers/${id}`,
+  // 人生目标清单
+  SELF_AWARENESS_GOALS: '/goals',
+  SELF_AWARENESS_GOAL_BY_ID: (id: string) => `/goals/${id}`,
+  // 价值观和原则清单
+  SELF_AWARENESS_VALUES: '/values',
+  SELF_AWARENESS_VALUES_BY_TYPE: (type: string) => `/values?type=${type}`,
+  SELF_AWARENESS_VALUE_BY_ID: (id: string) => `/values/${id}`,
 };
 
 // 请求头配置

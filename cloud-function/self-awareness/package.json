@@ -1,0 +1,10 @@
+{
+  "name": "self-awareness-api",
+  "version": "1.0.0",
+  "description": "认识自己模块云函数 - 处理老师清单、人生目标清单、价值观和原则清单",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^2.5.0"
+  }
+}
+
