@@ -52,12 +52,46 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
           # expo-cache: false  # 禁用 Expo CLI 缓存（可选）
 
+      - name: Verify EAS Configuration
+        run: |
+          echo "========== 检查 EAS 配置 =========="
+          # 检查 eas.json 是否存在
+          if [ ! -f "eas.json" ]; then
+            echo "❌ eas.json 文件不存在"
+            exit 1
+          fi
+          echo "✅ eas.json 文件存在"
+          
+          # 检查 app.json 中的项目配置
+          echo "检查 app.json 配置..."
+          node -e "
+            const fs = require('fs');
+            const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            console.log('项目名称:', appJson.expo.name);
+            console.log('项目 Slug:', appJson.expo.slug);
+            console.log('项目版本:', appJson.expo.version);
+            console.log('Android Package:', appJson.expo.android?.package);
+            console.log('Android VersionCode:', appJson.expo.android?.versionCode);
+            if (appJson.expo.extra?.eas?.projectId) {
+              console.log('EAS Project ID:', appJson.expo.extra.eas.projectId);
+            }
+          "
+          
+          # 验证 EAS CLI 认证状态
+          echo "检查 EAS CLI 认证状态..."
+          eas whoami || echo "⚠️ 无法获取用户信息（可能需要在构建时验证）"
+          
+          echo "=================================="
+
       - name: Run EAS Build with Retry
         env:
           # 从 GitHub Secrets 读取 API Key
           EXPO_PUBLIC_API_KEY: ${{ secrets.EXPO_PUBLIC_API_KEY }}
         id: build
         run: |
+          # 注意：不使用 set -e，因为我们需要手动处理错误
+          set -o pipefail  # 管道命令中任何命令失败都会导致整个管道失败
+          
           # 动态替换 eas.json 中的 ${EXPO_PUBLIC_API_KEY} 为实际值
           # 因为 EAS Build 在 GitHub Actions 中不会自动从 EAS Secrets 读取
           if [ -n "$EXPO_PUBLIC_API_KEY" ]; then
@@ -67,7 +101,7 @@ jobs:
             
             # 使用 Node.js 脚本来安全地替换 eas.json 中的占位符
             # 这样可以正确处理 API Key 中的特殊字符
-            node -e "
+            if node -e "
               const fs = require('fs');
               const apiKey = process.env.EXPO_PUBLIC_API_KEY;
               const easJson = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
@@ -82,79 +116,134 @@ jobs:
               
               fs.writeFileSync('eas.json', JSON.stringify(easJson, null, 2));
               console.log('✅ eas.json 已更新');
-            "
-            
-            # 验证替换是否成功
-            if grep -q "\"$EXPO_PUBLIC_API_KEY\"" eas.json; then
-              echo "✅ 验证成功: eas.json 中的 API Key 已正确替换"
+            "; then
+              # 验证替换是否成功
+              if grep -q "\"$EXPO_PUBLIC_API_KEY\"" eas.json; then
+                echo "✅ 验证成功: eas.json 中的 API Key 已正确替换"
+              else
+                echo "⚠️ 警告: eas.json 中的 API Key 替换可能失败，但继续构建"
+              fi
             else
-              echo "❌ 警告: eas.json 中的 API Key 替换可能失败"
+              echo "⚠️ 警告: eas.json 更新失败，但继续构建"
             fi
             
             # 同时将 API Key 注入到 app.json 的 extra.apiKey 字段（作为备用方案）
             # 使用 Node.js 脚本来安全地修改 JSON
-            node -e "
+            if node -e "
               const fs = require('fs');
               const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
               if (!appJson.expo.extra) appJson.expo.extra = {};
               appJson.expo.extra.apiKey = process.env.EXPO_PUBLIC_API_KEY || '';
               fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
               console.log('✅ app.json 中的 API Key 已注入');
-            "
-            
-            # 打印 app.json 的 extra 部分内容
-            echo ""
-            echo "=== app.json extra 部分内容 ==="
-            node -e "
-              const fs = require('fs');
-              const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-              console.log(JSON.stringify(appJson.expo.extra, null, 2));
-            "
+            "; then
+              # 打印 app.json 的 extra 部分内容
+              echo ""
+              echo "=== app.json extra 部分内容 ==="
+              node -e "
+                const fs = require('fs');
+                const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+                console.log(JSON.stringify(appJson.expo.extra, null, 2));
+              "
+            else
+              echo "⚠️ 警告: app.json 更新失败，但继续构建"
+            fi
           else
             echo "⚠️ 警告: EXPO_PUBLIC_API_KEY 环境变量未设置"
           fi
           
-          # 重试逻辑：如果 408 超时，自动重跑
+          # 重试逻辑：如果构建失败，自动重试（最多3次）
+          BUILD_SUCCESS=false
+          BUILD_OUTPUT_FILE=$(mktemp)
+          set +e  # 在整个重试循环中禁用错误退出，以便处理重试逻辑
+          
           for i in {1..3}; do
+            echo "========== 构建尝试 $i/3 =========="
             # 通过环境变量传递 API Key，确保 EAS Build 能够读取
             export EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY"
-            BUILD_OUTPUT=$(EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY" eas build --platform android --profile preview --non-interactive 2>&1)
-            BUILD_EXIT_CODE=$?
-            echo "$BUILD_OUTPUT"
+            
+            # 运行 eas build，将输出同时显示在终端和保存到文件
+            # 使用 tee 来同时输出到终端和文件，以便后续提取 URL
+            EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY" eas build --platform android --profile preview --non-interactive 2>&1 | tee "$BUILD_OUTPUT_FILE"
+            BUILD_EXIT_CODE=${PIPESTATUS[0]}  # 获取第一个命令（eas build）的退出代码
+            
+            # 读取构建输出（即使失败也要读取，以便显示错误信息）
+            BUILD_OUTPUT=$(cat "$BUILD_OUTPUT_FILE" 2>/dev/null || echo "")
             
             if [ $BUILD_EXIT_CODE -eq 0 ]; then
+              echo "✅ 构建命令执行成功！"
+              
               # 提取下载 URL（使用正则匹配，支持任意文件名）
               # 格式：https://expo.dev/artifacts/eas/<随机字符串>.apk
-              # 或者：🤖 Android app: https://expo.dev/artifacts/eas/<随机字符串>.apk
               DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -oE 'https://expo\.dev/artifacts/eas/[a-zA-Z0-9]+\.apk' | head -1)
+              
+              if [ -z "$DOWNLOAD_URL" ]; then
+                # 备用方法1：匹配包含 "Android app:" 的行
+                DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -i "android app" | grep -oE 'https://expo\.dev/artifacts/eas/[a-zA-Z0-9]+\.apk' | head -1)
+              fi
+              
+              if [ -z "$DOWNLOAD_URL" ]; then
+                # 备用方法2：从构建输出中查找包含 .apk 的完整 URL
+                DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -oE 'https://expo\.dev/[^ ]+\.apk' | head -1)
+              fi
               
               if [ -n "$DOWNLOAD_URL" ]; then
                 echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
                 echo "✅ APK 下载地址: $DOWNLOAD_URL"
+                BUILD_SUCCESS=true
+                rm -f "$BUILD_OUTPUT_FILE"
+                break
               else
-                # 备用方法1：匹配包含 "Android app:" 的行
-                DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -i "android app" | grep -oE 'https://expo\.dev/artifacts/eas/[a-zA-Z0-9]+\.apk' | head -1)
-                if [ -n "$DOWNLOAD_URL" ]; then
-                  echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
-                  echo "✅ APK 下载地址（备用方法1）: $DOWNLOAD_URL"
-                else
-                  # 备用方法2：从构建输出中查找包含 .apk 的完整 URL
-                  DOWNLOAD_URL=$(echo "$BUILD_OUTPUT" | grep -oE 'https://expo\.dev/[^ ]+\.apk' | head -1)
-                  if [ -n "$DOWNLOAD_URL" ]; then
-                    echo "download_url=$DOWNLOAD_URL" >> $GITHUB_OUTPUT
-                    echo "✅ APK 下载地址（备用方法2）: $DOWNLOAD_URL"
-                  else
-                    echo "⚠️  警告: 无法从构建输出中提取 APK 下载地址"
-                    echo "构建输出片段:"
-                    echo "$BUILD_OUTPUT" | grep -i "android\|apk\|artifact" | head -5
-                  fi
-                fi
+                echo "⚠️  警告: 无法从构建输出中提取 APK 下载地址"
+                echo "构建可能成功但 URL 未在输出中显示（可能是异步构建）"
+                echo "构建输出中的关键信息:"
+                echo "$BUILD_OUTPUT" | grep -iE "build|android|apk|artifact|success|complete|url" | tail -20
+                # 即使没有提取到 URL，如果构建命令成功，也标记为成功
+                # EAS Build 可能是异步的，URL 可能稍后才可用
+                BUILD_SUCCESS=true
+                rm -f "$BUILD_OUTPUT_FILE"
+                break
               fi
-              break
+            else
+              echo "❌ 构建尝试 $i 失败，退出代码: $BUILD_EXIT_CODE"
+              
+              # 显示错误信息
+              echo "========== 构建错误信息 =========="
+              echo "$BUILD_OUTPUT" | grep -iE "error|fail|exception|timeout|unauthorized|invalid" | tail -30
+              echo "=================================="
+              
+              if [ $i -lt 3 ]; then
+                echo "等待 30 秒后重试..."
+                sleep 30
+              else
+                echo "❌ 所有构建尝试都失败了"
+                echo "========== 完整的构建输出（最后 100 行）=========="
+                echo "$BUILD_OUTPUT" | tail -100
+                echo "================================================"
+                rm -f "$BUILD_OUTPUT_FILE"
+                exit 1
+              fi
             fi
-            echo "Build $i failed, retrying in 30s..."
-            sleep 30
           done
+          
+          # 清理临时文件
+          rm -f "$BUILD_OUTPUT_FILE"
+          
+          # 重新启用错误退出
+          set -e
+          
+          # 最终检查：如果构建失败，退出
+          if [ "$BUILD_SUCCESS" != "true" ]; then
+            echo "❌ EAS 构建失败：所有重试尝试都失败了"
+            echo "请检查上面的错误信息，常见问题包括："
+            echo "  1. EAS Token 无效或过期（检查 secrets.EXPO_TOKEN）"
+            echo "  2. 项目配置错误（检查 app.json 和 eas.json）"
+            echo "  3. 网络问题或 Expo 服务问题"
+            echo "  4. 构建配额不足"
+            exit 1
+          fi
+          
+          echo "✅ 构建步骤完成"
 
       - name: Display Version Info
         if: success() && steps.build.outputs.download_url != ''

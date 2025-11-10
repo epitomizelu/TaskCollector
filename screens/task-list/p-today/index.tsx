@@ -44,10 +44,10 @@ const TodayTaskScreen: React.FC = () => {
       const dateStr = getDateString(selectedDate);
       const isToday = dateStr === getDateString(new Date());
       
-      // 如果是今天，先同步预设任务（优先本地，本地没有则从云端）
+      // 如果是今天，先同步预设任务，然后初始化今日任务
       if (isToday) {
         try {
-          // 先尝试从云端同步预设任务（如果本地没有）
+          // 先同步预设任务（确保预设任务是最新的）
           await taskListService.syncPresetTasksFromCloud();
           console.log('预设任务同步完成');
         } catch (error) {
@@ -55,20 +55,13 @@ const TodayTaskScreen: React.FC = () => {
           // 同步失败不影响继续执行，使用本地预设任务
         }
         
-        // 然后同步每日任务（优先本地，本地没有则从云端）
-        try {
-          await taskListService.syncDailyTasksFromCloud(dateStr);
-          console.log('每日任务同步完成');
-        } catch (error) {
-          console.error('同步每日任务失败:', error);
-          // 同步失败不影响继续执行，使用本地每日任务
-        }
-        
-        // 最后初始化今日任务（从预设任务生成）
-        // 注意：这里会重新获取预设任务，确保使用最新的数据
+        // 初始化今日任务（如果是新的一天，会清除今日任务并从预设任务重新生成，状态初始化）
+        // 注意：initializeTodayTasks 内部会检查是否是新的一天
+        // 如果是新的一天，会删除今日的所有任务（包括云端），然后从预设任务重新生成
         await taskListService.initializeTodayTasks();
+        console.log('今日任务初始化完成');
       } else {
-        // 如果不是今天，也尝试同步该日期的任务（优先本地，本地没有则从云端）
+        // 如果不是今天，只同步该日期的任务（用于查看历史任务）
         try {
           await taskListService.syncDailyTasksFromCloud(dateStr);
           console.log(`${dateStr} 的每日任务同步完成`);
