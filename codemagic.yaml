@@ -1,0 +1,75 @@
+workflows:
+  android-preview:
+    name: Android Preview Build (APK)
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        # 在 Codemagic 后台配置环境变量组，添加 EXPO_PUBLIC_API_KEY
+        # 如果需要签名，也可以在这里配置 keystore 相关变量
+      vars:
+        EXPO_PUBLIC_API_KEY: $EXPO_PUBLIC_API_KEY
+      node: 20.18.0
+      java: 17
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Setup Expo
+        script: |
+          npx expo install --fix
+      - name: Prebuild (if needed)
+        script: |
+          npx expo prebuild --platform android --clean || true
+      - name: Build Android APK
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+    artifacts:
+      - android/app/build/outputs/apk/release/*.apk
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com # 替换为你的邮箱
+        notify:
+          success: true
+          failure: true
+
+  android-production:
+    name: Android Production Build (AAB)
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        # 在 Codemagic 后台配置环境变量组，添加 EXPO_PUBLIC_API_KEY
+        # 如果需要签名，也可以在这里配置 keystore 相关变量
+      vars:
+        EXPO_PUBLIC_API_KEY: $EXPO_PUBLIC_API_KEY
+      node: 20.18.0
+      java: 17
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Setup Expo
+        script: |
+          npx expo install --fix
+      - name: Prebuild (if needed)
+        script: |
+          npx expo prebuild --platform android --clean || true
+      - name: Build Android AAB
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com # 替换为你的邮箱
+        notify:
+          success: true
+          failure: true
+
