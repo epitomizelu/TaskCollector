@@ -216,6 +216,12 @@ exports.main = async (event, context) => {
     } else if (path === '/storage/upload' || path.startsWith('/storage/upload')) {
       // 文件上传到云存储（小文件）
       result = await handleStorageUpload(method, path, body, normalizedHeaders);
+    } else if (path === '/app/js-bundle-versions' || path.startsWith('/app/js-bundle-versions')) {
+      // JS Bundle 版本管理（保存/获取版本信息）
+      result = await handleJSBundleVersions(method, path, body, normalizedHeaders);
+    } else if (path === '/app/check-js-bundle-update' || path.startsWith('/app/check-js-bundle-update')) {
+      // JS Bundle 更新检查
+      result = await handleJSBundleCheckUpdate(method, path, body, normalizedHeaders);
     } else if (path === '/messages' || path.startsWith('/messages')) {
       // 站内信相关
       result = await handleMessages(method, path, body, normalizedHeaders);
@@ -2505,6 +2511,219 @@ async function handleStorageUpload(method, path, body, headers) {
   } catch (error) {
     console.error('上传文件到存储失败:', error);
     throw new Error(`上传失败: ${error.message || '未知错误'}`);
+  }
+}
+
+// ========== JS Bundle 版本管理 ==========
+
+/**
+ * JS Bundle 版本管理接口
+ * POST /app/js-bundle-versions - 保存版本信息
+ * GET /app/js-bundle-versions - 获取版本列表
+ * GET /app/js-bundle-versions/:versionCode - 获取指定版本信息
+ */
+async function handleJSBundleVersions(method, path, body, headers) {
+  if (method === 'POST') {
+    // 保存版本信息
+    try {
+      // 解析请求体
+      let versionInfo;
+      if (typeof body === 'string') {
+        try {
+          versionInfo = JSON.parse(body);
+        } catch (e) {
+          throw new Error('无法解析请求体 JSON');
+        }
+      } else {
+        versionInfo = body;
+      }
+      
+      // 验证必要字段
+      if (!versionInfo.version || !versionInfo.versionCode || !versionInfo.platform) {
+        throw new Error('缺少必要字段: version, versionCode, platform');
+      }
+      
+      console.log('保存 JS Bundle 版本信息:', {
+        version: versionInfo.version,
+        versionCode: versionInfo.versionCode,
+        platform: versionInfo.platform,
+        bundleType: versionInfo.bundleType || 'js',
+      });
+      
+      // 保存到数据库（使用独立的集合）
+      const versionsCollection = db.collection('js_bundle_versions');
+      
+      // 检查是否已存在该版本
+      const existing = await versionsCollection
+        .where({
+          versionCode: versionInfo.versionCode,
+          platform: versionInfo.platform,
+        })
+        .get();
+      
+      if (existing.data && existing.data.length > 0) {
+        // 更新现有版本
+        await versionsCollection
+          .where({
+            versionCode: versionInfo.versionCode,
+            platform: versionInfo.platform,
+          })
+          .update({
+            ...versionInfo,
+            updatedAt: new Date().toISOString(),
+          });
+        console.log('JS Bundle 版本信息已更新');
+      } else {
+        // 创建新版本
+        await versionsCollection.add({
+          ...versionInfo,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        console.log('JS Bundle 版本信息已创建');
+      }
+      
+      return {
+        code: 0,
+        message: '版本信息保存成功',
+        data: versionInfo,
+      };
+    } catch (error) {
+      console.error('保存 JS Bundle 版本信息失败:', error);
+      throw new Error(`保存版本信息失败: ${error.message}`);
+    }
+  } else if (method === 'GET') {
+    // 获取版本信息
+    try {
+      const versionsCollection = db.collection('js_bundle_versions');
+      
+      // 从查询参数获取 platform
+      const url = new URL(`http://example.com${path}`);
+      const platform = url.searchParams.get('platform') || 'android';
+      const versionCode = url.searchParams.get('versionCode');
+      
+      if (versionCode) {
+        // 获取指定版本
+        const versions = await versionsCollection
+          .where({
+            versionCode: parseInt(versionCode, 10),
+            platform: platform,
+          })
+          .get();
+        
+        if (versions.data && versions.data.length > 0) {
+          return {
+            code: 0,
+            message: '获取成功',
+            data: versions.data[0],
+          };
+        } else {
+          return {
+            code: 404,
+            message: '版本不存在',
+            data: null,
+          };
+        }
+      } else {
+        // 获取所有版本（按 versionCode 降序）
+        const versions = await versionsCollection
+          .where({ platform: platform })
+          .orderBy('versionCode', 'desc')
+          .get();
+        
+        return {
+          code: 0,
+          message: '获取成功',
+          data: versions.data || [],
+        };
+      }
+    } catch (error) {
+      console.error('获取 JS Bundle 版本信息失败:', error);
+      throw new Error(`获取版本信息失败: ${error.message}`);
+    }
+  } else {
+    throw new Error('不支持的请求方法');
+  }
+}
+
+/**
+ * JS Bundle 更新检查接口
+ * GET /app/check-js-bundle-update?currentVersion=1.0.0&versionCode=1&platform=android
+ */
+async function handleJSBundleCheckUpdate(method, path, body, headers) {
+  if (method !== 'GET') {
+    throw new Error('只支持 GET 请求');
+  }
+
+  // 从查询参数获取当前版本信息
+  const queryParams = new URLSearchParams(path.split('?')[1] || '');
+  const currentVersion = queryParams.get('currentVersion') || '1.0.0';
+  const currentVersionCode = parseInt(queryParams.get('versionCode') || '1', 10);
+  const platform = queryParams.get('platform') || 'android';
+
+  console.log('检查 JS Bundle 更新:', { currentVersion, currentVersionCode, platform });
+
+  try {
+    // 从数据库获取最新版本信息
+    const versionsCollection = db.collection('js_bundle_versions');
+    const versions = await versionsCollection
+      .where({ platform: platform })
+      .orderBy('versionCode', 'desc')
+      .limit(1)
+      .get();
+    
+    if (!versions.data || versions.data.length === 0) {
+      return {
+        code: 0,
+        message: 'success',
+        data: {
+          hasUpdate: false,
+          latestVersion: currentVersion,
+          latestVersionCode: currentVersionCode,
+          downloadUrl: null,
+          fileSize: 0,
+          releaseDate: null,
+        },
+      };
+    }
+    
+    const latestVersion = versions.data[0];
+    
+    // 确保版本号是数字类型
+    const latestVersionCode = typeof latestVersion.versionCode === 'number' 
+      ? latestVersion.versionCode 
+      : parseInt(latestVersion.versionCode, 10);
+    const currentVersionCodeNum = typeof currentVersionCode === 'number'
+      ? currentVersionCode
+      : parseInt(currentVersionCode, 10);
+    
+    // 对比版本号（只有当最新版本号严格大于当前版本号时，才需要更新）
+    const hasUpdate = latestVersionCode > currentVersionCodeNum;
+    
+    console.log('版本比较:', {
+      currentVersion,
+      currentVersionCode: currentVersionCodeNum,
+      latestVersion: latestVersion.version,
+      latestVersionCode: latestVersionCode,
+      hasUpdate: hasUpdate,
+    });
+    
+    return {
+      code: 0,
+      message: 'success',
+      data: {
+        hasUpdate: hasUpdate,
+        latestVersion: latestVersion.version,
+        latestVersionCode: latestVersionCode,
+        downloadUrl: latestVersion.downloadUrl || null,
+        filePath: latestVersion.filePath || null,
+        fileSize: latestVersion.fileSize || 0,
+        releaseDate: latestVersion.releaseDate || latestVersion.createdAt || null,
+      },
+    };
+  } catch (error) {
+    console.error('检查 JS Bundle 更新失败:', error);
+    throw new Error(`检查更新失败: ${error.message}`);
   }
 }
 

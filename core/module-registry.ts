@@ -120,6 +120,31 @@ class ModuleRegistry {
       // 不抛出错误，允许其他模块继续加载
     }
 
+    // 注册认识自己模块
+    try {
+      const selfAwarenessModule = await import('../modules/self-awareness/module.definition');
+      console.log('认识自己模块导入结果:', selfAwarenessModule);
+      
+      if (selfAwarenessModule.selfAwarenessModule) {
+        const moduleDef = selfAwarenessModule.selfAwarenessModule;
+        console.log('认识自己模块定义:', {
+          id: moduleDef.metadata?.id,
+          name: moduleDef.metadata?.name,
+          enabled: moduleDef.metadata?.enabled,
+          status: moduleDef.metadata?.status,
+        });
+        
+        moduleDefinitions.push(moduleDef);
+        this.registeredModuleIds.add('self-awareness');
+      } else {
+        console.error('认识自己模块未找到: selfAwarenessModule 不存在');
+        console.log('可用导出:', Object.keys(selfAwarenessModule));
+      }
+    } catch (error) {
+      console.error('加载认识自己模块失败:', error);
+      // 不抛出错误，允许其他模块继续加载
+    }
+
     // 批量注册所有模块
     await moduleManager.registerModules(moduleDefinitions);
     

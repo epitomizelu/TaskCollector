@@ -7,11 +7,42 @@ workflows:
       # 如果需要环境变量组，取消下面的注释并添加组名
       # groups:
       #   - your_group_name
-      vars:
-        EXPO_PUBLIC_API_KEY: $EXPO_PUBLIC_API_KEY
+      # 注意: EXPO_PUBLIC_API_KEY 需要在 Codemagic UI 中配置
+      # 路径: Settings > Environment variables > Add variable
+      # 变量名: EXPO_PUBLIC_API_KEY
+      # 变量值: 你的实际 API Key
+      # 勾选 "Secure" 选项以加密存储
+      # vars 部分留空，环境变量会自动从 Codemagic UI 读取
+      vars: {}
       node: 20.18.0
       java: 17
     scripts:
+      - name: Verify environment variables (early check)
+        script: |
+          echo "🔍 检查必需的环境变量..."
+          if [ -z "$EXPO_PUBLIC_API_KEY" ]; then
+            echo ""
+            echo "❌ 构建失败: EXPO_PUBLIC_API_KEY 环境变量未设置"
+            echo ""
+            echo "📝 配置步骤:"
+            echo "   1. 登录 Codemagic 控制台"
+            echo "   2. 进入项目 Settings > Environment variables"
+            echo "   3. 添加变量: EXPO_PUBLIC_API_KEY = 你的实际 API Key"
+            echo "   4. 勾选 'Secure' 选项（推荐）"
+            echo "   5. 保存并重新触发构建"
+            echo ""
+            echo "💡 提示: 环境变量未配置时，构建会立即中断以避免浪费资源"
+            exit 1
+          fi
+          # 显示 API_KEY 的前缀和后缀，用于验证是否正确获取
+          API_KEY_LEN=${#EXPO_PUBLIC_API_KEY}
+          API_KEY_PREFIX="${EXPO_PUBLIC_API_KEY:0:6}"
+          API_KEY_SUFFIX="${EXPO_PUBLIC_API_KEY: -4}"
+          echo "✅ EXPO_PUBLIC_API_KEY 已配置"
+          echo "   长度: ${API_KEY_LEN} 字符"
+          echo "   前缀: ${API_KEY_PREFIX}..."
+          echo "   后缀: ...${API_KEY_SUFFIX}"
+          echo "🚀 继续构建流程..."
       - name: Install dependencies
         script: |
           npm ci
@@ -20,6 +51,8 @@ workflows:
           npx expo install --fix
       - name: Prebuild (if needed)
         script: |
+          # 确保环境变量在 prebuild 时可用
+          export EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY"
           npx expo prebuild --platform android --clean || true
       - name: Build Android APK
         script: |
@@ -44,11 +77,42 @@ workflows:
       # 如果需要环境变量组，取消下面的注释并添加组名
       # groups:
       #   - your_group_name
-      vars:
-        EXPO_PUBLIC_API_KEY: $EXPO_PUBLIC_API_KEY
+      # 注意: EXPO_PUBLIC_API_KEY 需要在 Codemagic UI 中配置
+      # 路径: Settings > Environment variables > Add variable
+      # 变量名: EXPO_PUBLIC_API_KEY
+      # 变量值: 你的实际 API Key
+      # 勾选 "Secure" 选项以加密存储
+      # vars 部分留空，环境变量会自动从 Codemagic UI 读取
+      vars: {}
       node: 20.18.0
       java: 17
     scripts:
+      - name: Verify environment variables (early check)
+        script: |
+          echo "🔍 检查必需的环境变量..."
+          if [ -z "$EXPO_PUBLIC_API_KEY" ]; then
+            echo ""
+            echo "❌ 构建失败: EXPO_PUBLIC_API_KEY 环境变量未设置"
+            echo ""
+            echo "📝 配置步骤:"
+            echo "   1. 登录 Codemagic 控制台"
+            echo "   2. 进入项目 Settings > Environment variables"
+            echo "   3. 添加变量: EXPO_PUBLIC_API_KEY = 你的实际 API Key"
+            echo "   4. 勾选 'Secure' 选项（推荐）"
+            echo "   5. 保存并重新触发构建"
+            echo ""
+            echo "💡 提示: 环境变量未配置时，构建会立即中断以避免浪费资源"
+            exit 1
+          fi
+          # 显示 API_KEY 的前缀和后缀，用于验证是否正确获取
+          API_KEY_LEN=${#EXPO_PUBLIC_API_KEY}
+          API_KEY_PREFIX="${EXPO_PUBLIC_API_KEY:0:6}"
+          API_KEY_SUFFIX="${EXPO_PUBLIC_API_KEY: -4}"
+          echo "✅ EXPO_PUBLIC_API_KEY 已配置"
+          echo "   长度: ${API_KEY_LEN} 字符"
+          echo "   前缀: ${API_KEY_PREFIX}..."
+          echo "   后缀: ...${API_KEY_SUFFIX}"
+          echo "🚀 继续构建流程..."
       - name: Install dependencies
         script: |
           npm ci
@@ -57,6 +121,8 @@ workflows:
           npx expo install --fix
       - name: Prebuild (if needed)
         script: |
+          # 确保环境变量在 prebuild 时可用
+          export EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY"
           npx expo prebuild --platform android --clean || true
       - name: Build Android AAB
         script: |
