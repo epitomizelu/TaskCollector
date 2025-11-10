@@ -4,9 +4,9 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
-      groups:
-        # 在 Codemagic 后台配置环境变量组，添加 EXPO_PUBLIC_API_KEY
-        # 如果需要签名，也可以在这里配置 keystore 相关变量
+      # 如果需要环境变量组，取消下面的注释并添加组名
+      # groups:
+      #   - your_group_name
       vars:
         EXPO_PUBLIC_API_KEY: $EXPO_PUBLIC_API_KEY
       node: 20.18.0
@@ -31,7 +31,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - your-email@example.com # 替换为你的邮箱
+          - epitomizelu@gmail.com
         notify:
           success: true
           failure: true
@@ -41,9 +41,9 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
-      groups:
-        # 在 Codemagic 后台配置环境变量组，添加 EXPO_PUBLIC_API_KEY
-        # 如果需要签名，也可以在这里配置 keystore 相关变量
+      # 如果需要环境变量组，取消下面的注释并添加组名
+      # groups:
+      #   - your_group_name
       vars:
         EXPO_PUBLIC_API_KEY: $EXPO_PUBLIC_API_KEY
       node: 20.18.0
@@ -68,7 +68,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - your-email@example.com # 替换为你的邮箱
+          - epitomizelu@gmail.com # 替换为你的邮箱
         notify:
           success: true
           failure: true
