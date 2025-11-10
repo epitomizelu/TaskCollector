@@ -4,6 +4,8 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
+      groups:
+        - taskCollection
       # 如果需要环境变量组，取消下面的注释并添加组名
       # groups:
       #   - your_group_name
