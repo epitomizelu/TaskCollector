@@ -1064,20 +1064,65 @@ async function handleJSBundleCheckUpdate(method, path, body, headers) {
   }
 
   const queryParams = new URLSearchParams(path.split('?')[1] || '');
-  const currentJsVersionCode = parseInt(queryParams.get('jsVersionCode') || '0', 10);
+  let currentJsVersionCode = parseInt(queryParams.get('jsVersionCode') || '0', 10);
+  // 处理无效值（NaN）
+  if (isNaN(currentJsVersionCode)) {
+    currentJsVersionCode = 0;
+  }
   const platform = queryParams.get('platform') || 'android';
 
-  console.log('检查 JS Bundle 更新:', { currentJsVersionCode, platform });
+  console.log('[检查更新] 请求参数:', { currentJsVersionCode, platform });
 
   try {
     const versionsCollection = db.collection('js_bundle_versions');
-    const versions = await versionsCollection
-      .where({ platform: platform })
-      .orderBy('jsVersionCode', 'desc')
-      .limit(1)
-      .get();
+    
+    // ✅ 查询指定平台的版本
+    const queryVersion = async (targetPlatform) => {
+      let versions;
+      try {
+        versions = await versionsCollection
+          .where({ platform: targetPlatform })
+          .orderBy('jsVersionCode', 'desc')
+          .limit(1)
+          .get();
+        
+        console.log(`[检查更新] ${targetPlatform} 平台 orderBy 查询成功，结果数量:`, versions.data?.length || 0);
+      } catch (orderByError) {
+        // ✅ 如果 orderBy 失败（可能缺少索引），尝试不使用 orderBy
+        console.warn(`[检查更新] ${targetPlatform} 平台 orderBy 查询失败，尝试不使用 orderBy:`, orderByError.message);
+        const allVersions = await versionsCollection
+          .where({ platform: targetPlatform })
+          .get();
+        
+        console.log(`[检查更新] ${targetPlatform} 平台不使用 orderBy 查询成功，结果数量:`, allVersions.data?.length || 0);
+        
+        // ✅ 在内存中排序
+        if (allVersions.data && allVersions.data.length > 0) {
+          allVersions.data.sort((a, b) => {
+            const aCode = typeof a.jsVersionCode === 'number' ? a.jsVersionCode : parseInt(a.jsVersionCode || '0', 10);
+            const bCode = typeof b.jsVersionCode === 'number' ? b.jsVersionCode : parseInt(b.jsVersionCode || '0', 10);
+            return bCode - aCode; // 降序
+          });
+          versions = { data: [allVersions.data[0]] }; // 只取第一个
+        } else {
+          versions = { data: [] };
+        }
+      }
+      return versions;
+    };
+    
+    // ✅ 先查询指定平台的版本
+    let versions = await queryVersion(platform);
+    
+    // ✅ 如果查询不到数据，且平台是 'web'，尝试回退到 'android' 平台
+    // （因为 web 和 android 可能使用相同的 JS Bundle）
+    if ((!versions.data || versions.data.length === 0) && platform === 'web') {
+      console.log('[检查更新] web 平台没有找到版本数据，尝试查询 android 平台');
+      versions = await queryVersion('android');
+    }
     
     if (!versions.data || versions.data.length === 0) {
+      console.log(`[检查更新] ${platform} 平台没有找到版本数据`);
       return {
         code: 0,
         message: 'success',
@@ -1094,14 +1139,33 @@ async function handleJSBundleCheckUpdate(method, path, body, headers) {
     }
     
     const latestVersion = versions.data[0];
-    const latestJsVersionCode = typeof latestVersion.jsVersionCode === 'number' 
-      ? latestVersion.jsVersionCode 
-      : parseInt(latestVersion.jsVersionCode || '0', 10);
+    console.log('[检查更新] 最新版本数据:', {
+      version: latestVersion.version,
+      jsVersionCode: latestVersion.jsVersionCode,
+      jsVersionCodeType: typeof latestVersion.jsVersionCode,
+      platform: latestVersion.platform,
+    });
+    
+    // ✅ 解析 jsVersionCode
+    let latestJsVersionCode;
+    if (typeof latestVersion.jsVersionCode === 'number' && !isNaN(latestVersion.jsVersionCode)) {
+      latestJsVersionCode = latestVersion.jsVersionCode;
+    } else if (latestVersion.jsVersionCode != null) {
+      // 尝试转换为数字
+      latestJsVersionCode = parseInt(String(latestVersion.jsVersionCode), 10);
+      if (isNaN(latestJsVersionCode)) {
+        console.error('[检查更新] jsVersionCode 解析失败，原始值:', latestVersion.jsVersionCode);
+        latestJsVersionCode = 0;
+      }
+    } else {
+      console.error('[检查更新] jsVersionCode 字段不存在或为 null/undefined');
+      latestJsVersionCode = 0;
+    }
     
     // ✅ 使用 jsVersionCode 进行比较
     const hasUpdate = latestJsVersionCode > currentJsVersionCode;
     
-    console.log('JS Bundle 版本比较:', {
+    console.log('[检查更新] 版本比较结果:', {
       currentJsVersionCode,
       latestJsVersionCode,
       hasUpdate,
@@ -1121,7 +1185,8 @@ async function handleJSBundleCheckUpdate(method, path, body, headers) {
       },
     };
   } catch (error) {
-    console.error('检查 JS Bundle 更新失败:', error);
+    console.error('[检查更新] 检查 JS Bundle 更新失败:', error);
+    console.error('[检查更新] 错误堆栈:', error.stack);
     throw new Error(`检查更新失败: ${error.message}`);
   }
 }

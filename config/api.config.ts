@@ -25,8 +25,8 @@ export const API_CONFIG = {
   
   // ✅ 新增：应用更新服务云函数地址（独立云函数）
   UPDATE_SERVICE_URL: __DEV__
-    ? process.env.EXPO_PUBLIC_UPDATE_SERVICE_URL || 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/app-update' // 开发环境
-    : process.env.EXPO_PUBLIC_UPDATE_SERVICE_URL || 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/app-update', // 生产环境
+    ? process.env.EXPO_PUBLIC_UPDATE_SERVICE_URL || 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/app-update-api' // 开发环境
+    : process.env.EXPO_PUBLIC_UPDATE_SERVICE_URL || 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/app-update-api', // 生产环境
   
   // 请求超时时间（毫秒）
   TIMEOUT: 10000,

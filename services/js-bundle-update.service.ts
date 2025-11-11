@@ -8,9 +8,13 @@
  * 用户需要在应用内手动触发检查更新操作
  */
 
-import * as FileSystem from 'expo-file-system';
+// ✅ 从 legacy 导入 API 以兼容新版本 expo-file-system
+import * as FileSystem from 'expo-file-system/legacy';
 import { Platform, Alert } from 'react-native'; // 🆕 新增：Alert 用于提示用户
 import Constants from 'expo-constants';
+
+// ✅ 使用 ReturnType 推断下载任务的类型
+type FileSystemDownloadResumable = ReturnType<typeof FileSystem.createDownloadResumable>;
 
 export interface JSBundleUpdateInfo {
   hasUpdate: boolean;
@@ -31,7 +35,7 @@ export interface DownloadProgress {
 class JSBundleUpdateService {
   private currentVersion: string;
   private currentJsVersionCode: number; // ✅ 使用独立的 jsVersionCode
-  private downloadTask: FileSystem.FileSystemDownloadResumable | null = null;
+  private downloadTask: FileSystemDownloadResumable | null = null;
   private readonly JS_VERSION_CODE_KEY = 'js_bundle_version_code'; // 本地存储 key
 
   constructor() {
@@ -56,9 +60,16 @@ class JSBundleUpdateService {
       if (fileInfo.exists) {
         const content = await FileSystem.readAsStringAsync(infoPath);
         const data = JSON.parse(content);
-        this.currentJsVersionCode = typeof data.jsVersionCode === 'number' 
-          ? data.jsVersionCode 
-          : parseInt(data.jsVersionCode || '0', 10);
+        let jsVersionCode: number;
+        if (typeof data.jsVersionCode === 'number' && !isNaN(data.jsVersionCode)) {
+          jsVersionCode = data.jsVersionCode;
+        } else {
+          jsVersionCode = parseInt(data.jsVersionCode || '0', 10);
+          if (isNaN(jsVersionCode)) {
+            jsVersionCode = 0;
+          }
+        }
+        this.currentJsVersionCode = jsVersionCode;
         console.log('[JSBundleUpdateService] 从本地存储加载 jsVersionCode:', this.currentJsVersionCode);
       } else {
         console.log('[JSBundleUpdateService] 本地存储中没有 jsVersionCode，使用默认值 0');

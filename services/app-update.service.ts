@@ -3,7 +3,8 @@
  * 支持检查更新、下载 APK、安装更新
  */
 
-import * as FileSystem from 'expo-file-system';
+// ✅ 从 legacy 导入以兼容新版本 expo-file-system
+import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -34,10 +35,13 @@ export interface DownloadProgress {
   progress: number; // 0-1
 }
 
+// ✅ 使用 ReturnType 推断下载任务的类型
+type FileSystemDownloadResumable = ReturnType<typeof FileSystem.createDownloadResumable>;
+
 class AppUpdateService {
   private currentVersion: string;
   private currentVersionCode: number;
-  private downloadTask: FileSystem.FileSystemDownloadResumable | null = null;
+  private downloadTask: FileSystemDownloadResumable | null = null;
 
   constructor() {
     // 优先使用原生版本号（实际安装的版本）
