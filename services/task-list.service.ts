@@ -209,6 +209,16 @@ class TaskListService {
   }
 
   /**
+   * 检查是否是新的一天
+   * @returns 如果是新的一天返回 true，否则返回 false
+   */
+  async checkIfNewDay(): Promise<boolean> {
+    const today = new Date().toISOString().split('T')[0];
+    const lastInitDate = await AsyncStorage.getItem(LAST_INIT_DATE_KEY);
+    return lastInitDate !== today;
+  }
+
+  /**
    * 初始化今日任务（从预设任务生成）
    * 每天第一次进入时，会清除昨日任务，从预设任务中重新生成，并初始化状态
    */
@@ -220,7 +230,7 @@ class TaskListService {
     const isNewDay = lastInitDate !== today;
     
     if (isNewDay) {
-      console.log('检测到新的一天，清除今日旧任务并重新生成');
+      console.log(`检测到新的一天（上次初始化日期: ${lastInitDate || '无'}，今天: ${today}），清除今日旧任务并重新生成`);
       
       // 删除今日的所有任务（包括云端）
       try {

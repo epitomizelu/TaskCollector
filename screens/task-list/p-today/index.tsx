@@ -44,15 +44,22 @@ const TodayTaskScreen: React.FC = () => {
       const dateStr = getDateString(selectedDate);
       const isToday = dateStr === getDateString(new Date());
       
-      // 如果是今天，先同步预设任务，然后初始化今日任务
+      // 如果是今天，先检查是否是新的一天，然后同步预设任务，最后初始化今日任务
       if (isToday) {
-        try {
+        // 检查是否是新的一天
+        const isNewDay = await taskListService.checkIfNewDay();
+        
+        if (isNewDay) {
+          console.log('检测到新的一天，开始同步预设任务和初始化今日任务');
+          
           // 先同步预设任务（确保预设任务是最新的）
-          await taskListService.syncPresetTasksFromCloud();
-          console.log('预设任务同步完成');
-        } catch (error) {
-          console.error('同步预设任务失败:', error);
-          // 同步失败不影响继续执行，使用本地预设任务
+          try {
+            await taskListService.syncPresetTasksFromCloud();
+            console.log('预设任务同步完成');
+          } catch (error) {
+            console.error('同步预设任务失败:', error);
+            // 同步失败不影响继续执行，使用本地预设任务
+          }
         }
         
         // 初始化今日任务（如果是新的一天，会清除今日任务并从预设任务重新生成，状态初始化）

@@ -132,70 +132,60 @@ const ModuleHome: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {modules.map((moduleInstance, index) => {
-          const { metadata, getNavigationItem } = moduleInstance.definition;
-          const navItem = getNavigationItem?.();
-          
-          // 为不同模块使用不同的渐变色
-          const gradientColors = [
-            ['#4f46e5', '#7c3aed'], // 紫色
-            ['#06b6d4', '#3b82f6'], // 蓝色
-            ['#10b981', '#059669'], // 绿色
-            ['#f59e0b', '#ef4444'], // 橙红
-            ['#8b5cf6', '#ec4899'], // 粉紫
-          ];
-          const colors = gradientColors[index % gradientColors.length];
-
-          return (
-            <TouchableOpacity
-              key={metadata.id}
-              style={styles.moduleCard}
-              onPress={() => handleModulePress(moduleInstance)}
-              activeOpacity={0.7}
-            >
-              <LinearGradient
-                colors={colors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cardGradient}
-              >
-                <View style={styles.cardContent}>
-                  <View style={styles.iconContainer}>
-                    <FontAwesome6 
-                      name={navItem?.icon as any || 'circle'} 
-                      size={28} 
-                      color="#ffffff" 
-                    />
-                  </View>
-                  <View style={styles.textContainer}>
-                    <View style={styles.moduleHeader}>
-                      <Text style={styles.moduleName}>{metadata.displayName}</Text>
-                      {metadata.tags && metadata.tags.length > 0 && (
-                        <View style={styles.tagContainer}>
-                          <Text style={styles.tagText}>{metadata.tags[0]}</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={styles.moduleDescription} numberOfLines={2}>
-                      {metadata.description}
-                    </Text>
-                    {metadata.version && (
-                      <Text style={styles.moduleVersion}>v{metadata.version}</Text>
-                    )}
-                  </View>
-                  <View style={styles.arrowContainer}>
-                    <FontAwesome6 name="chevron-right" size={16} color="#ffffff" />
-                  </View>
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          );
-        })}
-
-        {modules.length === 0 && (
+        {modules.length === 0 ? (
           <View style={styles.emptyContainer}>
             <FontAwesome6 name="inbox" size={48} color="#9ca3af" />
             <Text style={styles.emptyText}>暂无可用模块</Text>
+          </View>
+        ) : (
+          <View style={styles.gridContainer}>
+            {modules.map((moduleInstance, index) => {
+              const { metadata, getNavigationItem } = moduleInstance.definition;
+              const navItem = getNavigationItem?.();
+              
+              // 为不同模块使用不同的渐变色
+              const gradientColors = [
+                ['#4f46e5', '#7c3aed'], // 紫色
+                ['#06b6d4', '#3b82f6'], // 蓝色
+                ['#10b981', '#059669'], // 绿色
+                ['#f59e0b', '#ef4444'], // 橙红
+                ['#8b5cf6', '#ec4899'], // 粉紫
+                ['#ec4899', '#f43f5e'], // 粉红
+                ['#14b8a6', '#06b6d4'], // 青绿
+                ['#a855f7', '#8b5cf6'], // 紫蓝
+                ['#f97316', '#f59e0b'], // 橙色
+              ];
+              const colors = gradientColors[index % gradientColors.length];
+
+              return (
+                <TouchableOpacity
+                  key={metadata.id}
+                  style={styles.gridItem}
+                  onPress={() => handleModulePress(moduleInstance)}
+                  activeOpacity={0.7}
+                >
+                  <LinearGradient
+                    colors={colors}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.gridCardGradient}
+                  >
+                    <View style={styles.gridCardContent}>
+                      <View style={styles.gridIconContainer}>
+                        <FontAwesome6 
+                          name={navItem?.icon as any || 'circle'} 
+                          size={32} 
+                          color="#ffffff" 
+                        />
+                      </View>
+                      <Text style={styles.gridModuleName} numberOfLines={2}>
+                        {metadata.displayName}
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -364,70 +354,50 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
   },
-  moduleCard: {
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  gridItem: {
+    width: '31%', // 3列布局，每列约31%宽度，留出间距
+    aspectRatio: 1, // 保持正方形
     marginBottom: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
-  cardGradient: {
-    padding: 20,
-  },
-  cardContent: {
-    flexDirection: 'row',
+  gridCardGradient: {
+    flex: 1,
+    padding: 16,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  iconContainer: {
+  gridCardContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+  gridIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: 12,
   },
-  textContainer: {
-    flex: 1,
-  },
-  moduleHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    gap: 8,
-  },
-  moduleName: {
-    fontSize: 18,
+  gridModuleName: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#ffffff',
-  },
-  tagContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  tagText: {
-    fontSize: 10,
-    color: '#ffffff',
-    fontWeight: '500',
-  },
-  moduleDescription: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.85)',
-    lineHeight: 18,
-    marginBottom: 4,
-  },
-  moduleVersion: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginTop: 2,
-  },
-  arrowContainer: {
-    marginLeft: 12,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   emptyContainer: {
     flex: 1,
