@@ -1,15 +1,15 @@
 /**
- * 构建 JS Bundle 脚本
- * 用于本地构建 JavaScript bundle，用于简易版 OTA 更新
+ * 构建 JS Bundle 脚本（适用于 Expo Router 项目）
+ * 用于本地构建 JavaScript bundle（.js 格式），用于简易 OTA 更新
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config(); // 🆕 新增：自动加载 .env 文件中的环境变量
 
 // 配置信息
 const OUTPUT_DIR = path.join(__dirname, '..', 'js-bundles');
-const BUNDLE_NAME = 'index.android.bundle';
 const ASSETS_DEST = path.join(OUTPUT_DIR, 'assets');
 
 /**
@@ -32,7 +32,7 @@ function ensureOutputDir() {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     console.log(`✅ 创建输出目录: ${OUTPUT_DIR}`);
   }
-  
+
   if (!fs.existsSync(ASSETS_DEST)) {
     fs.mkdirSync(ASSETS_DEST, { recursive: true });
     console.log(`✅ 创建资源目录: ${ASSETS_DEST}`);
@@ -40,40 +40,35 @@ function ensureOutputDir() {
 }
 
 /**
- * 构建 JS Bundle
+ * 🆕 修改：使用 Expo 的 export 命令生成 JS bundle
+ * 关闭 Hermes，导出 .js bundle 而不是 .hbc
  */
 function buildBundle() {
   const { version, versionCode } = getVersionInfo();
-  const bundlePath = path.join(OUTPUT_DIR, BUNDLE_NAME);
-  
+
   console.log('========================================');
-  console.log('  构建 JS Bundle');
+  console.log('  构建 JS Bundle（Expo 导出模式）');
   console.log('========================================');
   console.log(`版本: ${version} (Build ${versionCode})`);
   console.log(`输出目录: ${OUTPUT_DIR}`);
   console.log('');
-  
-  // 确保输出目录存在
+
   ensureOutputDir();
-  
-  // 构建命令
-  // 使用 react-native bundle 命令构建 Android bundle
-  // 注意：Expo 项目的入口文件是 expo-router/entry
-  const entryFile = 'expo-router/entry';
+
+  // 🆕 修改：使用 expo export 而非 react-native bundle
+  // --no-minify --dev 生成 .js 文件（非 .hbc）
   const bundleCommand = [
-    'npx react-native bundle',
+    'npx expo export',
     '--platform android',
-    '--dev false',
-    `--entry-file ${entryFile}`,
-    `--bundle-output "${bundlePath}"`,
-    `--assets-dest "${ASSETS_DEST}"`,
-    '--reset-cache',
+    `--output-dir "${OUTPUT_DIR}"`,
+    '--no-minify',
+    '--dev'
   ].join(' ');
-  
+
   console.log('执行构建命令...');
   console.log(`命令: ${bundleCommand}`);
   console.log('');
-  
+
   try {
     execSync(bundleCommand, {
       stdio: 'inherit',
@@ -81,25 +76,29 @@ function buildBundle() {
       env: {
         ...process.env,
         NODE_ENV: 'production',
+        EXPO_NO_HERMES: '1', // 🆕 新增：关闭 Hermes，强制生成 .js bundle
       },
     });
-    
-    // 检查文件是否生成
-    if (!fs.existsSync(bundlePath)) {
-      throw new Error('Bundle 文件未生成');
+
+    // 🆕 新增：自动检测生成的 .js bundle 文件
+    const bundleDir = path.join(OUTPUT_DIR, '_expo', 'static', 'js', 'android');
+    const bundleFiles = fs.readdirSync(bundleDir).filter(f => f.endsWith('.js'));
+    if (bundleFiles.length === 0) {
+      throw new Error('未找到 .js Bundle 文件');
     }
-    
-    const stats = fs.statSync(bundlePath);
+
+    const bundleFile = path.join(bundleDir, bundleFiles[0]);
+    const stats = fs.statSync(bundleFile);
     const fileSizeMB = (stats.size / 1024 / 1024).toFixed(2);
-    
+
     console.log('');
     console.log('✅ Bundle 构建成功！');
-    console.log(`   文件路径: ${bundlePath}`);
+    console.log(`   文件路径: ${bundleFile}`);
     console.log(`   文件大小: ${fileSizeMB} MB`);
     console.log('');
-    
+
     return {
-      bundlePath,
+      bundlePath: bundleFile,
       assetsPath: ASSETS_DEST,
       version,
       versionCode,
@@ -118,7 +117,7 @@ function buildBundle() {
 function main() {
   try {
     const result = buildBundle();
-    
+
     console.log('========================================');
     console.log('  构建完成');
     console.log('========================================');
@@ -143,4 +142,3 @@ if (require.main === module) {
 }
 
 module.exports = { buildBundle, getVersionInfo };
-

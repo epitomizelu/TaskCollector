@@ -1042,3 +1042,6 @@ node scripts/upload-apk-to-tcb.js ./app-release.apk "https://expo.dev/artifacts/
 - [项目构建脚本](./BUILD_ANDROID.md)
 - [APK 分发指南](./APK_DISTRIBUTION.md)
 
+
+
+

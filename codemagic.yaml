@@ -61,6 +61,27 @@ workflows:
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
+      - name: Build and Upload JS Bundle (OTA Update)
+        script: |
+          echo "=========================================="
+          echo "  构建并上传 JS Bundle (OTA 更新)"
+          echo "=========================================="
+          echo ""
+          # 确保环境变量可用
+          export EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY"
+          export NODE_ENV=production
+          
+          # 构建 JS Bundle
+          echo "📦 步骤 1/2: 构建 JS Bundle..."
+          npm run build-js-bundle
+          
+          # 上传 JS Bundle
+          echo ""
+          echo "☁️  步骤 2/2: 上传 JS Bundle 到云存储..."
+          npm run upload-js-bundle
+          
+          echo ""
+          echo "✅ OTA 更新包已成功上传！"
     artifacts:
       - android/app/build/outputs/apk/release/*.apk
     publishing:
@@ -131,12 +152,97 @@ workflows:
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease
+      - name: Build and Upload JS Bundle (OTA Update)
+        script: |
+          echo "=========================================="
+          echo "  构建并上传 JS Bundle (OTA 更新)"
+          echo "=========================================="
+          echo ""
+          # 确保环境变量可用
+          export EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY"
+          export NODE_ENV=production
+          
+          # 构建 JS Bundle
+          echo "📦 步骤 1/2: 构建 JS Bundle..."
+          npm run build-js-bundle
+          
+          # 上传 JS Bundle
+          echo ""
+          echo "☁️  步骤 2/2: 上传 JS Bundle 到云存储..."
+          npm run upload-js-bundle
+          
+          echo ""
+          echo "✅ OTA 更新包已成功上传！"
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
     publishing:
       email:
         recipients:
           - epitomizelu@gmail.com # 替换为你的邮箱
+        notify:
+          success: true
+          failure: true
+
+  # 🆕 独立的 OTA 更新 workflow（仅构建和上传 JS Bundle，不构建 APK/AAB）
+  ota-update-only:
+    name: OTA Update Only (JS Bundle)
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - taskColl
+      vars: {}
+      node: 20.18.0
+    scripts:
+      - name: Verify environment variables
+        script: |
+          echo "🔍 检查必需的环境变量..."
+          if [ -z "$EXPO_PUBLIC_API_KEY" ]; then
+            echo ""
+            echo "❌ 构建失败: EXPO_PUBLIC_API_KEY 环境变量未设置"
+            echo ""
+            echo "📝 配置步骤:"
+            echo "   1. 登录 Codemagic 控制台"
+            echo "   2. 进入项目 Settings > Environment variables"
+            echo "   3. 添加变量: EXPO_PUBLIC_API_KEY = 你的实际 API Key"
+            echo "   4. 勾选 'Secure' 选项（推荐）"
+            echo "   5. 保存并重新触发构建"
+            exit 1
+          fi
+          echo "✅ EXPO_PUBLIC_API_KEY 已配置"
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Setup Expo
+        script: |
+          npx expo install --fix
+      - name: Build and Upload JS Bundle
+        script: |
+          echo "=========================================="
+          echo "  OTA 更新：构建并上传 JS Bundle"
+          echo "=========================================="
+          echo ""
+          # 确保环境变量可用
+          export EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY"
+          export NODE_ENV=production
+          
+          # 构建 JS Bundle
+          echo "📦 步骤 1/2: 构建 JS Bundle..."
+          npm run build-js-bundle
+          
+          # 上传 JS Bundle
+          echo ""
+          echo "☁️  步骤 2/2: 上传 JS Bundle 到云存储..."
+          npm run upload-js-bundle
+          
+          echo ""
+          echo "=========================================="
+          echo "  ✅ OTA 更新包已成功上传！"
+          echo "=========================================="
+    publishing:
+      email:
+        recipients:
+          - epitomizelu@gmail.com
         notify:
           success: true
           failure: true

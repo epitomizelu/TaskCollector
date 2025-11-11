@@ -1,25 +1,42 @@
 /**
  * 统一更新服务
- * 同时支持 OTA 更新（只更新 JS）和 APK 更新（完整应用更新）
- * 两种更新方式互不干扰，根据更新类型自动选择
+ * 同时支持三种更新方式：
+ * 1. EAS OTA 更新（使用 expo-updates）
+ * 2. 自建 JS Bundle OTA 更新（简易版 OTA，仅支持手动更新）
+ * 3. APK 更新（完整应用更新）
+ * 三种更新方式互不干扰，根据更新类型自动选择
+ * 
+ * 注意：自建 JS Bundle OTA 更新仅支持手动更新，不会自动检查或下载
  */
 
-import { updateService, UpdateInfo as OTAUpdateInfo } from './update.service';
+import { updateService, UpdateInfo as EASOTAUpdateInfo } from './update.service';
+import { jsBundleUpdateService, JSBundleUpdateInfo } from './js-bundle-update.service';
 import { appUpdateService, UpdateInfo as APKUpdateInfo, DownloadProgress } from './app-update.service';
 import Constants from 'expo-constants';
 
-export type UpdateType = 'ota' | 'apk' | 'both' | 'none';
+export type UpdateType = 'eas-ota' | 'js-bundle-ota' | 'apk' | 'both' | 'all' | 'none';
 
 export interface UnifiedUpdateInfo {
   // 更新类型
   updateType: UpdateType;
   
-  // OTA 更新信息（如果可用）
-  otaUpdate?: {
+  // EAS OTA 更新信息（如果可用）
+  easOtaUpdate?: {
     isAvailable: boolean;
     isDownloaded: boolean;
     manifest?: any;
     error?: Error;
+  };
+  
+  // 自建 JS Bundle OTA 更新信息（如果可用）
+  jsBundleOtaUpdate?: {
+    hasUpdate: boolean;
+    latestVersion: string;
+    latestJsVersionCode: number; // ✅ 使用独立的 jsVersionCode
+    downloadUrl: string | null;
+    filePath: string | null;
+    fileSize: number;
+    releaseDate: string | null;
   };
   
   // APK 更新信息（如果可用）
@@ -48,37 +65,45 @@ export interface UnifiedUpdateInfo {
 class UnifiedUpdateService {
   /**
    * 检查所有类型的更新
-   * 同时检查 OTA 和 APK 更新，返回统一的结果
+   * 同时检查 EAS OTA、自建 JS Bundle OTA 和 APK 更新，返回统一的结果
    */
   async checkForUpdates(): Promise<UnifiedUpdateInfo> {
     const currentVersion = appUpdateService.getCurrentVersion();
     
     try {
-      // 并行检查 OTA 和 APK 更新
-      const [otaResult, apkResult] = await Promise.allSettled([
-        this.checkOTAUpdate(),
+      // 并行检查所有类型的更新
+      const [easOtaResult, jsBundleOtaResult, apkResult] = await Promise.allSettled([
+        this.checkEASOTAUpdate(),
+        this.checkJSBundleOTAUpdate(),
         this.checkAPKUpdate(),
       ]);
 
-      const otaUpdate = otaResult.status === 'fulfilled' ? otaResult.value : undefined;
+      const easOtaUpdate = easOtaResult.status === 'fulfilled' ? easOtaResult.value : undefined;
+      const jsBundleOtaUpdate = jsBundleOtaResult.status === 'fulfilled' ? jsBundleOtaResult.value : undefined;
       const apkUpdate = apkResult.status === 'fulfilled' ? apkResult.value : undefined;
       
       // 确定更新类型
-      const hasOTA = otaUpdate?.isAvailable || false;
+      const hasEASOTA = easOtaUpdate?.isAvailable || false;
+      const hasJSBundleOTA = jsBundleOtaUpdate?.hasUpdate || false;
       const hasAPK = apkUpdate?.hasUpdate || false;
       
       let updateType: UpdateType = 'none';
-      if (hasOTA && hasAPK) {
+      if (hasEASOTA && hasJSBundleOTA && hasAPK) {
+        updateType = 'all';
+      } else if ((hasEASOTA && hasJSBundleOTA) || (hasEASOTA && hasAPK) || (hasJSBundleOTA && hasAPK)) {
         updateType = 'both';
-      } else if (hasOTA) {
-        updateType = 'ota';
+      } else if (hasEASOTA) {
+        updateType = 'eas-ota';
+      } else if (hasJSBundleOTA) {
+        updateType = 'js-bundle-ota';
       } else if (hasAPK) {
         updateType = 'apk';
       }
 
       return {
         updateType,
-        otaUpdate,
+        easOtaUpdate,
+        jsBundleOtaUpdate,
         apkUpdate,
         currentVersion,
       };
@@ -93,29 +118,29 @@ class UnifiedUpdateService {
   }
 
   /**
-   * 检查 OTA 更新
+   * 检查 EAS OTA 更新（使用 expo-updates）
    */
-  private async checkOTAUpdate(): Promise<OTAUpdateInfo> {
+  private async checkEASOTAUpdate(): Promise<EASOTAUpdateInfo> {
     try {
       // 检查是否支持 OTA 更新
       if (!updateService.isEnabled()) {
-        console.log('[UnifiedUpdateService] OTA 更新未启用');
+        console.log('[UnifiedUpdateService] EAS OTA 更新未启用');
         return {
           isAvailable: false,
           isDownloaded: false,
-          error: new Error('OTA 更新未启用'),
+          error: new Error('EAS OTA 更新未启用'),
         };
       }
 
       // 开发环境：仍然检查，但会返回开发环境提示
       if (__DEV__) {
-        console.log('[UnifiedUpdateService] 开发环境，OTA 更新检查受限');
+        console.log('[UnifiedUpdateService] 开发环境，EAS OTA 更新检查受限');
         // 尝试获取当前更新信息（即使不检查新更新）
         const updateInfo = updateService.getUpdateInfo();
         return {
           isAvailable: false,
           isDownloaded: false,
-          error: new Error('开发环境不支持 OTA 更新检查，请在生产环境中使用'),
+          error: new Error('开发环境不支持 EAS OTA 更新检查，请在生产环境中使用'),
           // 添加开发环境标识，方便 UI 显示
           manifest: updateInfo.updateId ? { updateId: updateInfo.updateId } : undefined,
         };
@@ -123,11 +148,31 @@ class UnifiedUpdateService {
 
       return await updateService.checkForUpdate();
     } catch (error) {
-      console.error('[UnifiedUpdateService] OTA 更新检查失败:', error);
+      console.error('[UnifiedUpdateService] EAS OTA 更新检查失败:', error);
       return {
         isAvailable: false,
         isDownloaded: false,
         error: error instanceof Error ? error : new Error(String(error)),
+      };
+    }
+  }
+
+  /**
+   * 检查自建 JS Bundle OTA 更新
+   */
+  private async checkJSBundleOTAUpdate(): Promise<JSBundleUpdateInfo> {
+    try {
+      return await jsBundleUpdateService.checkForUpdate();
+    } catch (error) {
+      console.error('[UnifiedUpdateService] JS Bundle OTA 更新检查失败:', error);
+      return {
+        hasUpdate: false,
+        latestVersion: '',
+        latestJsVersionCode: 0, // ✅ 使用 latestJsVersionCode
+        downloadUrl: null,
+        filePath: null,
+        fileSize: 0,
+        releaseDate: null,
       };
     }
   }
@@ -145,16 +190,16 @@ class UnifiedUpdateService {
   }
 
   /**
-   * 应用 OTA 更新
+   * 应用 EAS OTA 更新
    * 下载并重启应用以应用更新
    */
-  async applyOTAUpdate(): Promise<void> {
+  async applyEASOTAUpdate(): Promise<void> {
     try {
       // 先检查是否有可用更新
-      const otaInfo = await this.checkOTAUpdate();
+      const otaInfo = await this.checkEASOTAUpdate();
       
       if (!otaInfo.isAvailable) {
-        throw new Error('没有可用的 OTA 更新');
+        throw new Error('没有可用的 EAS OTA 更新');
       }
 
       // 如果更新已下载，直接重启
@@ -168,7 +213,34 @@ class UnifiedUpdateService {
       await updateService.checkForUpdate();
       await updateService.reloadAsync();
     } catch (error) {
-      console.error('[UnifiedUpdateService] 应用 OTA 更新失败:', error);
+      console.error('[UnifiedUpdateService] 应用 EAS OTA 更新失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 下载并应用自建 JS Bundle OTA 更新
+   */
+  async downloadAndApplyJSBundleOTA(
+    onProgress?: (progress: { totalBytesWritten: number; totalBytesExpectedToWrite: number; progress: number }) => void
+  ): Promise<void> {
+    try {
+      const updateInfo = await this.checkJSBundleOTAUpdate();
+      
+      if (!updateInfo.hasUpdate || !updateInfo.downloadUrl) {
+        throw new Error('没有可用的 JS Bundle OTA 更新');
+      }
+
+      // 下载 Bundle
+      const bundlePath = await jsBundleUpdateService.downloadBundle(
+        updateInfo.downloadUrl,
+        onProgress
+      );
+
+      // ✅ 应用更新，传入最新的 jsVersionCode
+      await jsBundleUpdateService.applyUpdate(bundlePath, updateInfo.latestJsVersionCode);
+    } catch (error) {
+      console.error('[UnifiedUpdateService] 下载并应用 JS Bundle OTA 更新失败:', error);
       throw error;
     }
   }
@@ -208,9 +280,9 @@ class UnifiedUpdateService {
   }
 
   /**
-   * 获取 OTA 更新信息
+   * 获取 EAS OTA 更新信息
    */
-  getOTAUpdateInfo(): {
+  getEASOTAUpdateInfo(): {
     updateId: string | null;
     createdAt: Date | null;
     runtimeVersion: string | null;
@@ -220,9 +292,9 @@ class UnifiedUpdateService {
   }
 
   /**
-   * 检查是否支持 OTA 更新
+   * 检查是否支持 EAS OTA 更新
    */
-  isOTAEnabled(): boolean {
+  isEASOTAEnabled(): boolean {
     return updateService.isEnabled();
   }
 

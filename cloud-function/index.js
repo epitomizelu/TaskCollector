@@ -1,5 +1,6 @@
 const cloudbase = require('@cloudbase/node-sdk');
 const https = require('https');
+const path = require('path');
 
 // 初始化云开发环境
 const app = cloudbase.init({
@@ -201,27 +202,9 @@ exports.main = async (event, context) => {
     } else if (path === '/app/download-and-upload' || path.startsWith('/app/download-and-upload')) {
       // 从 EAS URL 下载 APK 并上传到云存储
       result = await handleDownloadAndUpload(method, path, body, normalizedHeaders);
-    } else if (path === '/storage/upload-chunk' || path.startsWith('/storage/upload-chunk')) {
-      // 分片上传
-      result = await handleChunkUpload(method, path, body, normalizedHeaders);
-    } else if (path === '/storage/complete-chunk' || path.startsWith('/storage/complete-chunk')) {
-      // 完成分片上传（异步任务）
-      result = await handleCompleteChunkUpload(method, path, body, normalizedHeaders);
-    } else if (path === '/storage/merge-task-status' || path.startsWith('/storage/merge-task-status')) {
-      // 查询合并任务状态
-      result = await handleMergeTaskStatus(method, path, body, normalizedHeaders);
-    } else if (path === '/storage/process-merge-task' || path.startsWith('/storage/process-merge-task')) {
-      // 处理合并任务（内部调用）
-      result = await handleProcessMergeTask(method, path, body, normalizedHeaders);
     } else if (path === '/storage/upload' || path.startsWith('/storage/upload')) {
       // 文件上传到云存储（小文件）
       result = await handleStorageUpload(method, path, body, normalizedHeaders);
-    } else if (path === '/app/js-bundle-versions' || path.startsWith('/app/js-bundle-versions')) {
-      // JS Bundle 版本管理（保存/获取版本信息）
-      result = await handleJSBundleVersions(method, path, body, normalizedHeaders);
-    } else if (path === '/app/check-js-bundle-update' || path.startsWith('/app/check-js-bundle-update')) {
-      // JS Bundle 更新检查
-      result = await handleJSBundleCheckUpdate(method, path, body, normalizedHeaders);
     } else if (path === '/messages' || path.startsWith('/messages')) {
       // 站内信相关
       result = await handleMessages(method, path, body, normalizedHeaders);
@@ -1472,11 +1455,9 @@ async function handleDownloadAndUpload(method, path, body, headers) {
   }
 }
 
-/**
- * 分片上传接口
- * POST /storage/upload-chunk - 上传一个分片
- * POST /storage/complete-chunk - 完成分片上传并合并
- */
+// ========== 更新相关功能已迁移到 app-update 云函数 ==========
+// 以下函数已移除，请使用独立的 app-update 云函数
+/*
 async function handleChunkUpload(method, path, body, headers) {
   if (method !== 'POST') {
     throw new Error('只支持 POST 请求');
@@ -1953,9 +1934,9 @@ async function handleCompleteChunkUpload(method, path, body, headers) {
     chunkUrlResults.sort((a, b) => a.index - b.index);
     
     // 由于云函数有3秒超时限制，无法在函数内完成下载和合并
-    // 方案：返回所有分片的下载URL，让客户端自行下载并合并
+    // 方案：创建合并任务，让后台异步处理
     
-    console.log(`⚠️  由于云函数3秒超时限制，返回分片URL列表供客户端合并`);
+    console.log(`⚠️  由于云函数3秒超时限制，创建合并任务异步处理`);
     
     // 提取所有分片的下载URL（已经在上面的步骤中获取）
     const chunkUrls = chunkUrlResults
@@ -1963,20 +1944,48 @@ async function handleCompleteChunkUpload(method, path, body, headers) {
       .map(result => result.url);
     
     console.log(`✅ 成功获取 ${chunkUrls.length} 个分片的URL`);
-    console.log(`   第一个URL: ${chunkUrls[0]?.substring(0, 80)}...`);
-    console.log(`   最后一个URL: ${chunkUrls[chunkUrls.length - 1]?.substring(0, 80)}...`);
     
-    // 返回分片URL列表，让客户端下载并合并
+    // ✅ 创建合并任务
+    const taskId = `merge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const taskData = {
+      taskId: taskId,
+      uploadId: uploadId,
+      totalChunks: totalChunks,
+      filePath: filePath,
+      fileName: fileName || path.basename(filePath),
+      chunkUrls: chunkUrls, // 保存分片URL列表
+      status: 'pending', // pending, processing, completed, failed
+      progress: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // 保存任务到数据库
+    await db.collection('merge_tasks').doc(taskId).set(taskData);
+    console.log(`✅ 合并任务已创建: ${taskId}`);
+    
+    // 异步触发合并任务处理（不等待完成）
+    // 注意：这里使用 setTimeout 确保不会阻塞当前请求
+    setTimeout(async () => {
+      try {
+        await processMergeTask(taskId);
+      } catch (error) {
+        console.error(`合并任务处理失败: ${taskId}`, error);
+      }
+    }, 100);
+    
+    // 返回任务ID，让客户端可以查询任务状态
     return {
       code: 0,
-      message: '分片URL获取成功，请使用客户端下载并合并',
+      message: '合并任务已创建，正在后台处理',
       data: {
+        taskId: taskId,
         uploadId: uploadId,
         totalChunks: totalChunks,
-        chunkUrls: chunkUrls, // 所有分片的下载URL列表（按顺序）
         targetFilePath: filePath,
-        // 提示信息
-        instructions: '客户端需要：1) 下载所有分片 2) 按顺序合并 3) 保存为最终文件',
+        status: 'pending',
+        // 保留 chunkUrls 作为备用（如果任务失败，客户端可以手动合并）
+        chunkUrls: chunkUrls,
       },
     };
     
@@ -2465,10 +2474,11 @@ async function handleStorageUpload(method, path, body, headers) {
       filePath = jsonFilePath;
       fileName = jsonFileName;
       
-      // 检查文件大小（JSON 方式限制为 10MB）
-      const maxSize = 10 * 1024 * 1024; // 10MB
+      // ✅ 修复：增加文件大小限制（JSON 方式限制为 20MB）
+      // 注意：腾讯云函数有请求体大小限制，通常为 6MB，但可以通过配置增加
+      const maxSize = 20 * 1024 * 1024; // 20MB
       if (fileBuffer.length > maxSize) {
-        throw new Error(`文件过大: ${(fileBuffer.length / 1024 / 1024).toFixed(2)} MB，超过限制 ${(maxSize / 1024 / 1024).toFixed(2)} MB。请使用 multipart/form-data 方式上传`);
+        throw new Error(`文件过大: ${(fileBuffer.length / 1024 / 1024).toFixed(2)} MB，超过限制 ${(maxSize / 1024 / 1024).toFixed(2)} MB。请使用分片上传`);
       }
     }
     
@@ -2513,6 +2523,143 @@ async function handleStorageUpload(method, path, body, headers) {
     throw new Error(`上传失败: ${error.message || '未知错误'}`);
   }
 }
+
+/**
+ * 获取 JS Bundle 上传凭证
+ * POST /storage/upload-init
+ * 请求体: { fileName, version }
+ * 返回: { uploadUrl, authorization, token, fileId, cosPath }
+ */
+async function handleStorageUploadInit(method, path, body, headers) {
+  if (method !== 'POST') {
+    throw new Error('只支持 POST 请求');
+  }
+
+  try {
+    const storage = checkStorageSupport();
+    if (!storage.uploadFile) {
+      throw new Error('当前环境不支持 uploadFile 方法，请检查 Node SDK 版本');
+    }
+
+    // 解析请求体
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        throw new Error('请求体不是有效的 JSON');
+      }
+    }
+
+    const { fileName, version } = body || {};
+    if (!fileName || !version) {
+      throw new Error('缺少必要参数: fileName 或 version');
+    }
+
+    const cosPath = `js_bundles/v${version}/${fileName}`;
+
+    // 使用 cloudbase 的 getUploadMetadata 获取临时凭证
+    const uploadMeta = await app.getUploadMetadata({
+      cloudPath: cosPath,
+    });
+
+    console.log('生成上传凭证成功:', {
+      cosPath,
+      fileId: uploadMeta.data.file_id,
+    });
+
+    return {
+      code: 0,
+      message: 'ok',
+      data: {
+        uploadUrl: uploadMeta.data.url,
+        authorization: uploadMeta.data.authorization,
+        token: uploadMeta.data.token,
+        fileId: uploadMeta.data.file_id,
+        cosPath,
+      },
+    };
+  } catch (error) {
+    console.error('生成上传凭证失败:', error);
+    throw new Error(`生成上传凭证失败: ${error.message}`);
+  }
+}
+
+/**
+ * 上传完成后保存版本信息
+ * POST /storage/upload-finish
+ * 请求体示例：
+ * {
+ *   "version": "1.0.0",
+ *   "versionCode": 2,
+ *   "platform": "android",
+ *   "bundleType": "js",
+ *   "downloadUrl": "https://xxx.tcb.qcloud.la/js_bundles/v1.0.0/entry.js",
+ *   "filePath": "js_bundles/v1.0.0/entry.js",
+ *   "fileSize": 1234567
+ * }
+ */
+async function handleStorageUploadFinish(method, path, body, headers) {
+  if (method !== 'POST') {
+    throw new Error('只支持 POST 请求');
+  }
+
+  try {
+    const db = cloud.database();
+    const collection = db.collection('js_bundle_versions');
+
+    // 解析 JSON
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        throw new Error('请求体不是有效的 JSON');
+      }
+    }
+
+    const {
+      version,
+      versionCode,
+      platform = 'android',
+      bundleType = 'js',
+      downloadUrl,
+      filePath,
+      fileSize,
+    } = body || {};
+
+    if (!version || !versionCode || !downloadUrl || !filePath) {
+      throw new Error('缺少必要字段');
+    }
+
+    const now = new Date().toISOString();
+    const doc = {
+      version,
+      versionCode,
+      platform,
+      bundleType,
+      downloadUrl,
+      filePath,
+      fileSize,
+      releaseDate: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // 插入数据库
+    const res = await collection.add(doc);
+    console.log('✅ 版本信息保存成功:', res);
+
+    return {
+      code: 0,
+      message: '版本信息保存成功',
+      data: { _id: res.id, ...doc },
+    };
+  } catch (error) {
+    console.error('❌ 保存版本信息失败:', error);
+    throw new Error(`保存版本信息失败: ${error.message}`);
+  }
+}
+
+
 
 // ========== JS Bundle 版本管理 ==========
 
@@ -2726,6 +2873,7 @@ async function handleJSBundleCheckUpdate(method, path, body, headers) {
     throw new Error(`检查更新失败: ${error.message}`);
   }
 }
+*/
 
 // ========== 站内信处理函数 ==========
 

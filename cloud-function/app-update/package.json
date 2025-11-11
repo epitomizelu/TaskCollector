@@ -1,0 +1,10 @@
+{
+  "name": "app-update",
+  "version": "1.0.0",
+  "description": "应用更新服务云函数 - JS Bundle OTA 更新",
+  "main": "index.js",
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.0.0"
+  }
+}
+

@@ -15,13 +15,16 @@ export default function RootLayout() {
   const pathname = usePathname();
   const searchParams = useGlobalSearchParams();
 
-  // 应用启动时检查更新（静默检查，不阻塞启动）
+  // 应用启动时检查 EAS OTA 更新（静默检查，不阻塞启动）
+  // 注意：仅检查 EAS OTA 更新，不检查自建 JS Bundle OTA 更新
+  // 自建 JS Bundle OTA 更新需要用户手动在"检查更新"页面触发
   useEffect(() => {
     const checkForUpdates = async () => {
       try {
-        // 静默检查更新，不阻塞应用启动
+        // 静默检查 EAS OTA 更新，不阻塞应用启动
+        // 不检查自建 JS Bundle OTA 更新（仅支持手动更新）
         updateService.checkForUpdate().catch(error => {
-          console.error('[RootLayout] 更新检查失败:', error);
+          console.error('[RootLayout] EAS OTA 更新检查失败:', error);
         });
       } catch (error) {
         console.error('[RootLayout] 更新检查异常:', error);

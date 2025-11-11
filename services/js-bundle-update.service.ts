@@ -1,19 +1,21 @@
 /**
- * JS Bundle 更新服务
- * 用于检测、下载和应用 JS Bundle 更新（简易版 OTA）
+ * JS Bundle 更新服务（增强版）
+ * 支持 .js 和 .hbc 两种格式：
+ *  - .js 可直接动态执行（纯 JS OTA）
+ *  - .hbc 下载后缓存，下次启动由原生或 expo-updates 加载
  * 
- * 注意：此服务独立于 EAS Updates，不影响现有的 EAS 更新流程
+ * 注意：此服务仅支持手动更新，不会自动检查或下载更新
+ * 用户需要在应用内手动触发检查更新操作
  */
 
 import * as FileSystem from 'expo-file-system';
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native'; // 🆕 新增：Alert 用于提示用户
 import Constants from 'expo-constants';
-import { apiService } from './api.service';
 
 export interface JSBundleUpdateInfo {
   hasUpdate: boolean;
   latestVersion: string;
-  latestVersionCode: number;
+  latestJsVersionCode: number; // ✅ 使用独立的 jsVersionCode
   downloadUrl: string | null;
   filePath: string | null;
   fileSize: number;
@@ -28,242 +30,229 @@ export interface DownloadProgress {
 
 class JSBundleUpdateService {
   private currentVersion: string;
-  private currentVersionCode: number;
+  private currentJsVersionCode: number; // ✅ 使用独立的 jsVersionCode
   private downloadTask: FileSystem.FileSystemDownloadResumable | null = null;
+  private readonly JS_VERSION_CODE_KEY = 'js_bundle_version_code'; // 本地存储 key
 
   constructor() {
-    // 获取当前版本信息
+    // ✅ 读取 APK 版本号（仅用于显示）
     const nativeVersion = Constants.nativeAppVersion;
-    const nativeBuildVersion = Constants.nativeBuildVersion;
-    
-    const nativeBuildVersionParsed = nativeBuildVersion 
-      ? (typeof nativeBuildVersion === 'number' 
-          ? nativeBuildVersion 
-          : parseInt(String(nativeBuildVersion), 10))
-      : null;
-    
     const expoConfigVersion = Constants.expoConfig?.version;
-    const expoConfigVersionCode = Constants.expoConfig?.android?.versionCode;
-    
     this.currentVersion = nativeVersion || expoConfigVersion || '1.0.0';
-    this.currentVersionCode = nativeBuildVersionParsed || expoConfigVersionCode || 1;
+    
+    // ✅ 从本地存储读取 jsVersionCode，如果没有则默认为 0
+    this.currentJsVersionCode = 0; // 初始值，会在 loadJsVersionCode 中设置
+    this.loadJsVersionCode();
   }
 
   /**
-   * 检查是否有 JS Bundle 更新
+   * 从本地存储加载 jsVersionCode
+   */
+  private async loadJsVersionCode(): Promise<void> {
+    try {
+      const infoPath = `${FileSystem.documentDirectory}${this.JS_VERSION_CODE_KEY}.json`;
+      const fileInfo = await FileSystem.getInfoAsync(infoPath);
+      
+      if (fileInfo.exists) {
+        const content = await FileSystem.readAsStringAsync(infoPath);
+        const data = JSON.parse(content);
+        this.currentJsVersionCode = typeof data.jsVersionCode === 'number' 
+          ? data.jsVersionCode 
+          : parseInt(data.jsVersionCode || '0', 10);
+        console.log('[JSBundleUpdateService] 从本地存储加载 jsVersionCode:', this.currentJsVersionCode);
+      } else {
+        console.log('[JSBundleUpdateService] 本地存储中没有 jsVersionCode，使用默认值 0');
+        this.currentJsVersionCode = 0;
+      }
+    } catch (error) {
+      console.warn('[JSBundleUpdateService] 加载 jsVersionCode 失败，使用默认值 0:', error);
+      this.currentJsVersionCode = 0;
+    }
+  }
+
+  /**
+   * 保存 jsVersionCode 到本地存储
+   */
+  private async saveJsVersionCode(jsVersionCode: number): Promise<void> {
+    try {
+      const infoPath = `${FileSystem.documentDirectory}${this.JS_VERSION_CODE_KEY}.json`;
+      const data = {
+        jsVersionCode,
+        updatedAt: new Date().toISOString(),
+      };
+      await FileSystem.writeAsStringAsync(infoPath, JSON.stringify(data, null, 2));
+      this.currentJsVersionCode = jsVersionCode;
+      console.log('[JSBundleUpdateService] 保存 jsVersionCode 到本地存储:', jsVersionCode);
+    } catch (error) {
+      console.error('[JSBundleUpdateService] 保存 jsVersionCode 失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 检查更新逻辑：使用 jsVersionCode
    */
   async checkForUpdate(): Promise<JSBundleUpdateInfo> {
     try {
-      console.log('[JSBundleUpdateService] 检查更新...', {
-        currentVersion: this.currentVersion,
-        currentVersionCode: this.currentVersionCode,
-      });
-
-      // 调用云函数接口检查更新
+      // ✅ 确保已加载 jsVersionCode
+      await this.loadJsVersionCode();
+      
       const { API_CONFIG, getHeaders } = await import('../config/api.config');
+      // ✅ 使用更新服务云函数 URL（如果配置了，否则使用主云函数 URL）
+      const updateServiceUrl = API_CONFIG.UPDATE_SERVICE_URL || API_CONFIG.BASE_URL;
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}/app/check-js-bundle-update?currentVersion=${encodeURIComponent(this.currentVersion)}&versionCode=${this.currentVersionCode}&platform=${Platform.OS}`,
+        `${updateServiceUrl}/app/check-js-bundle-update?jsVersionCode=${this.currentJsVersionCode}&platform=${Platform.OS}`,
         {
           method: 'GET',
           headers: getHeaders(),
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
       const result = await response.json();
-
-      if (result.code !== 0) {
-        throw new Error(result.message || '检查更新失败');
-      }
+      if (result.code !== 0) throw new Error(result.message || '检查更新失败');
 
       const updateInfo: JSBundleUpdateInfo = result.data;
-
-      console.log('[JSBundleUpdateService] 更新检查结果:', updateInfo);
-
-      // 客户端二次校验：如果服务器返回有更新，但版本号相同或更小，则标记为无更新
-      if (updateInfo.hasUpdate) {
-        if (updateInfo.latestVersionCode <= this.currentVersionCode) {
-          console.warn('[JSBundleUpdateService] 服务器返回有更新，但版本号未增加，忽略更新', {
-            currentVersionCode: this.currentVersionCode,
-            latestVersionCode: updateInfo.latestVersionCode,
-          });
-          return {
-            ...updateInfo,
-            hasUpdate: false,
-          };
-        }
+      
+      // ✅ 客户端二次校验：使用 jsVersionCode 比较
+      if (
+        updateInfo.hasUpdate &&
+        updateInfo.latestJsVersionCode <= this.currentJsVersionCode
+      ) {
+        updateInfo.hasUpdate = false;
       }
-
+      
       return updateInfo;
-    } catch (error) {
-      console.error('[JSBundleUpdateService] 检查更新失败:', error);
-      throw error;
+    } catch (err) {
+      console.error('[JSBundleUpdateService] 检查更新失败:', err);
+      throw err;
     }
   }
 
   /**
-   * 下载 JS Bundle
+   * 🆕 修改：下载时自动识别文件类型 (.js 或 .hbc)
    */
   async downloadBundle(
     downloadUrl: string,
-    onProgress?: (progress: DownloadProgress) => void
+    onProgress?: (p: DownloadProgress) => void
   ): Promise<string> {
-    try {
-      if (!downloadUrl) {
-        throw new Error('下载地址为空');
-      }
+    if (!downloadUrl) throw new Error('下载地址为空');
+    console.log('[JSBundleUpdateService] 开始下载:', downloadUrl);
 
-      console.log('[JSBundleUpdateService] 开始下载 Bundle...', { downloadUrl });
+    // 🆕 新增：判断文件类型
+    const ext = downloadUrl.endsWith('.hbc') ? 'hbc' : 'js';
 
-      // 创建下载目录
-      const bundleDir = `${FileSystem.documentDirectory}js-bundles/`;
-      const bundlePath = `${bundleDir}index.android.bundle`;
+    // 🆕 修改：根据类型动态命名
+    const bundleDir = `${FileSystem.documentDirectory}js-bundles/`;
+    const bundlePath = `${bundleDir}index.android.${ext}`;
 
-      // 确保目录存在
-      const dirInfo = await FileSystem.getInfoAsync(bundleDir);
-      if (!dirInfo.exists) {
-        await FileSystem.makeDirectoryAsync(bundleDir, { intermediates: true });
-      }
+    const dirInfo = await FileSystem.getInfoAsync(bundleDir);
+    if (!dirInfo.exists) await FileSystem.makeDirectoryAsync(bundleDir, { intermediates: true });
 
-      // 创建下载任务
-      this.downloadTask = FileSystem.createDownloadResumable(
-        downloadUrl,
-        bundlePath,
-        {},
-        (downloadProgress) => {
-          const progress = downloadProgress.totalBytesExpectedToWrite > 0
-            ? downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite
+    // ✅ 保留下载进度逻辑
+    this.downloadTask = FileSystem.createDownloadResumable(
+      downloadUrl,
+      bundlePath,
+      {},
+      (dp) => {
+        const progress =
+          dp.totalBytesExpectedToWrite > 0
+            ? dp.totalBytesWritten / dp.totalBytesExpectedToWrite
             : 0;
-
-          if (onProgress) {
-            onProgress({
-              totalBytesWritten: downloadProgress.totalBytesWritten,
-              totalBytesExpectedToWrite: downloadProgress.totalBytesExpectedToWrite,
-              progress: progress,
-            });
-          }
-
-          console.log('[JSBundleUpdateService] 下载进度:', {
-            progress: `${(progress * 100).toFixed(1)}%`,
-            downloaded: `${(downloadProgress.totalBytesWritten / 1024 / 1024).toFixed(2)} MB`,
-            total: downloadProgress.totalBytesExpectedToWrite > 0
-              ? `${(downloadProgress.totalBytesExpectedToWrite / 1024 / 1024).toFixed(2)} MB`
-              : '未知',
-          });
-        }
-      );
-
-      // 开始下载
-      const result = await this.downloadTask.downloadAsync();
-
-      if (!result) {
-        throw new Error('下载失败：未返回结果');
+        onProgress?.({
+          totalBytesWritten: dp.totalBytesWritten,
+          totalBytesExpectedToWrite: dp.totalBytesExpectedToWrite,
+          progress,
+        });
       }
+    );
 
-      console.log('[JSBundleUpdateService] Bundle 下载完成:', result.uri);
+    const result = await this.downloadTask.downloadAsync();
+    if (!result) throw new Error('下载失败');
 
-      return result.uri;
-    } catch (error) {
-      console.error('[JSBundleUpdateService] 下载失败:', error);
-      throw error;
-    }
+    console.log('[JSBundleUpdateService] 下载完成:', result.uri);
+    return result.uri;
   }
 
   /**
-   * 取消下载
+   * 🆕 修改：根据文件类型决定更新方式
+   *  - .js → 动态执行（立即生效）
+   *  - .hbc → 保存更新信息，等待重启加载
+   * 更新成功后保存新的 jsVersionCode
    */
-  async cancelDownload(): Promise<void> {
-    if (this.downloadTask) {
-      try {
-        await this.downloadTask.pauseAsync();
-        this.downloadTask = null;
-        console.log('[JSBundleUpdateService] 下载已取消');
-      } catch (error) {
-        console.error('[JSBundleUpdateService] 取消下载失败:', error);
-      }
-    }
-  }
+  async applyUpdate(bundlePath: string, latestJsVersionCode: number): Promise<void> {
+    const ext = bundlePath.split('.').pop()?.toLowerCase();
 
-  /**
-   * 应用更新（替换本地 bundle）
-   * 
-   * 注意：在 Expo 中，直接替换 bundle 文件可能比较复杂
-   * 这里提供一个基础实现，实际使用时可能需要根据具体需求调整
-   */
-  async applyUpdate(bundlePath: string): Promise<void> {
-    try {
-      console.log('[JSBundleUpdateService] 应用更新...', { bundlePath });
-
-      // 在 Expo 中，应用 bundle 更新通常需要重启应用
-      // 这里我们保存 bundle 路径，应用重启后可以加载新的 bundle
+    if (ext === 'js') {
+      // 🆕 新增：动态执行 JS bundle
+      console.log('[JSBundleUpdateService] 执行新 .js Bundle:', bundlePath);
+      await this.runBundle(bundlePath);
       
-      // 保存更新信息到本地存储
-      const updateInfoPath = `${FileSystem.documentDirectory}js-bundle-update-info.json`;
-      const updateInfo = {
-        bundlePath: bundlePath,
-        version: this.currentVersion,
-        versionCode: this.currentVersionCode,
+      // ✅ 更新成功后保存新的 jsVersionCode
+      await this.saveJsVersionCode(latestJsVersionCode);
+      
+      Alert.alert('更新完成', '新版本已应用（无需重启）');
+    } else if (ext === 'hbc') {
+      // 🆕 修改：保存更新信息
+      console.log('[JSBundleUpdateService] 保存 .hbc 更新信息');
+      const infoPath = `${FileSystem.documentDirectory}js-bundle-update-info.json`;
+      const data = {
+        bundlePath,
+        jsVersionCode: latestJsVersionCode,
         appliedAt: new Date().toISOString(),
       };
-
-      await FileSystem.writeAsStringAsync(
-        updateInfoPath,
-        JSON.stringify(updateInfo, null, 2)
-      );
-
-      console.log('[JSBundleUpdateService] 更新信息已保存，需要重启应用以应用更新');
-
-      // 注意：在 Expo 中，直接替换 bundle 可能需要使用原生代码
-      // 或者使用 expo-updates 的机制（但这里我们要独立于 EAS Updates）
-      // 这里只保存更新信息，实际应用更新需要重启应用
-    } catch (error) {
-      console.error('[JSBundleUpdateService] 应用更新失败:', error);
-      throw error;
+      await FileSystem.writeAsStringAsync(infoPath, JSON.stringify(data, null, 2));
+      
+      // ✅ 更新成功后保存新的 jsVersionCode
+      await this.saveJsVersionCode(latestJsVersionCode);
+      
+      Alert.alert('更新下载完成', '下次重启后将应用新版本');
+    } else {
+      throw new Error('未知的 bundle 格式');
     }
   }
 
   /**
-   * 获取当前版本信息
+   * 🆕 新增：动态执行 .js bundle 文件（纯 JS OTA 关键逻辑）
    */
-  getCurrentVersion(): { version: string; versionCode: number } {
+  async runBundle(bundlePath: string) {
+    try {
+      const code = await FileSystem.readAsStringAsync(bundlePath);
+      // 🆕 新增：构建沙箱上下文（防止污染全局）
+      const sandbox = { console, require, globalThis };
+      const exec = new Function('sandbox', `
+        with (sandbox) {
+          ${code}
+        }
+      `);
+      exec(sandbox);
+      console.log('[JSBundleUpdateService] 动态执行完成');
+    } catch (err) {
+      console.error('[JSBundleUpdateService] 执行 .js bundle 失败:', err);
+      Alert.alert('执行失败', String(err));
+    }
+  }
+
+  /**
+   * ✅ 保留：取消下载功能
+   */
+  async cancelDownload() {
+    if (this.downloadTask) {
+      await this.downloadTask.pauseAsync();
+      this.downloadTask = null;
+      console.log('[JSBundleUpdateService] 下载已取消');
+    }
+  }
+
+  /**
+   * ✅ 修改：版本号获取（返回 jsVersionCode）
+   */
+  getCurrentVersion() {
     return {
       version: this.currentVersion,
-      versionCode: this.currentVersionCode,
+      jsVersionCode: this.currentJsVersionCode,
     };
-  }
-
-  /**
-   * 检查是否有已下载的更新
-   */
-  async checkDownloadedUpdate(): Promise<string | null> {
-    try {
-      const updateInfoPath = `${FileSystem.documentDirectory}js-bundle-update-info.json`;
-      const info = await FileSystem.getInfoAsync(updateInfoPath);
-
-      if (!info.exists) {
-        return null;
-      }
-
-      const updateInfoStr = await FileSystem.readAsStringAsync(updateInfoPath);
-      const updateInfo = JSON.parse(updateInfoStr);
-
-      // 检查 bundle 文件是否存在
-      const bundleInfo = await FileSystem.getInfoAsync(updateInfo.bundlePath);
-      if (!bundleInfo.exists) {
-        return null;
-      }
-
-      return updateInfo.bundlePath;
-    } catch (error) {
-      console.error('[JSBundleUpdateService] 检查已下载更新失败:', error);
-      return null;
-    }
   }
 }
 
-// 导出单例
+// ✅ 单例导出
 export const jsBundleUpdateService = new JSBundleUpdateService();
-

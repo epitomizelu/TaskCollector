@@ -30,7 +30,9 @@ const AppUpdateScreen: React.FC = () => {
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState<{ version: string; versionCode: number } | null>(null);
-  const [isApplyingOTA, setIsApplyingOTA] = useState(false);
+  const [isApplyingEASOTA, setIsApplyingEASOTA] = useState(false);
+  const [isDownloadingJSBundleOTA, setIsDownloadingJSBundleOTA] = useState(false);
+  const [jsBundleProgress, setJSBundleProgress] = useState<DownloadProgress | null>(null);
 
   useEffect(() => {
     // 获取当前版本信息
@@ -75,15 +77,15 @@ const AppUpdateScreen: React.FC = () => {
   };
 
   /**
-   * 应用 OTA 更新
+   * 应用 EAS OTA 更新
    */
-  const handleApplyOTAUpdate = async () => {
-    setIsApplyingOTA(true);
+  const handleApplyEASOTAUpdate = async () => {
+    setIsApplyingEASOTA(true);
     setError(null);
 
     try {
       Alert.alert(
-        '应用更新',
+        '应用 EAS OTA 更新',
         '应用将重启以应用更新，是否继续？',
         [
           { text: '取消', style: 'cancel' },
@@ -91,13 +93,13 @@ const AppUpdateScreen: React.FC = () => {
             text: '确定',
             onPress: async () => {
               try {
-                await unifiedUpdateService.applyOTAUpdate();
+                await unifiedUpdateService.applyEASOTAUpdate();
                 // reloadAsync 会重启应用，这里不会执行
               } catch (err: any) {
                 setError(err.message || '应用更新失败');
                 Alert.alert('更新失败', err.message || '无法应用更新');
               } finally {
-                setIsApplyingOTA(false);
+                setIsApplyingEASOTA(false);
               }
             },
           },
@@ -105,7 +107,42 @@ const AppUpdateScreen: React.FC = () => {
       );
     } catch (err: any) {
       setError(err.message || '应用更新失败');
-      setIsApplyingOTA(false);
+      setIsApplyingEASOTA(false);
+    }
+  };
+
+  /**
+   * 下载并应用自建 JS Bundle OTA 更新
+   */
+  const handleDownloadJSBundleOTA = async () => {
+    if (!unifiedUpdateInfo?.jsBundleOtaUpdate) return;
+
+    setIsDownloadingJSBundleOTA(true);
+    setError(null);
+    setJSBundleProgress(null);
+
+    try {
+      await unifiedUpdateService.downloadAndApplyJSBundleOTA(
+        (progress) => {
+          setJSBundleProgress({
+            totalBytesWritten: progress.totalBytesWritten,
+            totalBytesExpectedToWrite: progress.totalBytesExpectedToWrite,
+            progress: progress.progress,
+          });
+        }
+      );
+
+      Alert.alert(
+        '下载完成',
+        'JS Bundle 已下载完成，请重启应用以应用更新。',
+        [{ text: '确定' }]
+      );
+    } catch (err: any) {
+      setError(err.message || '下载失败，请稍后重试');
+      Alert.alert('下载失败', err.message || '无法下载更新文件');
+    } finally {
+      setIsDownloadingJSBundleOTA(false);
+      setJSBundleProgress(null);
     }
   };
 
@@ -222,22 +259,22 @@ const AppUpdateScreen: React.FC = () => {
           </View>
         )}
 
-        {/* OTA 更新信息 */}
-        {unifiedUpdateInfo && unifiedUpdateInfo.otaUpdate && (
+        {/* EAS OTA 更新信息 */}
+        {unifiedUpdateInfo && unifiedUpdateInfo.easOtaUpdate && (
           <View style={[styles.updateCard, styles.otaUpdateCard]}>
             <View style={styles.updateHeader}>
               <View style={styles.updateTypeBadge}>
                 <FontAwesome6 name="cloud-arrow-down" size={20} color="#3B82F6" />
-                <Text style={styles.updateTypeText}>OTA 更新</Text>
+                <Text style={styles.updateTypeText}>EAS OTA 更新</Text>
               </View>
             </View>
             <View style={styles.updateInfo}>
-              {unifiedUpdateInfo.otaUpdate.isAvailable ? (
+              {unifiedUpdateInfo.easOtaUpdate.isAvailable ? (
                 <>
                   <Text style={styles.updateInfoValue}>
-                    OTA 更新可以快速更新应用代码，无需重新安装。更新后应用将自动重启。
+                    EAS OTA 更新可以快速更新应用代码，无需重新安装。更新后应用将自动重启。
                   </Text>
-                  {unifiedUpdateInfo.otaUpdate.isDownloaded && (
+                  {unifiedUpdateInfo.easOtaUpdate.isDownloaded && (
                     <View style={styles.downloadedBadge}>
                       <FontAwesome6 name="check" size={12} color="#10B981" />
                       <Text style={styles.downloadedText}>更新已下载，等待应用</Text>
@@ -247,30 +284,30 @@ const AppUpdateScreen: React.FC = () => {
               ) : (
                 <>
                   <Text style={styles.updateInfoValue}>
-                    {unifiedUpdateInfo.otaUpdate.error 
-                      ? `OTA 更新状态: ${unifiedUpdateInfo.otaUpdate.error.message}`
-                      : '当前已是最新版本，无需 OTA 更新。'}
+                    {unifiedUpdateInfo.easOtaUpdate.error 
+                      ? `EAS OTA 更新状态: ${unifiedUpdateInfo.easOtaUpdate.error.message}`
+                      : '当前已是最新版本，无需 EAS OTA 更新。'}
                   </Text>
                   {__DEV__ && (
                     <View style={styles.infoBadge}>
                       <FontAwesome6 name="info-circle" size={12} color="#6B7280" />
-                      <Text style={styles.infoText}>开发环境不支持 OTA 更新检查</Text>
+                      <Text style={styles.infoText}>开发环境不支持 EAS OTA 更新检查</Text>
                     </View>
                   )}
                 </>
               )}
             </View>
-            {unifiedUpdateInfo.otaUpdate.isAvailable && (
+            {unifiedUpdateInfo.easOtaUpdate.isAvailable && (
               <TouchableOpacity
                 style={[
                   styles.otaButton,
-                  isApplyingOTA && styles.downloadButtonDisabled,
+                  isApplyingEASOTA && styles.downloadButtonDisabled,
                 ]}
-                onPress={handleApplyOTAUpdate}
-                disabled={isApplyingOTA}
+                onPress={handleApplyEASOTAUpdate}
+                disabled={isApplyingEASOTA}
                 activeOpacity={0.7}
               >
-                {isApplyingOTA ? (
+                {isApplyingEASOTA ? (
                   <>
                     <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
                     <Text style={styles.downloadButtonText}>应用更新中...</Text>
@@ -278,7 +315,86 @@ const AppUpdateScreen: React.FC = () => {
                 ) : (
                   <>
                     <FontAwesome6 name="cloud-arrow-down" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-                    <Text style={styles.downloadButtonText}>应用 OTA 更新</Text>
+                    <Text style={styles.downloadButtonText}>应用 EAS OTA 更新</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* 自建 JS Bundle OTA 更新信息 */}
+        {unifiedUpdateInfo && unifiedUpdateInfo.jsBundleOtaUpdate && (
+          <View style={[styles.updateCard, { borderLeftColor: '#8B5CF6' }]}>
+            <View style={styles.updateHeader}>
+              <View style={styles.updateTypeBadge}>
+                <FontAwesome6 name="code" size={20} color="#8B5CF6" />
+                <Text style={styles.updateTypeText}>自建 JS Bundle OTA 更新</Text>
+              </View>
+            </View>
+            <View style={styles.updateInfo}>
+              {unifiedUpdateInfo.jsBundleOtaUpdate.hasUpdate ? (
+                <>
+                  <View style={styles.updateInfoRow}>
+                    <Text style={styles.updateInfoLabel}>最新版本：</Text>
+                    <Text style={styles.updateInfoValue}>
+                      v{unifiedUpdateInfo.jsBundleOtaUpdate.latestVersion} (JS Build {unifiedUpdateInfo.jsBundleOtaUpdate.latestJsVersionCode})
+                    </Text>
+                  </View>
+                  {unifiedUpdateInfo.jsBundleOtaUpdate.fileSize > 0 && (
+                    <View style={styles.updateInfoRow}>
+                      <Text style={styles.updateInfoLabel}>文件大小：</Text>
+                      <Text style={styles.updateInfoValue}>{formatFileSize(unifiedUpdateInfo.jsBundleOtaUpdate.fileSize)}</Text>
+                    </View>
+                  )}
+                  <Text style={[styles.updateInfoValue, { marginTop: 8 }]}>
+                    自建 JS Bundle OTA 更新可以快速更新应用代码，无需重新安装。下载完成后需要重启应用。
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.updateInfoValue}>
+                  当前已是最新版本，无需自建 JS Bundle OTA 更新。
+                </Text>
+              )}
+            </View>
+
+            {/* 下载进度 */}
+            {isDownloadingJSBundleOTA && jsBundleProgress && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${jsBundleProgress.progress * 100}%` },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {formatProgress(jsBundleProgress.progress)} ({formatFileSize(jsBundleProgress.totalBytesWritten)} / {formatFileSize(jsBundleProgress.totalBytesExpectedToWrite)})
+                </Text>
+              </View>
+            )}
+
+            {unifiedUpdateInfo.jsBundleOtaUpdate.hasUpdate && (
+              <TouchableOpacity
+                style={[
+                  styles.otaButton,
+                  { backgroundColor: '#8B5CF6' },
+                  (isDownloadingJSBundleOTA || isChecking) && styles.downloadButtonDisabled,
+                ]}
+                onPress={handleDownloadJSBundleOTA}
+                disabled={isDownloadingJSBundleOTA || isChecking}
+                activeOpacity={0.7}
+              >
+                {isDownloadingJSBundleOTA ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.downloadButtonText}>下载中...</Text>
+                  </>
+                ) : (
+                  <>
+                    <FontAwesome6 name="code" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                    <Text style={styles.downloadButtonText}>下载 JS Bundle 更新</Text>
                   </>
                 )}
               </TouchableOpacity>
