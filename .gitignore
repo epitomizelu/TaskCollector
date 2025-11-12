@@ -20,3 +20,5 @@ dist/
 .env.*.local
 
 .apk
+
+/js-bundles/

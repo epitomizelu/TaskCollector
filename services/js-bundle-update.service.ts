@@ -12,6 +12,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform, Alert } from 'react-native'; // 🆕 新增：Alert 用于提示用户
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates'; // 🆕 新增：用于重启应用
 
 // ✅ 使用 ReturnType 推断下载任务的类型
 type FileSystemDownloadResumable = ReturnType<typeof FileSystem.createDownloadResumable>;
@@ -186,62 +187,85 @@ class JSBundleUpdateService {
 
   /**
    * 🆕 修改：根据文件类型决定更新方式
-   *  - .js → 动态执行（立即生效）
+   *  - .js → 保存更新信息，提示用户重启（布局更新需要重启才能生效）
    *  - .hbc → 保存更新信息，等待重启加载
    * 更新成功后保存新的 jsVersionCode
    */
   async applyUpdate(bundlePath: string, latestJsVersionCode: number): Promise<void> {
     const ext = bundlePath.split('.').pop()?.toLowerCase();
 
+    // ✅ 保存更新信息（无论 .js 还是 .hbc）
+    console.log('[JSBundleUpdateService] 保存更新信息:', bundlePath);
+    const infoPath = `${FileSystem.documentDirectory}js-bundle-update-info.json`;
+    const data = {
+      bundlePath,
+      jsVersionCode: latestJsVersionCode,
+      fileType: ext,
+      appliedAt: new Date().toISOString(),
+    };
+    await FileSystem.writeAsStringAsync(infoPath, JSON.stringify(data, null, 2));
+    
+    // ✅ 更新成功后保存新的 jsVersionCode
+    await this.saveJsVersionCode(latestJsVersionCode);
+
     if (ext === 'js') {
-      // 🆕 新增：动态执行 JS bundle
-      console.log('[JSBundleUpdateService] 执行新 .js Bundle:', bundlePath);
-      await this.runBundle(bundlePath);
-      
-      // ✅ 更新成功后保存新的 jsVersionCode
-      await this.saveJsVersionCode(latestJsVersionCode);
-      
-      Alert.alert('更新完成', '新版本已应用（无需重启）');
+      // ⚠️ 注意：动态执行无法替换已加载的 React 组件和布局
+      // 需要重启应用才能看到新的布局
+      Alert.alert(
+        '更新下载完成',
+        '新版本已下载，需要重启应用以应用更新（包括新布局）。',
+        [
+          { text: '稍后', style: 'cancel' },
+          {
+            text: '立即重启',
+            onPress: async () => {
+              try {
+                console.log('[JSBundleUpdateService] 重启应用以应用更新...');
+                await Updates.reloadAsync();
+              } catch (error) {
+                console.error('[JSBundleUpdateService] 重启应用失败:', error);
+                Alert.alert('重启失败', '请手动重启应用以应用更新');
+              }
+            },
+          },
+        ]
+      );
     } else if (ext === 'hbc') {
-      // 🆕 修改：保存更新信息
-      console.log('[JSBundleUpdateService] 保存 .hbc 更新信息');
-      const infoPath = `${FileSystem.documentDirectory}js-bundle-update-info.json`;
-      const data = {
-        bundlePath,
-        jsVersionCode: latestJsVersionCode,
-        appliedAt: new Date().toISOString(),
-      };
-      await FileSystem.writeAsStringAsync(infoPath, JSON.stringify(data, null, 2));
-      
-      // ✅ 更新成功后保存新的 jsVersionCode
-      await this.saveJsVersionCode(latestJsVersionCode);
-      
-      Alert.alert('更新下载完成', '下次重启后将应用新版本');
+      Alert.alert(
+        '更新下载完成',
+        '新版本已下载，需要重启应用以应用更新。',
+        [
+          { text: '稍后', style: 'cancel' },
+          {
+            text: '立即重启',
+            onPress: async () => {
+              try {
+                console.log('[JSBundleUpdateService] 重启应用以应用更新...');
+                await Updates.reloadAsync();
+              } catch (error) {
+                console.error('[JSBundleUpdateService] 重启应用失败:', error);
+                Alert.alert('重启失败', '请手动重启应用以应用更新');
+              }
+            },
+          },
+        ]
+      );
     } else {
       throw new Error('未知的 bundle 格式');
     }
   }
 
   /**
-   * 🆕 新增：动态执行 .js bundle 文件（纯 JS OTA 关键逻辑）
+   * ⚠️ 已废弃：动态执行 .js bundle 文件
+   * 
+   * 原因：React Native 的组件和布局在应用启动时注册，
+   * 动态执行无法替换已加载的组件，因此无法看到新的布局。
+   * 
+   * 解决方案：下载完成后提示用户重启应用。
    */
-  async runBundle(bundlePath: string) {
-    try {
-      const code = await FileSystem.readAsStringAsync(bundlePath);
-      // 🆕 新增：构建沙箱上下文（防止污染全局）
-      const sandbox = { console, require, globalThis };
-      const exec = new Function('sandbox', `
-        with (sandbox) {
-          ${code}
-        }
-      `);
-      exec(sandbox);
-      console.log('[JSBundleUpdateService] 动态执行完成');
-    } catch (err) {
-      console.error('[JSBundleUpdateService] 执行 .js bundle 失败:', err);
-      Alert.alert('执行失败', String(err));
-    }
-  }
+  // async runBundle(bundlePath: string) {
+  //   // 此方法已废弃，不再使用
+  // }
 
   /**
    * ✅ 保留：取消下载功能

@@ -132,11 +132,8 @@ const AppUpdateScreen: React.FC = () => {
         }
       );
 
-      Alert.alert(
-        '下载完成',
-        'JS Bundle 已下载完成，请重启应用以应用更新。',
-        [{ text: '确定' }]
-      );
+      // 注意：applyUpdate 内部已经处理了重启提示，这里不需要再次提示
+      // 更新已自动应用，用户可以选择立即重启或稍后重启
     } catch (err: any) {
       setError(err.message || '下载失败，请稍后重试');
       Alert.alert('下载失败', err.message || '无法下载更新文件');
