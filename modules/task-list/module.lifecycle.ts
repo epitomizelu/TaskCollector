@@ -27,8 +27,9 @@ export const taskListLifecycle: ModuleLifecycle = {
         console.log('检测到新的一天，开始同步预设任务和初始化今日任务');
         
         // 先同步预设任务（确保预设任务是最新的）
+        // 使用双向同步，合并本地和云端的所有预设任务
         try {
-          await taskListService.syncPresetTasksFromCloud();
+          await taskListService.syncPresetTasksBidirectional();
           console.log('预设任务同步完成');
         } catch (error) {
           console.error('同步预设任务失败:', error);

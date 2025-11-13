@@ -43,6 +43,16 @@ export interface DailyTask {
 
 class TaskListService {
   /**
+   * 获取本地时区的日期字符串 (YYYY-MM-DD)
+   */
+  private getLocalDateString(date: Date = new Date()): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  /**
    * 获取所有预设任务
    */
   async getPresetTasks(): Promise<PresetTask[]> {
@@ -80,7 +90,7 @@ class TaskListService {
     
     // 如果预设任务已启用，且今天还没有对应的今日任务，则自动创建并同步到今日任务
     if (newTask.enabled) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = this.getLocalDateString();
       const todayTasks = await this.getDailyTasks(today);
       const hasTodayTask = todayTasks.some(t => t.presetTaskId === newTask.id);
       
@@ -213,9 +223,88 @@ class TaskListService {
    * @returns 如果是新的一天返回 true，否则返回 false
    */
   async checkIfNewDay(): Promise<boolean> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.getLocalDateString();
     const lastInitDate = await AsyncStorage.getItem(LAST_INIT_DATE_KEY);
     return lastInitDate !== today;
+  }
+
+  /**
+   * 强制重新初始化今日任务（清除今日任务并从预设任务重新生成）
+   * 用于修复同步问题，确保所有启用的预设任务都被同步
+   */
+  async forceReinitializeTodayTasks(): Promise<DailyTask[]> {
+    const today = this.getLocalDateString();
+    console.log(`强制重新初始化今日任务（${today}）`);
+    
+    // 先同步预设任务，确保获取所有云端任务
+    try {
+      await this.syncPresetTasksBidirectional();
+      console.log('预设任务同步完成');
+    } catch (error) {
+      console.error('同步预设任务失败:', error);
+      // 继续执行，使用本地预设任务
+    }
+    
+    // 删除今日的所有任务（包括云端）
+    try {
+      await this.deleteDailyTasksByDate(today, true);
+    } catch (error) {
+      console.error('删除今日旧任务失败:', error);
+      // 继续执行，即使删除失败也要重新生成任务
+    }
+
+    // 获取启用的预设任务（重新从本地读取，确保使用最新数据）
+    const presetTasks = await this.getPresetTasks();
+    console.log('获取到预设任务数量:', presetTasks.length);
+    const enabledPresets = presetTasks.filter(t => t.enabled);
+    console.log('启用的预设任务数量:', enabledPresets.length);
+
+    // 为每个启用的预设任务创建今日任务（全部重新生成，状态初始化为未完成）
+    const newTasks: DailyTask[] = [];
+    const baseTime = Date.now();
+    for (let i = 0; i < enabledPresets.length; i++) {
+      const preset = enabledPresets[i];
+      // 使用基础时间 + 索引 + 随机字符串确保 ID 唯一性
+      const dailyTask: DailyTask = {
+        id: `daily_${baseTime}_${i}_${Math.random().toString(36).substr(2, 9)}`,
+        presetTaskId: preset.id,
+        name: preset.name,
+        description: preset.description,
+        date: today,
+        completed: false, // 状态初始化为未完成
+        syncedToCollection: false, // 同步状态初始化为未同步
+        completedAt: undefined, // 清除完成时间
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      newTasks.push(dailyTask);
+    }
+
+    // 保存新任务
+    if (newTasks.length > 0) {
+      const allTasksJson = await AsyncStorage.getItem(DAILY_TASKS_KEY);
+      const allTasks: DailyTask[] = allTasksJson ? JSON.parse(allTasksJson) : [];
+      allTasks.push(...newTasks);
+      await AsyncStorage.setItem(DAILY_TASKS_KEY, JSON.stringify(allTasks));
+      
+      // 同步新创建的任务到云端
+      for (const newTask of newTasks) {
+        try {
+          await this.syncDailyTaskToCloud(newTask);
+        } catch (error) {
+          console.error(`同步新创建的今日任务到云端失败 (${newTask.id}):`, error);
+        }
+      }
+      
+      console.log(`已强制重新创建 ${newTasks.length} 个今日任务并同步到云端（状态已初始化）`);
+    } else {
+      console.log('没有启用的预设任务，今日任务列表为空');
+    }
+
+    // 更新初始化日期
+    await AsyncStorage.setItem(LAST_INIT_DATE_KEY, today);
+
+    return await this.getDailyTasks(today);
   }
 
   /**
@@ -223,7 +312,7 @@ class TaskListService {
    * 每天第一次进入时，会清除昨日任务，从预设任务中重新生成，并初始化状态
    */
   async initializeTodayTasks(): Promise<DailyTask[]> {
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.getLocalDateString();
     const lastInitDate = await AsyncStorage.getItem(LAST_INIT_DATE_KEY);
     
     // 如果是新的一天，需要清除今日的旧任务并重新生成
@@ -515,7 +604,7 @@ class TaskListService {
     }
     
     // 检查今天是否已经同步过
-    const today = new Date().toISOString().split('T')[0];
+    const today = this.getLocalDateString();
     const lastSyncDate = await AsyncStorage.getItem(PRESET_SYNC_DATE_KEY);
     
     if (lastSyncDate === today) {
@@ -626,7 +715,7 @@ class TaskListService {
     
     // 检查今天是否已经同步过（避免频繁同步）
     if (!forceSync) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = this.getLocalDateString();
       const lastSyncDate = await AsyncStorage.getItem(LAST_SYNC_DATE_KEY);
       
       if (lastSyncDate === today && localTasks.length > 0) {
@@ -664,7 +753,7 @@ class TaskListService {
       await AsyncStorage.setItem(PRESET_TASKS_KEY, JSON.stringify(mergedTasks));
       
       // 更新同步日期
-      const today = new Date().toISOString().split('T')[0];
+      const today = this.getLocalDateString();
       await AsyncStorage.setItem(LAST_SYNC_DATE_KEY, today);
       
       console.log('预设任务同步完成，共', mergedTasks.length, '个任务');

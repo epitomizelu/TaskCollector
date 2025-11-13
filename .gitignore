@@ -22,3 +22,6 @@ dist/
 .apk
 
 /js-bundles/
+
+/temp_export/
+
