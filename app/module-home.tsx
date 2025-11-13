@@ -156,11 +156,18 @@ const ModuleHome: React.FC = () => {
                 ['#f97316', '#f59e0b'], // 橙色
               ];
               const colors = gradientColors[index % gradientColors.length];
+              
+              // 判断是否是每行的第三个元素（索引 2, 5, 8...）
+              const isLastInRow = (index + 1) % 3 === 0;
+              const gridItemStyle = [
+                styles.gridItem,
+                isLastInRow && styles.gridItemLastInRow
+              ];
 
               return (
                 <TouchableOpacity
                   key={metadata.id}
-                  style={styles.gridItem}
+                  style={gridItemStyle}
                   onPress={() => handleModulePress(moduleInstance)}
                   activeOpacity={0.7}
                 >
@@ -357,11 +364,12 @@ const styles = StyleSheet.create({
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   gridItem: {
-    width: '31%', // 3列布局，每列约31%宽度，留出间距
+    width: '31%', // 3列布局，每列约31%宽度
     aspectRatio: 1, // 保持正方形
+    marginRight: '3.5%', // 右边距，确保3个元素一行
     marginBottom: 16,
     borderRadius: 16,
     overflow: 'hidden',
@@ -370,6 +378,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
+  },
+  gridItemLastInRow: {
+    marginRight: 0, // 每行最后一个元素不添加右边距
   },
   gridCardGradient: {
     flex: 1,

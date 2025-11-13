@@ -17,7 +17,9 @@
     "build-and-upload:ps1": "powershell -ExecutionPolicy Bypass -File scripts/build-and-upload.ps1",
     "build-js-bundle": "node scripts/build-js-bundle.js",
     "upload-js-bundle": "node scripts/upload-js-bundle.js",
-    "build-and-upload-js-bundle": "node scripts/build-js-bundle.js && node scripts/upload-js-bundle.js"
+    "test-filesdir": "node scripts/test-getfilesdir.js",
+    "test-filesdir:logcat": "node scripts/test-filesdir-via-logcat.js --watch",
+    "view-startup-logs": "node scripts/view-app-startup-logs.js"
   },
   "jest": {
     "preset": "jest-expo"

@@ -154,8 +154,15 @@ class JSBundleUpdateService {
     const ext = downloadUrl.endsWith('.hbc') ? 'hbc' : 'js';
 
     // 🆕 修改：根据类型动态命名
+    // 确保路径与 Kotlin 端的 getFilesDir() 一致
     const bundleDir = `${FileSystem.documentDirectory}js-bundles/`;
     const bundlePath = `${bundleDir}index.android.${ext}`;
+
+    // 添加日志，记录下载路径（用于调试）
+    console.log('[JSBundleUpdateService] 下载路径信息:');
+    console.log(`   documentDirectory: ${FileSystem.documentDirectory}`);
+    console.log(`   bundleDir: ${bundleDir}`);
+    console.log(`   bundlePath: ${bundlePath}`);
 
     const dirInfo = await FileSystem.getInfoAsync(bundleDir);
     if (!dirInfo.exists) await FileSystem.makeDirectoryAsync(bundleDir, { intermediates: true });

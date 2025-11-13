@@ -27,13 +27,28 @@ const REQUIRED_IMPORTS = [
 ];
 
 // getJSBundleFile() 方法的实现
+// 注意：路径必须与 JavaScript 端的 FileSystem.documentDirectory 一致
+// FileSystem.documentDirectory 返回: file:///data/user/0/.../files/ 或 file:///data/data/.../files/
+// getFilesDir() 返回: /data/user/0/.../files 或 /data/data/.../files
+// 两者指向同一个物理位置，只是格式不同（URI vs 文件系统路径）
 const GET_JS_BUNDLE_FILE_METHOD = `          override fun getJSBundleFile(): String? {
             // 检查是否有下载的 bundle 文件
-            val bundleDir = File(this@MainApplication.getFilesDir(), "js-bundles")
+            // 使用 getFilesDir() 获取应用文件目录，这与 FileSystem.documentDirectory 对应
+            val filesDir = this@MainApplication.getFilesDir()
+            val bundleDir = File(filesDir, "js-bundles")
+            
+            // 添加调试日志，用于对比 JavaScript 端的路径
+            Log.d("MainApplication", "🔍 检查 Bundle 文件:")
+            Log.d("MainApplication", "   getFilesDir(): \${filesDir.absolutePath}")
+            Log.d("MainApplication", "   bundleDir: \${bundleDir.absolutePath}")
+            Log.d("MainApplication", "   对应 JS 端路径: file://\${filesDir.absolutePath}/js-bundles/")
             
             // 优先使用 .js 文件，如果没有则使用 .hbc 文件
             val jsBundle = File(bundleDir, "index.android.js")
             val hbcBundle = File(bundleDir, "index.android.hbc")
+            
+            Log.d("MainApplication", "   jsBundle: \${jsBundle.absolutePath}, 存在: \${jsBundle.exists()}, 大小: \${if (jsBundle.exists()) jsBundle.length() else 0}")
+            Log.d("MainApplication", "   hbcBundle: \${hbcBundle.absolutePath}, 存在: \${hbcBundle.exists()}, 大小: \${if (hbcBundle.exists()) hbcBundle.length() else 0}")
             
             return when {
               jsBundle.exists() && jsBundle.length() > 0 -> {
@@ -45,21 +60,50 @@ const GET_JS_BUNDLE_FILE_METHOD = `          override fun getJSBundleFile(): Str
                 hbcBundle.absolutePath
               }
               else -> {
-                Log.d("MainApplication", "未找到下载的 Bundle 文件，使用默认 Bundle")
+                Log.d("MainApplication", "⚠️  未找到下载的 Bundle 文件，使用默认 Bundle")
+                Log.d("MainApplication", "   尝试列出 bundleDir 内容:")
+                if (bundleDir.exists() && bundleDir.isDirectory) {
+                  val files = bundleDir.listFiles()
+                  if (files != null && files.isNotEmpty()) {
+                    files.forEach { file ->
+                      Log.d("MainApplication", "     - \${file.name} (\${file.length()} bytes)")
+                    }
+                  } else {
+                    Log.d("MainApplication", "     bundleDir 为空")
+                  }
+                } else {
+                  Log.d("MainApplication", "     bundleDir 不存在或不是目录")
+                }
                 null // 使用默认 bundle (APK assets 中的)
               }
             }
           }`;
 
 function injectOTABundleLoader() {
-  console.log('🔧 开始注入 OTA Bundle Loader 到 MainApplication.kt...');
+  console.log('========================================');
+  console.log('🔧 开始注入 OTA Bundle Loader');
+  console.log('========================================');
+  console.log(`目标文件: ${MAIN_APPLICATION_PATH}`);
+  console.log('');
   
   // 检查文件是否存在
   if (!fs.existsSync(MAIN_APPLICATION_PATH)) {
     console.error(`❌ 文件不存在: ${MAIN_APPLICATION_PATH}`);
-    console.error('   请确保已经运行了 prebuild 或 android 文件夹已生成');
+    console.error('');
+    console.error('可能的原因:');
+    console.error('  1. 还没有运行 expo prebuild');
+    console.error('  2. android 文件夹路径不正确');
+    console.error('  3. 包名或路径配置错误');
+    console.error('');
+    console.error('解决方案:');
+    console.error('  1. 确保在 Codemagic 构建流程中，先运行 "expo prebuild"');
+    console.error('  2. 检查 app.json 中的包名配置');
+    console.error('  3. 检查注入脚本中的路径配置');
+    console.error('');
     process.exit(1);
   }
+  
+  console.log('✅ 文件存在，开始读取...');
 
   // 读取文件内容
   let content = fs.readFileSync(MAIN_APPLICATION_PATH, 'utf8');
@@ -196,19 +240,46 @@ function injectOTABundleLoader() {
   }
 
   // 5. 写入文件
+  console.log('');
+  console.log('💾 写入修改后的文件...');
   fs.writeFileSync(MAIN_APPLICATION_PATH, content, 'utf8');
+  console.log('✅ 文件已写入');
 
   // 6. 验证修改
+  console.log('');
+  console.log('🔍 验证注入结果...');
   if (content.includes('override fun getJSBundleFile()')) {
     // 验证是否包含 OTA 实现的关键代码
     const hasOTAImplementation = content.includes('File(this@MainApplication.getFilesDir()') || 
                                  content.includes('js-bundles');
     const hasSuperCall = content.includes('super.getJSBundleFile()');
+    const hasLogStatements = content.includes('Log.d("MainApplication"');
     
-    if (hasOTAImplementation) {
-      console.log('✅ 成功注入 getJSBundleFile() 方法（包含 OTA 实现）');
-      console.log(`   文件路径: ${MAIN_APPLICATION_PATH}`);
+    console.log(`   包含 getJSBundleFile() 方法: ✅`);
+    console.log(`   包含 OTA 实现 (js-bundles): ${hasOTAImplementation ? '✅' : '❌'}`);
+    console.log(`   包含日志语句: ${hasLogStatements ? '✅' : '❌'}`);
+    console.log(`   包含 super 调用: ${hasSuperCall ? '⚠️  (可能被覆盖)' : '✅'}`);
+    
+    if (hasOTAImplementation && hasLogStatements && !hasSuperCall) {
+      console.log('');
+      console.log('========================================');
+      console.log('✅ 成功注入 OTA Bundle Loader！');
+      console.log('========================================');
+      console.log(`文件路径: ${MAIN_APPLICATION_PATH}`);
+      console.log('');
+      console.log('注入的方法包含:');
+      console.log('  ✅ getJSBundleFile() 方法');
+      console.log('  ✅ OTA bundle 加载逻辑');
+      console.log('  ✅ 详细的调试日志');
+      console.log('');
+      console.log('下一步:');
+      console.log('  1. 继续构建 APK/AAB');
+      console.log('  2. 安装后查看 logcat 日志:');
+      console.log('     adb logcat -s MainApplication:D');
+      console.log('  3. 应该能看到 "🔍 检查 Bundle 文件" 等日志');
+      console.log('');
     } else if (hasSuperCall) {
+      console.warn('');
       console.warn('⚠️  警告：检测到 getJSBundleFile() 方法，但只包含 super 调用');
       console.warn('   这可能意味着注入失败或被覆盖');
       console.warn('   方法内容预览:');
@@ -216,14 +287,32 @@ function injectOTABundleLoader() {
       if (methodMatch) {
         console.warn(`   ${methodMatch[0]}`);
       }
+      console.warn('');
+      console.warn('建议:');
+      console.warn('  1. 检查 MainApplication.kt 文件内容');
+      console.warn('  2. 确认注入脚本是否正确执行');
+      console.warn('  3. 检查是否有其他脚本覆盖了文件');
+      console.warn('');
+      process.exit(1);
     } else {
+      console.log('');
       console.log('✅ 成功注入 getJSBundleFile() 方法');
       console.log(`   文件路径: ${MAIN_APPLICATION_PATH}`);
+      console.log('');
     }
   } else {
+    console.error('');
     console.error('❌ 注入失败：未找到注入的方法');
+    console.error('');
+    console.error('可能的原因:');
+    console.error('  1. 文件写入失败');
+    console.error('  2. 方法插入位置不正确');
+    console.error('  3. 文件格式问题');
+    console.error('');
+    console.error('尝试恢复原文件...');
     // 恢复原文件
     fs.writeFileSync(MAIN_APPLICATION_PATH, originalContent, 'utf8');
+    console.error('已恢复原文件');
     process.exit(1);
   }
 }
