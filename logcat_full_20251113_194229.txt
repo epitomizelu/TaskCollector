@@ -1,0 +1,985 @@
+--------- beginning of main
+11-13 19:42:29.373  1220  1737 I SDM     : HWCDisplay::SetActiveConfigWithConstraints: config: 1, WxH 1220x2712, fps 120
+11-13 19:42:29.373  1220  1737 W SDM     : HWDeviceDRM::GetSupportedBitClkRate: Requested rate not supported: 1100000000
+11-13 19:42:29.374  1220  1737 I SDM     : HWDeviceDRM::UpdateMixerAttributes: Mixer WxH 1220x2712-1 for Peripheral
+11-13 19:42:29.374  1220  1737 I SDM     : HWCDisplay::SubmitDisplayConfig: Active configuration changed from config 0 to 1
+11-13 19:42:29.374  1220  1737 I SDM     : HWCDisplay::SubmitDisplayConfig: Active WxH 1220x2712 fps 120
+11-13 19:42:29.375  1220  1476 I SDM     : HWDeviceDRM::SetupAtomic: Setting mode: WxH: 1220x2712, vrefresh: 120, hskew: 0
+11-13 19:42:29.381  1256  1798 D FPSMonitor: threadFuncFpsMonitor display 0, fps 120
+11-13 19:42:29.498  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422
+11-13 19:42:29.838  2339  3147 D MIUIInput: [MotionEvent] publisher action=0x4, 23640248, channel 'cb826b8 NavigationBar0 (server)'
+11-13 19:42:29.839  2339  3147 D MIUIInput: [MotionEvent] publisher action=0x4, 23640248, channel '5664806 LauncherOverlayWindow:com.miui.personalassistant (server)'
+11-13 19:42:29.839  2339  3147 D MIUIInput: [MotionEvent] publisher action=0x0, 23640248, channel '45bd6c4 com.miui.home/com.miui.home.launcher.Launcher (server)'
+11-13 19:42:29.840  4345  4345 D EventBus: No subscribers registered for event class com.miui.home.launcher.common.messages.EndSpringAnimatorMessage
+11-13 19:42:29.840  4345  4345 D EventBus: No subscribers registered for event class org.greenrobot.eventbus.NoSubscriberEvent
+11-13 19:42:29.841  1341  1746 D RefreshRateConfigs: TouchBoost - choose 120.00fps
+11-13 19:42:29.841  4345  4345 D Launcher.Feed: touchState : 0 scrolling : false normalEditing : false WidgetThumbnailViewShowing : false UninstallDialogShowing : false isMinusScreenShowing: false
+11-13 19:42:29.842  4345  4345 D Launcher.StatusBarController: try intercept touch, isProxySurvive=true
+11-13 19:42:29.843  4345  4345 D Launcher.Workspace: Workspace touch down
+11-13 19:42:29.843  4345  4345 D ScreenView_Workspace: onIntercept:0.0
+11-13 19:42:29.843  4345  4345 D ScreenView_Workspace: not intercept
+11-13 19:42:29.843  4345  4345 D Launcher.CellLayout: touch item:ShortcutInfo, id=405, itemType=0, user=UserHandle{0}, mIconType=0, pkgName=com.lcy.taskcollection, className=com.lcy.taskcollection.MainActivity, screenId=7, container=-100, cellX=1, cellY=4, spanX=1, spanY=1
+11-13 19:42:29.844  4345  4345 D Launcher.itemIcon: folmeDown
+11-13 19:42:29.845  4345  4515 D Launcher.Boost: bindcore 200
+11-13 19:42:29.882  4731  4731 W ThreadPoolForeg: type=1400 audit(0.0:54570): avc: denied { write } for name="traced_producer" dev="tmpfs" ino=1517 scontext=u:r:gmscore_app:s0:c512,c768 tcontext=u:object_r:traced_producer_socket:s0 tclass=sock_file permissive=0 app=com.google.android.gms
+11-13 19:42:29.930  2339  3147 D MIUIInput: [MotionEvent] publisher action=0x1, 23640341, channel '45bd6c4 com.miui.home/com.miui.home.launcher.Launcher (server)'
+11-13 19:42:29.931  4345  4345 D Launcher.Workspace: Workspace touch up or cancel
+11-13 19:42:29.931  4345  4345 D ScreenView_Workspace: oninterceput up
+11-13 19:42:29.932  4345  4345 D Launcher.itemIcon: folmeUp
+11-13 19:42:29.933  4345  4345 E QuickstepAppTransitionManagerImpl: getActivityLaunchOptions   iconLoc=Rect(381, 1540 - 568, 1727)
+--------- beginning of system
+11-13 19:42:29.937  2339  4948 W XSpaceManagerServiceImpl: checkXSpaceControl, from:com.miui.home, to:com.lcy.taskcollection, with act:android.intent.action.MAIN, callingUserId:0, toUserId:0
+11-13 19:42:29.939  2339  4948 I ActivityTaskManager: START u0 {act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.lcy.taskcollection/.MainActivity bnds=[381,1540][568,1727] (has extras)} from uid 10086 from pid 4345 callingPackage com.miui.home
+11-13 19:42:29.943  2339  4948 D PerfImpl: perfHint
+11-13 19:42:29.943  2339  4948 D PerfImpl: perfHint
+11-13 19:42:29.944  2339  4948 D PerfImpl: perfGetFeedback
+11-13 19:42:29.944  1232  1410 E ANDR-PERF-LM: MetaMeter: handleAsync() 166: AdaptLaunch Invalid Async
+11-13 19:42:29.944  2339  4948 D PerfImpl: perfHint
+11-13 19:42:29.945  2339  4948 D PerfImpl: perfIOPrefetchStart
+11-13 19:42:29.945  2339  4948 E ANDR-PERF-JNI: com_qualcomm_qtiperformance_native_perf_io_prefetch_start
+11-13 19:42:29.945  1232  1410 E ANDR-PERF-LM: MetaMeter: handleAsync() 166: AdaptLaunch Invalid Async
+11-13 19:42:29.947  2339  4948 W ActivityTaskManager: Can't find TaskDisplayArea to determine support for multi window. Task id=31915 attached=false
+11-13 19:42:29.949  1226  5358 E ANDR-IOP: io prefetch is disabled
+11-13 19:42:29.950  2339  4948 D PerfImpl: perfColdLaunchBoost: android, -1, 1
+11-13 19:42:29.950  2339  4948 D PerfImpl: perfColdLaunchBoost: android, -1, 1
+11-13 19:42:29.965  4327  4327 V ShadeControllerImpl: NotificationShadeWindow: com.android.systemui.statusbar.phone.NotificationShadeWindowView{56ed355 I.E...... ......ID 0,0-1220,2712} canPanelBeCollapsed(): false
+11-13 19:42:29.965  4327  4327 I OneHandedController: stopOneHanded mState=STATE_NONE
+11-13 19:42:29.968  6443  6631 D IdProviderImpl: getOAID from com.miui.analytics
+11-13 19:42:29.971  4345  4345 D Launcher.Lifecycle: onPause:UserHandle{0},b3a75e2,true
+11-13 19:42:29.971  4345  4345 D Launcher_UnlockAnimationStateMachine: setState:PAUSE_WAIT
+11-13 19:42:29.971  6954 29388 D LauncherOverlay: setActivityState:1
+11-13 19:42:29.972  6954  6954 D LauncherOverlay.Window: onPause
+11-13 19:42:29.973  2339  5086 D PerfImpl: perfAnimBoost: com.lcy.taskcollection
+11-13 19:42:29.985  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:29.985  4345  4508 D TaskStackChangeListeners: onTaskDisplayChanged =  taskId = 31915 newDisplayId = 0
+11-13 19:42:29.987  4327  4327 I OneHandedController: stopOneHanded mState=STATE_NONE
+11-13 19:42:29.987  4327  4327 I OneHandedController: stopOneHanded mState=STATE_NONE
+11-13 19:42:29.989  4345  4345 D Launcher.Lifecycle: onWindowFocusChanged:false,UserHandle{0},b3a75e2,true
+11-13 19:42:29.989  4345  4345 D DecorView[Launcher]: onWindowFocusChanged hasWindowFocus false
+11-13 19:42:29.996  1109  1109 D Zygote  : Forked child process 8219
+11-13 19:42:29.996  2339  2651 D PerfImpl: perfColdLaunchBoost: com.lcy.taskcollection, 8219, 101
+11-13 19:42:29.997  2339  4948 I WindowManagerService: Physical orientation not applied, rotation=0
+11-13 19:42:29.997  1232  1410 E ANDR-PERF-LM: MetaMeter: handleAsync() 166: AdaptLaunch Invalid Async
+11-13 19:42:29.999  2339  2651 I ActivityManager: Start proc 8219:com.lcy.taskcollection/u0a340 for pre-top-activity {com.lcy.taskcollection/com.lcy.taskcollection.MainActivity} caller=others
+11-13 19:42:29.999  2339  8220 W ContextImpl: Calling a method in the system process without a qualified user: android.app.ContextImpl.sendBroadcast:1183 com.qualcomm.qti.Performance$SendGameLaunchBroadcast.run:247 java.lang.Thread.run:920 <bottom of call stack> <bottom of call stack> 
+11-13 19:42:29.999  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:29.999  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:29.998  4327  4327 W RenderThread: type=1400 audit(0.0:54571): avc: denied { read write } for name="metis" dev="tmpfs" ino=732 scontext=u:r:system_app:s0 tcontext=u:object_r:migt_dev:s0 tclass=chr_file permissive=0
+11-13 19:42:30.006  8219  8219 E .taskcollectio: Not starting debugger since process cannot load the jdwp agent.
+11-13 19:42:30.007  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.009  6117 14924 W SQLiteLog: (28) double-quoted string literal: "com.lcy.taskcollection"
+11-13 19:42:30.013  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.016  8219  8219 I MessageMonitor: Load libmiui_runtime
+11-13 19:42:30.020  2339  3397 D SymlinkUtils: attachApplication file op go pass: 0 ms
+11-13 19:42:30.020  2339  3397 D PerfImpl: perfColdLaunchBoost: com.lcy.taskcollection, 8219, 103
+11-13 19:42:30.021  2339  2582 I SmartPower.com.lcy.taskcollection/10340(0): died->visible(148719ms) R(become visible) adj=-10000.
+11-13 19:42:30.021  2339  3640 I SmartPower: com.lcy.taskcollection/10340 state=died adj=700 proc size=1 move to foreground become visible
+11-13 19:42:30.022  1232  1410 E ANDR-PERF-LM: MetaMeter: handleAsync() 166: AdaptLaunch Invalid Async
+11-13 19:42:30.028  4345  4508 E LauncherAnimationRunner: onAnimationStart
+11-13 19:42:30.028  4345  4508 E LauncherAnimationRunner: onAnimationStart:   mode=1   taskId=2   isTranslucent=false
+11-13 19:42:30.028  4345  4508 E LauncherAnimationRunner: onAnimationStart:   mode=0   taskId=31915   isTranslucent=false
+11-13 19:42:30.029  4345  4345 E QuickstepAppTransitionManagerImpl: startIconLaunchAnimator:launcherClosing=true   iconLoc=Rect(381, 1540 - 568, 1727)
+11-13 19:42:30.029  4345  4345 E QuickstepAppTransitionManagerImpl: startOpeningWindowAnimators:iconLoc=Rect(381, 1540 - 568, 1727)
+11-13 19:42:30.029  4345  4345 E ClipAnimationHelper: updateSourceStack  mSourceInsets=Rect(0, 88 - 0, 48), mSourceStackBounds=Rect(0, 0 - 1220, 2712)
+11-13 19:42:30.029  4345  4345 E ClipAnimationHelper: updateHomeStack  mSourceInsets=Rect(0, 88 - 0, 48), mHomeStackBounds=Rect(0, 0 - 1220, 2712)
+11-13 19:42:30.029  4345  4345 E ClipAnimationHelper: updateTargetRect  mSourceRect=RectF(0.0, 88.0, 1220.0, 2800.0)   mTargetRect=RectF(0.0, 0.0, 1220.0, 2712.0)   mSourceWindowClipInsets=RectF(0.0, 88.0, 0.0, 0.0)   mHomeStackBounds=Rect(0, 0 - 1220, 2712)   targetRect=Rect(0, 0 - 1220, 2712)
+11-13 19:42:30.029  4345  4345 I QuickstepAppTransitionManagerImpl: startOpeningWindowAnimators, currentDisplayRotation=0, homeRotation=0, startRectF=RectF(388.0, 1547.0, 561.0, 1720.0), endRectF=RectF(0.0, 0.0, 1220.0, 2712.0), startRadius = 282.08093, endRadius = 90.0, isUseTranslucentAnim = false
+11-13 19:42:30.029  2339  3634 D SchedBoost: startBoostInternal 2000
+11-13 19:42:30.029  2339  3634 D SchedBoost: ready to boost
+11-13 19:42:30.030  4345  4345 W DimLayer: createDimLayer
+11-13 19:42:30.030  2339  3634 D SchedBoost: startBoostInternal 2000
+11-13 19:42:30.030  2339  3634 D SchedBoost: ready to boost
+11-13 19:42:30.030  4345  4345 E QuickstepAppTransitionManagerImpl: startLauncherContentAnimator:isAppOpening=true
+11-13 19:42:30.030  4345 11043 W FloatingIconLayer: getFloatingIconLayer
+11-13 19:42:30.026  1232  1232 W perf-hal-servic: type=1400 audit(0.0:54572): avc: denied { search } for name="2339" dev="proc" ino=59536 scontext=u:r:vendor_hal_perf_default:s0 tcontext=u:r:system_server:s0 tclass=dir permissive=0
+11-13 19:42:30.026  1232  1232 W perf-hal-servic: type=1400 audit(0.0:54573): avc: denied { search } for name="2339" dev="proc" ino=59536 scontext=u:r:vendor_hal_perf_default:s0 tcontext=u:r:system_server:s0 tclass=dir permissive=0
+11-13 19:42:30.031  4345 11043 W FloatingIconLayer: drawIcon
+11-13 19:42:30.031  2095  2205 I mstatdaemon: Entering time loop
+11-13 19:42:30.031  2095  2205 I mstatdaemon: t = 1763034150
+11-13 19:42:30.031  2095  2205 I mstatdaemon: translated_t = 1447044150
+11-13 19:42:30.031  2095  2205 I mstat_log: mstatcommitLog log_alloc() failed
+11-13 19:42:30.030  4345  4345 W RenderThread: type=1400 audit(0.0:54574): avc: denied { read write } for name="metis" dev="tmpfs" ino=732 scontext=u:r:platform_app:s0:c512,c768 tcontext=u:object_r:migt_dev:s0 tclass=chr_file permissive=0 app=com.miui.home
+11-13 19:42:30.033  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.034  1464  2371 I NTKernel: [I] kernel_depends.cpp(873)::GetAppActiveStatus Get app active status
+11-13 19:42:30.035  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.035  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.038  1232  1232 W perf-hal-servic: type=1400 audit(0.0:54575): avc: denied { read } for name="cmdline" dev="proc" ino=8471073 scontext=u:r:vendor_hal_perf_default:s0 tcontext=u:r:hal_graphics_composer_default:s0 tclass=file permissive=0
+11-13 19:42:30.038  1232  1232 W perf-hal-servic: type=1400 audit(0.0:54576): avc: denied { read } for name="comm" dev="proc" ino=8471074 scontext=u:r:vendor_hal_perf_default:s0 tcontext=u:r:hal_graphics_composer_default:s0 tclass=file permissive=0
+11-13 19:42:30.041  1464  8238 I NTKernel: [I] kernel_depend_adapter.cc(651)::onResult [kernel_depend_adapter]->Get app active status:2
+11-13 19:42:30.041  1464  8238 D KernelService: getAppActiveStatus :2
+11-13 19:42:30.041  8219  8219 D CompatibilityChangeReporter: Compat change id reported: 171979766; UID 10340; state: ENABLED
+11-13 19:42:30.045  8219  8239 D AppScoutStateMachine: 8219-ScoutStateMachinecreated
+11-13 19:42:30.046  5915 16752 W MQSService: CallerName:com.lcy.taskcollection,calling Uid:10340
+11-13 19:42:30.048  5915 16752 D MQSService: registerApplicationScoutThread pid = 8219, packageName = com.lcy.taskcollection
+11-13 19:42:30.048  6332 10745 I ProcessMonitor: onForegroundInfoChanged: ForegroundInfo{mForegroundPackageName='com.lcy.taskcollection', mForegroundUid=10340, mForegroundPid=8219, mLastForegroundPackageName='com.miui.home', mLastForegroundUid=10086, mLastForegroundPid=4345, mMultiWindowForegroundPackageName='com.lcy.taskcollection', mMultiWindowForegroundUid=10340, mFlags=1}
+11-13 19:42:30.048  6051  6072 I SLM-SRV-SLAToast: foreground uid:10340, isColdStart:true, isLinkTurboEnable:false
+11-13 19:42:30.050  9676  7225 I GST     : forePkg: com.lcy.taskcollection, preForePkg: com.miui.home
+11-13 19:42:30.050  4345  4515 D Launcher.Boost: bindcore 88
+11-13 19:42:30.050  6332 11085 D x1      : myUserId = 0	currentUserId0
+11-13 19:42:30.050  4345  9673 D AppObserver: ForegroundInfo{mForegroundPackageName='com.lcy.taskcollection', mForegroundUid=10340, mForegroundPid=8219, mLastForegroundPackageName='com.miui.home', mLastForegroundUid=10086, mLastForegroundPid=4345, mMultiWindowForegroundPackageName='com.lcy.taskcollection', mMultiWindowForegroundUid=10340, mFlags=1}
+11-13 19:42:30.050  2339  3242 I MiuiNetworkPolicyTrafficLimit: updateWhiteListUidForMobileTraffic uid=10340,add=true
+11-13 19:42:30.050  2339  3242 D MiuiNetworkPolicyTrafficLimit: updateWhiteListUidForMobileTraffic rst=true
+11-13 19:42:30.050  6332 10745 I GameBoosterService: onForegroundInfoChanged: Cur=com.lcy.taskcollection	 last=com.miui.home
+11-13 19:42:30.051  6263 12097 D PerfEngineController: ForegroundInfo{mForegroundPackageName='com.lcy.taskcollection', mForegroundUid=10340, mForegroundPid=8219, mLastForegroundPackageName='com.miui.home', mLastForegroundUid=10086, mLastForegroundPid=4345, mMultiWindowForegroundPackageName='com.lcy.taskcollection', mMultiWindowForegroundUid=10340, mFlags=1}
+11-13 19:42:30.051 27854 27868 D AutoInstallService: onForegroundInfoChanged: com.lcy.taskcollection
+11-13 19:42:30.052  6332 10745 D GameBoosterService: onGameStatusChange foreground:ForegroundInfo{mForegroundPackageName='com.lcy.taskcollection', mForegroundUid=10340, mForegroundPid=8219, mLastForegroundPackageName='com.miui.home', mLastForegroundUid=10086, mLastForegroundPid=4345, mMultiWindowForegroundPackageName='com.lcy.taskcollection', mMultiWindowForegroundUid=10340, mFlags=1}
+11-13 19:42:30.052  6332 10745 I VideoBoxUtils: isSupportVideoBox: true
+11-13 19:42:30.052  6332 10745 I VideoToolBoxService: vtb is closed!!!
+11-13 19:42:30.052  6332  9553 E SuggestManager: openApp name = com.lcy.taskcollection
+11-13 19:42:30.052  6332  9553 I NewAutoTaskManager: app use - delay = 9223372036854775807, doRemove = false, doPost = false
+11-13 19:42:30.053  6332 10745 W ContextImpl: Calling a method in the system process without a qualified user: android.app.ContextImpl.startService:1827 android.content.ContextWrapper.startService:786 q2.b.f:39 q2.b$c.onForegroundInfoChanged:21 com.miui.gamebooster.mutiwindow.b$a.onForegroundInfoChanged:152 
+11-13 19:42:30.053  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.054  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.055 29821 29835 I AICall_MemoryTrim: Binder:29821_2 onAppBackground()
+11-13 19:42:30.056  6263  7596 D LS-ForegroundStatusManager: handleMessage ForegroundInfoChanged. pkg = com.lcy.taskcollection, uid = 10340, mCurrentForegroundUid = 10086
+11-13 19:42:30.056  6263  7900 D ThermalIECHandler: IECAll48Allowed: false; IECMonitorAllowed: false; IECTestState: false
+11-13 19:42:30.056  6263  7507 D BL-BatteryLifeChecker:  onMessage. what = -10
+11-13 19:42:30.056  6263  7507 D BL-BatteryLifeChecker:  onMessage. Foreground uid = 10086, isForeground = false
+11-13 19:42:30.056  6263  7507 D BL-BatteryLifeChecker:  onMessage. what = -10
+11-13 19:42:30.057  6263  8213 I ThermalInfoCollector: collectForgroundAppsInfo: com.miui.home
+11-13 19:42:30.057  6263  7596 D LS-ForegroundStatusManager: onForegroundChanged mCurrentForegroundUid = 10086, new uid = 10340
+11-13 19:42:30.059  8219  8219 V GraphicsEnvironment: ANGLE Developer option for 'com.lcy.taskcollection' set to: 'default'
+11-13 19:42:30.060  6263  7507 D BL-BSHelper: getCurrentBatteryCapacity capacity=1670
+11-13 19:42:30.060  6263  7507 D BL-BSHelper: getChargeCounterShift sChargeCounterShift=1
+11-13 19:42:30.060  6263  7507 D BL-BSHelper: getCurrentBatteryCap result=1670.0
+11-13 19:42:30.061  8219  8219 V GraphicsEnvironment: ANGLE GameManagerService for com.lcy.taskcollection: false
+11-13 19:42:30.061  8219  8219 V GraphicsEnvironment: Updatable production driver is not supported on the device.
+11-13 19:42:30.061  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.061  6263  7507 D BL-BSHelper: getCurrentBatteryCapacity capacity=1670
+11-13 19:42:30.061  6263  7507 D BL-BSHelper: getChargeCounterShift sChargeCounterShift=1
+11-13 19:42:30.061  6263  7507 D BL-BSHelper: getCurrentBatteryCap result=1670.0
+11-13 19:42:30.061  6263  7507 D BL-BatteryLifeChecker:  onMessage. Foreground uid = 10340, isForeground = true
+11-13 19:42:30.062  8219  8219 I ForceDarkHelperStubImpl: initialize for com.lcy.taskcollection , ForceDarkOrigin
+11-13 19:42:30.063  8219  8219 D OpenGLRenderer: JNI_OnLoad success
+11-13 19:42:30.063  8219  8219 I MiuiForceDarkConfig: setConfig density:3.000000, mainRule:0, secondaryRule:0, tertiaryRule:0
+11-13 19:42:30.064  8219  8219 D NetworkSecurityConfig: No Network Security Config specified, using platform default
+11-13 19:42:30.064  8219  8219 D NetworkSecurityConfig: No Network Security Config specified, using platform default
+11-13 19:42:30.066  4013  6025 D BtGatt.GattService: getDeviceType() - device=F8:4E:17:11:A6:88, type=1
+11-13 19:42:30.066  4013  6025 D BtGatt.GattService: getDeviceType() - device=08:16:D5:D5:A7:B7, type=2
+11-13 19:42:30.066  4013  6025 D BtGatt.GattService: getDeviceType() - device=1C:99:57:1D:7A:76, type=1
+11-13 19:42:30.066  4013  6025 D BtGatt.GattService: getDeviceType() - device=18:B9:6E:F1:B4:20, type=1
+11-13 19:42:30.068  6332 10745 I BeautyService: onForegroundInfoChanged: Cur=com.lcy.taskcollection	 last=com.miui.home
+11-13 19:42:30.069  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.071  4013  6025 D BtGatt.GattService: getDeviceType() - device=F8:4E:17:11:A6:88, type=1
+11-13 19:42:30.071  4013  6025 D BtGatt.GattService: getDeviceType() - device=08:16:D5:D5:A7:B7, type=2
+11-13 19:42:30.071  4013  6025 D BtGatt.GattService: getDeviceType() - device=1C:99:57:1D:7A:76, type=1
+11-13 19:42:30.071  4013  6025 D BtGatt.GattService: getDeviceType() - device=18:B9:6E:F1:B4:20, type=1
+11-13 19:42:30.073  8219  8244 E QXPerf  : Couldn't load BLASTBufferQueue Class
+11-13 19:42:30.073  8219  8244 E QXPerf  : Couldn't find UndequeuedBufferCount functions
+11-13 19:42:30.075  8219  8219 W SoLoader: Initializing SoLoader: 0
+11-13 19:42:30.075  8219  8219 W SoLoader: Recording new base apk path: /data/app/~~enh1b-JkdEXh02qX3sPFNg==/com.lcy.taskcollection-Aeov0gmH_wRAv1OzgVQ6GA==/base.apk
+11-13 19:42:30.075  8219  8219 W SoLoader: Previously recorded 0 base apk paths.
+11-13 19:42:30.076  8219  8219 I SoLoader: Preparing SO source: DirectorySoSource[root = /vendor/lib64 flags = 2]
+11-13 19:42:30.076  8219  8219 I SoLoader: Preparing SO source: DirectorySoSource[root = /system/lib64 flags = 2]
+11-13 19:42:30.076  8219  8219 I SoLoader: Preparing SO source: DirectApkSoSource[root = [/data/app/~~enh1b-JkdEXh02qX3sPFNg==/com.lcy.taskcollection-Aeov0gmH_wRAv1OzgVQ6GA==/base.apk!/lib/arm64-v8a]]
+11-13 19:42:30.077  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.077  6263  9330 I MultiScreenObserver: onTaskStackChanged, splitScreenMode: false isCameraFloat: false isSmallScreen: false
+11-13 19:42:30.077  6332 10745 I SCTaskStackListener: onTaskStackChanged! inSplit = false
+11-13 19:42:30.077  4345  9673 D RecentsModel: onTaskStackChangedBackground
+11-13 19:42:30.078  4345  4768 D RecentsModel: onTaskStackChangedBackground    MSG_TASK_STACK_CHANGE
+11-13 19:42:30.078  4345  4768 D RecentsModel: preloadRecents
+11-13 19:42:30.078  4345  4768 W RecentsModel: getRunningTask
+11-13 19:42:30.078  6332 11085 I SCTaskStackListener: onTaskStackChanged! inSplit = false
+11-13 19:42:30.078  4345  4768 W RecentsModel: getRunningTask   taskInfo=TaskInfo{userId=0 pcFlags:0 taskId=31915 displayId=0 isRunning=true baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.lcy.taskcollection/.MainActivity } baseActivity=ComponentInfo{com.lcy.taskcollection/com.lcy.taskcollection.MainActivity} topActivity=ComponentInfo{com.lcy.taskcollection/com.lcy.taskcollection.MainActivity} origActivity=null realActivity=ComponentInfo{com.lcy.taskcollection/com.lcy.taskcollection.MainActivity} numActivities=1 lastActiveTime=47280379 supportsSplitScreenMultiWindow=true supportsMultiWindow=true resizeMode=1 isResizeable=true token=WCT{android.window.IWindowContainerToken$Stub$Proxy@c4f83c7} topActivityType=1 pictureInPictureParams=PictureInPictureParams( aspectRatio=null sourceRectHint=null hasSetActions=false isAutoPipEnabled=false isSeamlessResizeEnabled=true) displayCutoutSafeInsets=Rect(0, 88 - 0, 0) topActivityInfo=ActivityInfo{aebedf4 com.lcy.taskcollection.MainActivity} launchCookies=[] positionInParent=Point(0, 0) parentTaskId=-1 isFocused=false isVisible=true topActivityInSizeCompat=false topActivityInMiuiSizeCompat=false locusId= null windowMode=0}
+11-13 19:42:30.078  4345  4768 W RecentsModel: getTaskInfoIgnoreHomeAndFreeform   taskInfo=ComponentInfo{com.lcy.taskcollection/com.lcy.taskcollection.MainActivity}
+11-13 19:42:30.080  8219  8219 I SoLoader: Preparing SO source: ApplicationSoSource[DirectorySoSource[root = /data/app/~~enh1b-JkdEXh02qX3sPFNg==/com.lcy.taskcollection-Aeov0gmH_wRAv1OzgVQ6GA==/lib/arm64 flags = 0]]
+11-13 19:42:30.080  8219  8219 I SoLoader: init finish: 4 SO sources prepared
+11-13 19:42:30.080  8219  8219 W SoLoader: SoLoader initialized: 8
+11-13 19:42:30.080  4345  4768 E ActivityManagerWrapper: get all recent tasks force including 31915
+11-13 19:42:30.081  4345  4420 D StatusBarController: handleMessage: flag 800000  disable false
+11-13 19:42:30.082  4345  4345 D Launcher_WallpaperUtils: changeStatusBarMode:false
+11-13 19:42:30.083  4345  4768 E ActivityManagerWrapper: getRecentTasks: size=12
+11-13 19:42:30.083  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31915   userId=0   baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.lcy.taskcollection/.MainActivity }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31914   userId=0   baseIntent=Intent { act=android.settings.APPLICATION_DETAILS_SETTINGS dat=package:com.lcy.taskcollection flg=0x10008000 cmp=com.android.settings/.applications.InstalledAppDetails }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31875   userId=0   baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.browser/.launch.SplashActivity }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31907   userId=0   baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.fileexplorer/.FileExplorerTabActivity }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31906   userId=0   baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.jingdong.app.mall/.MainFrameActivity }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31862   userId=0   baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.sankuai.meituan/com.meituan.android.pt.homepage.activity.MainActivity }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31851   userId=0   baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.tencent.mm/.ui.LauncherUI }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31905   userId=0   baseIntent=Intent { flg=0x34000000 cmp=com.tencent.mm/.plugin.finder.ui.FinderHomeAffinityUI }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31880   userId=0   baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.settings/.MainSettings }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31895   userId=0   baseIntent=Intent { act=android.intent.action.VIEW dat=content://com.android.externalstorage.documents/root/primary typ=vnd.android.document/root flg=0x10080000 pkg=com.google.android.documentsui cmp=com.google.android.documentsui/com.android.documentsui.files.FilesActivity }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31882   userId=0   baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.android.mms/.ui.MmsTabActivity }
+11-13 19:42:30.084  4345  4768 E ActivityManagerWrapper: getRecentTasks: taskId=31871   userId=0   baseIntent=Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] flg=0x10200000 cmp=com.tencent.weread/.LauncherActivity }
+11-13 19:42:30.085  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Entering merged library JNI_OnLoad.
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x70896b5edc
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x7089786f40
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x70897999f8
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x70897bee30
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x70898515b0
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x708986bb24
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x7089872458
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x708988e070
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x70899261a4
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x708992d7e0
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x7089934da4
+11-13 19:42:30.085  8219  8219 D jni_lib_merge: About to register 11 actual methods.
+11-13 19:42:30.086  6263  7900 D ThermalIECHandler: storeDataStyle: thermal_iec_monitor_persistence_data_style_iec_state; startIECTime: -1; IECScreenOffOverPeriodTime: 45839880
+11-13 19:42:30.086  6263  7900 D ThermalIECHandler: storeDataStyle: thermal_iec_monitor_persistence_data_style_iec_state; startIECTime: -1; IECScreenOffOverPeriodTime: 45839880
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Entering merged library JNI_OnLoad.
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x70896b5edc
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x7089786f40
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x70897999f8
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x70897bee30
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x70898515b0
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x708986bb24
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x7089872458
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x708988e070
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x70899261a4
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x708992d7e0
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x7089934da4
+11-13 19:42:30.088  8219  8219 D jni_lib_merge: About to register 11 actual methods.
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Entering merged library JNI_OnLoad.
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x70896b5edc
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x7089786f40
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x70897999f8
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x70897bee30
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x70898515b0
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x708986bb24
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x7089872458
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x708988e070
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x70899261a4
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x708992d7e0
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x7089934da4
+11-13 19:42:30.089  8219  8219 D jni_lib_merge: About to register 11 actual methods.
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Entering merged library JNI_OnLoad.
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x70896b5edc
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x7089786f40
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x70897999f8
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x70897bee30
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x70898515b0
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x708986bb24
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x7089872458
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x708988e070
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x70899261a4
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x708992d7e0
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x7089934da4
+11-13 19:42:30.091  8219  8219 D jni_lib_merge: About to register 11 actual methods.
+11-13 19:42:30.092  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.096  8219  8219 D AppCompatDelegate: Checking for metadata for AppLocalesMetadataHolderService : Service not found
+11-13 19:42:30.098  2339  3397 E WakePathChecker: MIUILOG-WAKEPATH invalid parameter
+11-13 19:42:30.102  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.105  8219  8219 E MiuiMultiWindowUtils: initFreeFormResolutionArgs failed, device is diting
+11-13 19:42:30.105  8219  8219 D IS_CTS_MODE: false
+11-13 19:42:30.105  8219  8219 D MULTI_WINDOW_SWITCH_ENABLED: false
+11-13 19:42:30.105  8219  8219 D IS_CTS_MODE: false
+11-13 19:42:30.105  8219  8219 D MULTI_WINDOW_SWITCH_ENABLED: false
+11-13 19:42:30.107  8219  8219 D DecorView[]: getWindowModeFromSystem  windowmode is 1
+11-13 19:42:30.109  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.117  4345 11043 W FloatingIconLayer: release
+11-13 19:42:30.117  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.131  8219  8249 D ViewContentFactory: initViewContentFetcherClass
+11-13 19:42:30.131  8219  8249 D ViewContentFactory: getInterceptorPackageInfo
+11-13 19:42:30.132  8219  8249 D ViewContentFactory: getInitialApplication took 1ms
+11-13 19:42:30.132  8219  8249 D ViewContentFactory: packageInfo.packageName: com.miui.catcherpatch
+11-13 19:42:30.132  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.135  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.135  8219  8249 D ViewContentFactory: initViewContentFetcherClass took 4ms
+11-13 19:42:30.135  8219  8249 I ContentCatcher: ViewContentFetcher : ViewContentFetcher
+11-13 19:42:30.135  8219  8249 D ViewContentFactory: createInterceptor took 4ms
+11-13 19:42:30.139  8219  8252 I dev.expo.updates: {"timestamp":1763034150139,"message":"Updates state change: StartStartup, context = {isStartupProcedureRunning=true, isUpdateAvailable=false, isUpdatePending=false, isChecking=false, isDownloading=false, isRestarting=false, restartCount=0, downloadProgress=0.0, sequenceNumber=1}","code":"None","level":"info"}
+11-13 19:42:30.140  8219  8219 D DecorView[]: getWindowModeFromSystem  windowmode is 1
+11-13 19:42:30.140  8219  8219 D DecorView[]: updateDecorCaptionStatus displayWindowDecor is false
+11-13 19:42:30.144  8219  8252 I dev.expo.updates: {"timestamp":1763034150144,"message":"embeddedAssetFileMap: embeddedAssets count = 46","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: 778ffc9fe8773a878e9c30a6304784de,png => file:\/\/\/android_res\/drawable-mdpi\/node_modules_reactnavigation_elements_lib_module_assets_backicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: c79c3606a1cf168006ad3979763c7e0c,png => file:\/\/\/android_res\/drawable-xhdpi\/node_modules_reactnavigation_elements_lib_module_assets_backicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: 02bc1fa7c0313217bde2d65ccbff40c9,png => file:\/\/\/android_res\/drawable-xxhdpi\/node_modules_reactnavigation_elements_lib_module_assets_backicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: 35ba0eaec5a4f5ed12ca16fabeae451d,png => file:\/\/\/android_res\/drawable-xxxhdpi\/node_modules_reactnavigation_elements_lib_module_assets_backicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: 0a328cd9c1afd0afe8e3b1ec5165b1b4,png => file:\/\/\/android_res\/drawable\/node_modules_reactnavigation_elements_lib_module_assets_backiconmask.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: 3cd68ccdb8938e3711da2e8831b85493,png => file:\/\/\/android_res\/drawable-mdpi\/node_modules_reactnavigation_elements_lib_module_assets_clearicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: 61ca7e64b7d605716c57706cef640b9a,png => file:\/\/\/android_res\/drawable-mdpi\/node_modules_reactnavigation_elements_lib_module_assets_clearicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: aff2c65b39a296d4f7e96d0f58169170,png => file:\/\/\/android_res\/drawable-xhdpi\/node_modules_reactnavigation_elements_lib_module_assets_clearicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: d8e7601e3df962f83c62371ac14964d8,png => file:\/\/\/android_res\/drawable-xxhdpi\/node_modules_reactnavigation_elements_lib_module_assets_clearicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: 3cd68ccdb8938e3711da2e8831b85493,png => file:\/\/\/android_res\/drawable-xxxhdpi\/node_modules_reactnavigation_elements_lib_module_assets_clearicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: 0747a1317bbe9c6fc340b889ef8ab3ae,png => file:\/\/\/android_res\/drawable-mdpi\/node_modules_reactnavigation_elements_lib_module_assets_closeicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: d84e297c3b3e49a614248143d53e40ca,png => file:\/\/\/android_res\/drawable-mdpi\/node_modules_reactnavigation_elements_lib_module_assets_closeicon.png","code":"None","level":"info"}
+11-13 19:42:30.145  8219  8252 I dev.expo.updates: {"timestamp":1763034150145,"message":"embeddedAssetFileMap: 1190ab078c57159f4245a328118fcd9a,png => file:\/\/\/android_res\/drawable-xhdpi\/node_modules_reactnavigation_elements_lib_module_assets_closeicon.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 78c625386b4d0690b421eb0fc78f7b9c,png => file:\/\/\/android_res\/drawable-xxhdpi\/node_modules_reactnavigation_elements_lib_module_assets_closeicon.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 0747a1317bbe9c6fc340b889ef8ab3ae,png => file:\/\/\/android_res\/drawable-xxxhdpi\/node_modules_reactnavigation_elements_lib_module_assets_closeicon.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 4403c6117ec30c859bc95d70ce4a71d3,png => file:\/\/\/android_res\/drawable-mdpi\/node_modules_reactnavigation_elements_lib_module_assets_searchicon.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 069d99eb1fa6712c0b9034a58c6b57dd,png => file:\/\/\/android_res\/drawable-xhdpi\/node_modules_reactnavigation_elements_lib_module_assets_searchicon.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: c3273c9e5321f20d1e42c2efae2578c4,png => file:\/\/\/android_res\/drawable-xxhdpi\/node_modules_reactnavigation_elements_lib_module_assets_searchicon.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 286d67d3f74808a60a78d3ebf1a5fb57,png => file:\/\/\/android_res\/drawable-xxxhdpi\/node_modules_reactnavigation_elements_lib_module_assets_searchicon.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: d1ea1496f9057eb392d5bbf3732a61b7,png => file:\/\/\/android_res\/drawable\/node_modules_exporouter_assets_error.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 19eeb73b9593a38f8e9f418337fc7d10,png => file:\/\/\/android_res\/drawable\/node_modules_exporouter_assets_file.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: ab19f4cbc543357183a20571f68380a3,png => file:\/\/\/android_res\/drawable\/node_modules_exporouter_assets_pkg.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: d8b800c443b8972542883e0b9de2bdc6,png => file:\/\/\/android_res\/drawable\/node_modules_exporouter_assets_forward.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 412dd9275b6b48ad28f5e3d81bb1f626,png => file:\/\/\/android_res\/drawable\/node_modules_exporouter_assets_sitemap.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 017bc6ba3fc25503e5eb5e53826d48a8,png => file:\/\/\/android_res\/drawable\/node_modules_exporouter_assets_arrow_down.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 20e71bdf79e3a97bf55fd9e164041578,png => file:\/\/\/android_res\/drawable\/node_modules_exporouter_assets_unmatched.png","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 3f78af31cca60105799838a1a7a59fbd,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_antdesign.ttf","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 31b5ffea3daddc69dd01a1f3d6cf63c5,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_entypo.ttf","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: 140c53a7643ea949007aa9a282153849,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_evilicons.ttf","code":"None","level":"info"}
+11-13 19:42:30.146  8219  8252 I dev.expo.updates: {"timestamp":1763034150146,"message":"embeddedAssetFileMap: ca4b48e04dc1ce10bfbddb262c8b835f,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_feather.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: b49ae8ab2dbccb02c4d11caaacf09eab,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_fontisto.ttf","code":"None","level":"info"}
+11-13 19:42:30.147 26487 26503 D services: [XMS][observer] ActivityObserver activityResumed packageName: com.lcy.taskcollection
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: b06871f281fee6b241d60582ae9369b9,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_fontawesome.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: 1f77739ca9ff2188b539c36f30ffa2be,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_fontawesome5_regular.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: 605ed7926cf39a2ad5ec2d1f9d391d3d,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_fontawesome5_solid.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: 3b89dd103490708d19a95adcae52210e,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_fontawesome5_brands.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: 370dd5af19f8364907b6e2c41f45dbbf,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_fontawesome6_regular.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: adec7d6f310bc577f05e8fe06a5daccf,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_fontawesome6_solid.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: 56c8d80832e37783f12c05db7c8849e2,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_fontawesome6_brands.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: e20945d7c929279ef7a6f1db184a4470,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_foundation.ttf","code":"None","level":"info"}
+11-13 19:42:30.147 26487 26591 D AppUpdateXmsfLauncher: activityResumed intent : Intent { cmp=com.lcy.taskcollection/.MainActivity (has extras) }
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: b4eb097d35f44ed943676fd56f6bdc51,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_ionicons.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: 6e435534bd35da5fef04168860a9b8fa,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_materialcommunityicons.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: 4e85bc9ebe07e0340c9c4fc2f6c38908,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_materialicons.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: 871378c6eab492a3e689a9385dc45a12,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_octicons.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: d2285965fe34b05465047401b8595dd0,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_simplelineicons.ttf","code":"None","level":"info"}
+11-13 19:42:30.147  8219  8252 I dev.expo.updates: {"timestamp":1763034150147,"message":"embeddedAssetFileMap: 1681f34aaca71b8dfb70756bca331eb2,ttf => file:\/\/\/android_res\/raw\/node_modules_expo_vectoricons_build_vendor_reactnativevectoricons_fonts_zocial.ttf","code":"None","level":"info"}
+11-13 19:42:30.148  8219  8252 I dev.expo.updates: {"timestamp":1763034150148,"message":"Updates state change: Check, context = {isStartupProcedureRunning=true, isUpdateAvailable=false, isUpdatePending=false, isChecking=true, isDownloading=false, isRestarting=false, restartCount=0, downloadProgress=0.0, sequenceNumber=2}","code":"None","level":"info"}
+11-13 19:42:30.148 26727 26757 D auth    : [XMS][Auth] ActivityObserver activityResumed packageName: com.lcy.taskcollection
+11-13 19:42:30.149  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.151  4345  4345 D RecentsImpl: mActivityStateObserver com.lcy.taskcollection.MainActivity
+11-13 19:42:30.151  4345  4345 W RecentsImpl: onResumed className=com.lcy.taskcollection.MainActivity   mIsInAnotherPro=false   isKeyguardLocked=false
+11-13 19:42:30.151  4345  4345 D RecentsImpl: showNavStubView
+11-13 19:42:30.151  4345  4345 D NavStubView_Touch: setKeepHidden    old=false   new=false
+11-13 19:42:30.151  4345  4478 W RecentsImpl: disableTouchBySwipeStatusBar    disable=false
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: disableTouchBySwipeStatusBar    old=false   new=false
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: disableTouchBySwipeStatusBar    old=false   new=false
+11-13 19:42:30.151  4345  4478 W RecentsImpl: disableBackStubWindow    disableTouch=false
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: disableTouch    old=true   new=false
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: updateTouchable    old=true   new=true
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: disableTouch    old=true   new=false
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: updateTouchable    old=true   new=true
+11-13 19:42:30.151  4345  4478 D RecentsImpl: showBackStubWindow  hasNavigationBar=true
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: setKeepHidden    old=true   new=false
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: updateTouchable    old=true   new=false
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch:   updateTouchable---requestApplyInsets
+11-13 19:42:30.151  4345  4478 W GestureStubView: adaptRotation   currentRotation=0   mRotation=0
+11-13 19:42:30.151  4345  4478 D GestureStubView: resetRenderProperty: showGestureStub   isLayoutParamChanged=false
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: disableTouch    old=false   new=false
+11-13 19:42:30.151  4345  4478 D GestureStubView: showGestureStub
+11-13 19:42:30.151  4345  4478 D GestureStubView_Touch: setKeepHidden    old=true   new=false
+11-13 19:42:30.152  4345  4478 D GestureStubView_Touch: updateTouchable    old=true   new=false
+11-13 19:42:30.152  4345  4478 D GestureStubView_Touch:   updateTouchable---requestApplyInsets
+11-13 19:42:30.152  4345  4478 W GestureStubView: adaptRotation   currentRotation=0   mRotation=0
+11-13 19:42:30.152  4345  4478 D GestureStubView: resetRenderProperty: showGestureStub   isLayoutParamChanged=false
+11-13 19:42:30.152  4345  4478 D GestureStubView_Touch: disableTouch    old=false   new=false
+11-13 19:42:30.152  4345  4478 D GestureStubView: showGestureStub
+11-13 19:42:30.156 26487  7446 E captain : match failed, caused by java.util.regex.PatternSyntaxException: Syntax error in regexp pattern near index 1
+11-13 19:42:30.156 26487  7446 E captain : *.activity.StartActivity
+11-13 19:42:30.156 26487  7446 E captain :  ^
+11-13 19:42:30.156 26487  7446 E captain : 	at com.android.icu.util.regex.PatternNative.compileImpl(Native Method)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.android.icu.util.regex.PatternNative.<init>(PatternNative.java:53)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.android.icu.util.regex.PatternNative.create(PatternNative.java:49)
+11-13 19:42:30.156 26487  7446 E captain : 	at java.util.regex.Pattern.compile(Pattern.java:1429)
+11-13 19:42:30.156 26487  7446 E captain : 	at java.util.regex.Pattern.<init>(Pattern.java:1404)
+11-13 19:42:30.156 26487  7446 E captain : 	at java.util.regex.Pattern.compile(Pattern.java:962)
+11-13 19:42:30.156 26487  7446 E captain : 	at kotlin.text.Regex.<init>(SourceFile:3)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.xiaomi.xms.captain.engine.repo.TrialRepo.i(Unknown Source:76)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.xiaomi.xms.captain.engine.repo.TrialRepo.h(Unknown Source:129)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.xiaomi.xms.captain.engine.repo.TrialRepo$isTargetPage$1.invokeSuspend(Unknown Source:12)
+11-13 19:42:30.156 26487  7446 E captain : 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(Unknown Source:11)
+11-13 19:42:30.156 26487  7446 E captain : 	at kotlinx.coroutines.x0.run(Unknown Source:130)
+11-13 19:42:30.156 26487  7446 E captain : 	at kotlinx.coroutines.internal.m$a.run(Unknown Source:3)
+11-13 19:42:30.156 26487  7446 E captain : 	at fc.k.run(Unknown Source:2)
+11-13 19:42:30.156 26487  7446 E captain : 	at fc.a$a.run(Unknown Source:63)
+11-13 19:42:30.156 26434  8261 W PushService: [Tid:610] [AIClientManager] begin to compute idle judge model
+11-13 19:42:30.156 26487  7446 E captain : match failed, caused by java.util.regex.PatternSyntaxException: Syntax error in regexp pattern near index 1
+11-13 19:42:30.156 26487  7446 E captain : *.activity.LauncherActivity
+11-13 19:42:30.156 26487  7446 E captain :  ^
+11-13 19:42:30.156 26487  7446 E captain : 	at com.android.icu.util.regex.PatternNative.compileImpl(Native Method)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.android.icu.util.regex.PatternNative.<init>(PatternNative.java:53)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.android.icu.util.regex.PatternNative.create(PatternNative.java:49)
+11-13 19:42:30.156 26487  7446 E captain : 	at java.util.regex.Pattern.compile(Pattern.java:1429)
+11-13 19:42:30.156 26487  7446 E captain : 	at java.util.regex.Pattern.<init>(Pattern.java:1404)
+11-13 19:42:30.156 26487  7446 E captain : 	at java.util.regex.Pattern.compile(Pattern.java:962)
+11-13 19:42:30.156 26487  7446 E captain : 	at kotlin.text.Regex.<init>(SourceFile:3)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.xiaomi.xms.captain.engine.repo.TrialRepo.i(Unknown Source:76)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.xiaomi.xms.captain.engine.repo.TrialRepo.h(Unknown Source:129)
+11-13 19:42:30.156 26487  7446 E captain : 	at com.xiaomi.xms.captain.engine.repo.TrialRepo$isTargetPage$1.invokeSuspend(Unknown Source:12)
+11-13 19:42:30.156 26487  7446 E captain : 	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(Unknown Source:11)
+11-13 19:42:30.156 26487  7446 E captain : 	at kotlinx.coroutines.x0.run(Unknown Source:130)
+11-13 19:42:30.156 26487  7446 E captain : 	at kotlinx.coroutines.internal.m$a.run(Unknown Source:3)
+11-13 19:42:30.156 26487  7446 E captain : 	at fc.k.run(Unknown Source:2)
+11-13 19:42:30.156 26487  7446 E captain : 	at fc.a$a.run(Unknown Source:63)
+11-13 19:42:30.157 26434  8261 W PushService: [Tid:610] [AIClientManager] start to call idle judge model with id: 91
+11-13 19:42:30.157 26434  8261 I ClientAI_SDK_ClientAIManager: wait for service connect...
+11-13 19:42:30.157 26434  8261 I ClientAI_SDK_ClientAIManager: service has already been connected, skip.
+11-13 19:42:30.157 26434  8261 I ClientAI_SDK_ClientAIManager: service connect has cost 0ms.
+11-13 19:42:30.157 26434  8261 I ClientAI_SDK_ClientAIManager: remaining timeout is 500ms.
+11-13 19:42:30.157 26434  8261 I ClientAI_SDK_ClientAIManager: wait for zone sync...
+11-13 19:42:30.157 26434  8261 I ClientAI_SDK_ClientAIManager: zone has already been synced, skip.
+11-13 19:42:30.157 26626  6541 I atom    : compute start, use com.xiaomi.xmsf's pkg=91.
+11-13 19:42:30.158  4345  4478 D GestureStubView: gatherTransparentRegion: need render w:54  h:1627
+11-13 19:42:30.158  4345  4478 D GestureStubView: gatherTransparentRegion: need render w:54  h:1627
+11-13 19:42:30.158 26626  6541 I atom    : device verify passed.
+11-13 19:42:30.159 26626  6541 I atom    : ModelPkg(id=91) has already been loaded into the cache.
+11-13 19:42:30.161  6443  6631 D IdProviderImpl: getOAID from com.miui.analytics
+11-13 19:42:30.164  2339  3397 I WindowManagerService: Physical orientation not applied, rotation=0
+11-13 19:42:30.164 26626 27697 I atom    : ModelPkg(id=91) loading success.
+11-13 19:42:30.164 26626 27697 I atom    : Biz(com.xiaomi.xmsf) permission verify passed.
+11-13 19:42:30.164 26626 27697 I atom    : ModelPkg(id=91) signature verify passed.
+11-13 19:42:30.164 26626 27697 I atom    : Processor(id=91) has already been loaded into the cache.
+11-13 19:42:30.164 26626 27697 I atom    : ModelPkg(id=91) engine loading success.
+11-13 19:42:30.166 26626 27697 I atom    : compute end, code=200, use com.xiaomi.xmsf's pkg=91.
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: QUALCOMM build                   : 85d46827a0, Idf71a216d1
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: Build Date                       : 04/24/22
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: OpenGL ES Shader Compiler Version: EV031.36.08.09
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: Local Branch                     : 
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: Remote Branch                    : 
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: Remote Branch                    : 
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: Reconstruct Branch               : 
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: Build Config                     : S P 12.1.1 AArch64
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: Driver Path                      : /vendor/lib64/egl/libGLESv2_adreno.so
+11-13 19:42:30.166  8219  8246 I AdrenoGLES-0: Driver Version                   : 0615.0
+11-13 19:42:30.166  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.168  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.168 26434  8261 I ConnectionInfo: [XMS][SDK_BASE_VERSION: 1.0.11] binder call invoke success source: com.xiaomi.xms.atom.IClientAI$Stub$Proxy@bb56a2d, method: public abstract java.lang.String com.xiaomi.xms.atom.IClientAI.compute(android.os.Bundle) throws android.os.RemoteException, args: [Bundle[{wait_time=500, model_id=91, input={"request_type":2,"xmsf_version":70004063,"trigger_id":"74467885963;#;21c9b9b3-2207-45ed-a53c-fba9ce00fded","device_status":{"networkType":1,"batteryLevels":42,"lowPowerMode":false},"now_front_app":"com.lcy.taskcollection","is_screen_on":true,"dnd_mode_switch":false,"game_mode_switch":false,"game_mode_switch_enabled":false}, pkg_name=com.xiaomi.xmsf}]], result: {"code":200,"data":"{\"is_device_idle\":true,\"not_idle_reason\":0}","msg":"1.4.0:success"}, serviceName: atom
+11-13 19:42:30.168 26487 26591 I XMSF-XmsService: [XMS] trackEvent
+11-13 19:42:30.168 26434  8261 I ClientAI_SDK_ClientAIManager: compute call success.
+11-13 19:42:30.168 26434  8261 W PushService: [Tid:610] [AIClientManager] idle judge model result: isDeviceIdle=true, notIdleReason=0
+11-13 19:42:30.168 26434  8261 W PushService: [Tid:610] [IdleSceneManager] idleSceneTriggerAlarm is already running don't start again.
+11-13 19:42:30.169 26626  6541 E atom    : data post back failed due to miss sampling.
+11-13 19:42:30.169 26487 26596 D MyLog   : -->log(1): [Tid:445] [OneTrackWrapper] -->trackXmsEvent(): Sampling result is false, sampleEvent=31000000946|xms|xms_service_interface_method_call|success
+11-13 19:42:30.169 26626 27697 I atom    : try to unload cache by unused time.
+11-13 19:42:30.170 26626 27697 I atom    : start checking device runtime env.
+11-13 19:42:30.171  6443  6631 D IdProviderImpl: getOAID from com.miui.analytics
+11-13 19:42:30.172  4345  4517 E Launcher.Transfer: transfer is closed
+11-13 19:42:30.172  8219  8246 I AdrenoGLES-0: PFP: 0x01730147, ME: 0x00000000
+11-13 19:42:30.175 26626 27697 I atom    : device battery is low:(
+11-13 19:42:30.175 26626 27697 I atom    : try to unload cache by max count limit.
+11-13 19:42:30.175  6443  6631 D IdProviderImpl: getOAID from com.miui.analytics
+11-13 19:42:30.176 26626 27697 I atom    : current loading count=1 less than max limit count=1, skip.
+11-13 19:42:30.180  8219  8246 W libc    : Access denied finding property "vendor.migl.debug"
+11-13 19:42:30.182  1220  1737 I SDM     : HWCColorModeStc::GetColorModeCount: Supported color mode count = 3
+11-13 19:42:30.182  1220  1737 I SDM     : HWCColorModeStc::GetColorModes: Color mode = 0 is supported
+11-13 19:42:30.182  1220  1737 I SDM     : HWCColorModeStc::GetColorModes: Color mode = 7 is supported
+11-13 19:42:30.182  1220  1737 I SDM     : HWCColorModeStc::GetColorModes: Color mode = 9 is supported
+11-13 19:42:30.182  1341  1739 D MI-SF   : addDolbyVisionHdr enter hdrTypes 2
+11-13 19:42:30.182  1341  1739 E MI-SF   : hdrTypes:2
+11-13 19:42:30.182  1341  1739 E MI-SF   : hdrTypes:3
+11-13 19:42:30.182  1341  1739 E MI-SF   : hdrTypes:4
+11-13 19:42:30.186  8219  8219 W unknown:BridgelessReact: ReactHost{0}.startSurface(surfaceId = 0): Schedule
+11-13 19:42:30.186  8219  8219 W unknown:BridgelessReact: ReactHost{0}.attachSurface(surfaceId = 0)
+11-13 19:42:30.186  8219  8219 W unknown:BridgelessReact: ReactHost{0}.onHostResume(activity)
+11-13 19:42:30.186  8219  8269 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask()
+11-13 19:42:30.187  8219  8269 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Start
+11-13 19:42:30.187  8219  8269 W unknown:BridgelessReact: ReactHost{0}.getJSBundleLoader()
+11-13 19:42:30.187  8219  8269 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactContext(): Creating BridgelessReactContext
+11-13 19:42:30.187  8219  8269 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Creating ReactInstance
+11-13 19:42:30.191  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.192  8219  8269 D jni_lib_merge: Entering merged library JNI_OnLoad.
+11-13 19:42:30.192  8219  8269 D jni_lib_merge: Preparing 4 pre-merged libs (including stub)
+11-13 19:42:30.192  8219  8269 D jni_lib_merge: Preparing to register libhermes_executor_so.  onload_func: 0x707aa664b0
+11-13 19:42:30.192  8219  8269 D jni_lib_merge: Preparing to register libhermesinstancejni_so.  onload_func: 0x707aa6d900
+11-13 19:42:30.192  8219  8269 D jni_lib_merge: Preparing to register libjsijniprofiler_so.  onload_func: 0x707aa6e0ec
+11-13 19:42:30.192  8219  8269 D jni_lib_merge: About to register 3 actual methods.
+11-13 19:42:30.194  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.195  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.200  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.208  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.216  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.221  8219  8269 I ExpoModulesCore: ✅ AppContext was initialized
+11-13 19:42:30.224  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.233  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.234  8219  8269 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Loading JS Bundle
+11-13 19:42:30.234  8219  8269 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Calling DevSupportManagerBase.onNewReactContextCreated(reactContext)
+11-13 19:42:30.234  8219  8269 W unknown:BridgelessReact: ReactHost{0}.startSurface(surfaceId = 0): Execute
+11-13 19:42:30.240  8219  8219 W unknown:BridgelessReact: ReactContext.onHostResume()
+11-13 19:42:30.241  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.242  8219  8219 W unknown:BridgelessReact: ReactHost{0}.getOrCreateReactInstanceTask(): Executing ReactInstanceEventListeners
+11-13 19:42:30.250  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.253  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenFooterManager
+11-13 19:42:30.254  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.uimanager.LayoutShadowNode
+11-13 19:42:30.254  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.tabs.TabScreenViewManager
+11-13 19:42:30.254  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class expo.modules.kotlin.views.GroupViewManagerWrapper
+11-13 19:42:30.254  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenContainerViewManager
+11-13 19:42:30.255  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.slider.ReactSliderManager
+11-13 19:42:30.255  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.gamma.tabs.TabsHostViewManager
+11-13 19:42:30.255  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ModalScreenViewManager
+11-13 19:42:30.255  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewManager
+11-13 19:42:30.256  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaViewShadowNode
+11-13 19:42:30.256  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenViewManager
+11-13 19:42:30.256  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class expo.modules.kotlin.views.SimpleViewManagerWrapper
+11-13 19:42:30.256  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackViewManager
+11-13 19:42:30.256  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.th3rdwave.safeareacontext.SafeAreaProviderManager
+11-13 19:42:30.256  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.SearchBarManager
+11-13 19:42:30.257  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.webview.RNCWebViewManager
+11-13 19:42:30.257  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.257  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class org.reactnative.maskedview.RNCMaskedViewManager
+11-13 19:42:30.258  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderConfigViewManager
+11-13 19:42:30.258  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenContentWrapperManager
+11-13 19:42:30.258  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.rnscreens.ScreenStackHeaderSubviewManager
+11-13 19:42:30.258  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.picker.ReactDialogPickerManager
+11-13 19:42:30.258  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.picker.ReactPickerShadowNode
+11-13 19:42:30.258  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.reactnativecommunity.picker.ReactDropdownPickerManager
+11-13 19:42:30.266  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.267  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$DefsViewManager
+11-13 19:42:30.268  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.VirtualViewManager$RenderableShadowNode
+11-13 19:42:30.268  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeMergeManager
+11-13 19:42:30.269  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.safeareaview.ReactSafeAreaViewManager
+11-13 19:42:30.269  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.safeareaview.ReactSafeAreaViewShadowNode
+11-13 19:42:30.269  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LinearGradientManager
+11-13 19:42:30.270  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeGaussianBlurManager
+11-13 19:42:30.270  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.progressbar.ReactProgressBarViewManager
+11-13 19:42:30.270  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.progressbar.ProgressBarShadowNode
+11-13 19:42:30.271  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollViewManager
+11-13 19:42:30.271  4345  4345 D Launcher_UnlockAnimationStateMachine: mResetIdleStateRunnable
+11-13 19:42:30.272  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactTextViewManager
+11-13 19:42:30.272  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactTextShadowNode
+11-13 19:42:30.272  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeColorMatrixManager
+11-13 19:42:30.273  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactHorizontalScrollContainerViewManager
+11-13 19:42:30.274  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ClipPathViewManager
+11-13 19:42:30.274  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.274  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$SymbolManager
+11-13 19:42:30.275  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PatternManager
+11-13 19:42:30.276  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeBlendManager
+11-13 19:42:30.276  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.view.ReactViewManager
+11-13 19:42:30.277  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.SvgViewManager
+11-13 19:42:30.277  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.switchview.ReactSwitchManager
+11-13 19:42:30.277  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.switchview.ReactSwitchShadowNode
+11-13 19:42:30.278  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$UseViewManager
+11-13 19:42:30.278  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$CircleViewManager
+11-13 19:42:30.279  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TSpanViewManager
+11-13 19:42:30.280  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FilterManager
+11-13 19:42:30.280  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MarkerManager
+11-13 19:42:30.281  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerButtonViewManager
+11-13 19:42:30.281  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.modal.ReactModalHostManager
+11-13 19:42:30.282  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.282  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ForeignObjectManager
+11-13 19:42:30.283  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$EllipseViewManager
+11-13 19:42:30.283  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$LineViewManager
+11-13 19:42:30.284  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.frescosupport.FrescoBasedReactTextInlineImageViewManager
+11-13 19:42:30.284  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.frescosupport.FrescoBasedReactTextInlineImageShadowNode
+11-13 19:42:30.284  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeFloodManager
+11-13 19:42:30.285  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$GroupViewManager
+11-13 19:42:30.285  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextViewManager
+11-13 19:42:30.286  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$ImageViewManager
+11-13 19:42:30.287  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeCompositeManager
+11-13 19:42:30.287  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.image.ReactImageManager
+11-13 19:42:30.288  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RadialGradientManager
+11-13 19:42:30.288  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$MaskManager
+11-13 19:42:30.289  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.unimplementedview.ReactUnimplementedViewManager
+11-13 19:42:30.289  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$RectViewManager
+11-13 19:42:30.290  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$TextPathViewManager
+11-13 19:42:30.290  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.291  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.scroll.ReactScrollViewManager
+11-13 19:42:30.292  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$FeOffsetManager
+11-13 19:42:30.292  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.horcrux.svg.RenderableViewManager$PathViewManager
+11-13 19:42:30.293  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.drawer.ReactDrawerLayoutManager
+11-13 19:42:30.293  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactVirtualTextViewManager
+11-13 19:42:30.293  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactVirtualTextShadowNode
+11-13 19:42:30.294  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.swiperefresh.SwipeRefreshLayoutManager
+11-13 19:42:30.294  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactRawTextManager
+11-13 19:42:30.294  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.text.ReactRawTextShadowNode
+11-13 19:42:30.294  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.textinput.ReactTextInputManager
+11-13 19:42:30.295  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.facebook.react.views.textinput.ReactTextInputShadowNode
+11-13 19:42:30.295  8219  8270 W unknown:ViewManagerPropertyUpdater: Could not find generated setter for class com.swmansion.gesturehandler.react.RNGestureHandlerRootViewManager
+11-13 19:42:30.297  8219  8270 E AVManager: Cannot install JSI bindings for AV module because JS context is not available
+11-13 19:42:30.297  8219  8270 W BridgelessReactContext: [WARNING] Bridgeless doesn't support CatalystInstance. Accessing an API that's not part of the new architecture is not encouraged usage.
+11-13 19:42:30.299  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.299  8219  8270 I ExpoModulesCore: ✅ JSI interop was installed
+11-13 19:42:30.301  8219  8270 I ExpoModulesCore: ✅ Constants were exported
+11-13 19:42:30.302  8219  8270 I dev.expo.updates: {"timestamp":1763034150301,"message":"UpdatesModule: getConstants called","code":"None","level":"info"}
+11-13 19:42:30.307  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.315  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.321  8219  8270 I ReactNativeJS: Running "main"
+11-13 19:42:30.323  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.332  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.340  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.348  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.356  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.365  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.373  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.381  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.384  8219  8270 I ReactNativeJS: 开始初始化模块系统...
+11-13 19:42:30.384  8219  8270 I ReactNativeJS: '[API_CONFIG] 环境变量检查:', { hasApiKey: true,
+11-13 19:42:30.384  8219  8270 I ReactNativeJS:   apiKeyLength: 728,
+11-13 19:42:30.384  8219  8270 I ReactNativeJS:   apiKeyPrefix: 'eyJhbGci...',
+11-13 19:42:30.384  8219  8270 I ReactNativeJS:   apiKeySuffix: '...8HBg',
+11-13 19:42:30.384  8219  8270 I ReactNativeJS:   allEnvKeys: [],
+11-13 19:42:30.384  8219  8270 I ReactNativeJS:   isDev: false }
+11-13 19:42:30.385  8219  8270 I ReactNativeJS: '当前pageId:', '', ', pathname:', '/', ', search:', ''
+11-13 19:42:30.386  8219  8270 I ReactNativeJS: '任务收集模块导入结果:', { taskCollectionModule: [Getter] }
+11-13 19:42:30.386  8219  8270 I ReactNativeJS: '任务收集模块定义:', { id: 'task-collection',
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   name: 'task-collection',
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   enabled: true,
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   status: 'active' }
+11-13 19:42:30.386  8219  8270 I ReactNativeJS: '我爱背书模块导入结果:', { iloveRecitingModule: [Getter] }
+11-13 19:42:30.386  8219  8270 I ReactNativeJS: '我爱背书模块定义:', { id: 'ilove-reciting',
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   name: 'ilove-reciting',
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   enabled: true,
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   status: 'active' }
+11-13 19:42:30.386  8219  8270 I ReactNativeJS: '任务清单模块导入结果:', { taskListModule: [Getter] }
+11-13 19:42:30.386  8219  8270 I ReactNativeJS: '任务清单模块定义:', { id: 'task-list',
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   name: 'task-list',
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   enabled: true,
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   status: 'active' }
+11-13 19:42:30.386  8219  8270 I ReactNativeJS: '想法收集器模块导入结果:', { ideaCollectorModule: [Getter] }
+11-13 19:42:30.386  8219  8270 I ReactNativeJS: '想法收集器模块定义:', { id: 'idea-collector',
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   name: 'idea-collector',
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   enabled: true,
+11-13 19:42:30.386  8219  8270 I ReactNativeJS:   status: 'active' }
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: '认识自己模块导入结果:', { selfAwarenessModule: [Getter] }
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: '认识自己模块定义:', { id: 'self-awareness',
+11-13 19:42:30.387  8219  8270 I ReactNativeJS:   name: 'self-awareness',
+11-13 19:42:30.387  8219  8270 I ReactNativeJS:   enabled: true,
+11-13 19:42:30.387  8219  8270 I ReactNativeJS:   status: 'active' }
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 模块 task-collection 注册成功
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 任务收集模块初始化
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 任务收集模块激活
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 当前存储类型: cloud
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 模块 task-collection 激活成功
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 模块 ilove-reciting 注册成功
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 我爱背书模块初始化
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 我爱背书模块激活
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 模块 ilove-reciting 激活成功
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 模块 task-list 注册成功
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 任务清单模块初始化
+11-13 19:42:30.387  8219  8270 I ReactNativeJS: 任务清单模块激活
+11-13 19:42:30.388  8219  8270 I ReactNativeJS: 今天已经初始化过，跳过初始化
+11-13 19:42:30.388  8219  8270 I ReactNativeJS: 模块 task-list 激活成功
+11-13 19:42:30.388  8219  8270 I ReactNativeJS: 模块 idea-collector 注册成功
+11-13 19:42:30.388  8219  8270 I ReactNativeJS: 想法收集器模块初始化
+11-13 19:42:30.388  8219  8270 I ReactNativeJS: 想法收集器模块激活
+11-13 19:42:30.388  8219  8270 I ReactNativeJS: 当前存储类型: cloud
+11-13 19:42:30.388  8219  8270 I ReactNativeJS: 模块 idea-collector 激活成功
+11-13 19:42:30.388  8219  8270 I ReactNativeJS: 模块 self-awareness 注册成功
+11-13 19:42:30.389  8219  8270 I ReactNativeJS: 认识自己模块初始化
+11-13 19:42:30.389  8219  8270 I ReactNativeJS: 认识自己模块激活
+11-13 19:42:30.389  8219  8270 I ReactNativeJS: 模块 self-awareness 激活成功
+11-13 19:42:30.389  8219  8270 I ReactNativeJS: 已注册 5 个模块
+11-13 19:42:30.389  8219  8270 I ReactNativeJS: 已激活 5 个模块
+11-13 19:42:30.389  8219  8270 I ReactNativeJS: 模块系统初始化完成
+11-13 19:42:30.390  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.395  8219  8271 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+11-13 19:42:30.395  8219  8271 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+11-13 19:42:30.398  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.398  8219  8219 W [RNScreens]: backTitleVisible prop is not available on Android
+11-13 19:42:30.399  8219  8219 W [RNScreens]: backTitleFontFamily prop is not available on Android
+11-13 19:42:30.399  8219  8219 W [RNScreens]: disableBackButtonMenu prop is not available on Android
+11-13 19:42:30.399  8219  8219 W [RNScreens]: largeTitleFontFamily prop is not available on Android
+11-13 19:42:30.399  8219  8219 W [RNScreens]: largeTitleFontWeight prop is not available on Android
+11-13 19:42:30.399  8219  8219 W [RNScreens]: largeTitleHideShadow prop is not available on Android
+11-13 19:42:30.399  8219  8219 I ReactNative: [GESTURE HANDLER] Initialize gesture handler for root view com.facebook.react.runtime.ReactSurfaceView{a215f2b V.E...... ......ID 0,0-1220,2712 #1}
+11-13 19:42:30.400  8219  8270 I ReactNativeJS: '当前pageId:', '', ', pathname:', '/', ', search:', ''
+11-13 19:42:30.400  8219  8271 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+11-13 19:42:30.400  8219  8271 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+11-13 19:42:30.406  8219  8246 D .taskcollectio: MiuiProcessManagerServiceStub setSchedFifo
+11-13 19:42:30.406  8219  8246 I MiuiProcessManagerImpl: setSchedFifo pid:8219, mode:3
+11-13 19:42:30.407  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.416  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.420  8219  8219 D CompatibilityChangeReporter: Compat change id reported: 171228096; UID 10340; state: ENABLED
+11-13 19:42:30.421  8219  8219 W [RNScreens]: backTitleVisible prop is not available on Android
+11-13 19:42:30.421  8219  8219 W [RNScreens]: backTitleFontFamily prop is not available on Android
+11-13 19:42:30.421  8219  8219 W [RNScreens]: disableBackButtonMenu prop is not available on Android
+11-13 19:42:30.421  8219  8219 W [RNScreens]: largeTitleFontFamily prop is not available on Android
+11-13 19:42:30.421  8219  8219 W [RNScreens]: largeTitleFontWeight prop is not available on Android
+11-13 19:42:30.421  8219  8219 W [RNScreens]: largeTitleHideShadow prop is not available on Android
+11-13 19:42:30.425  2339  2582 D PerfImpl: perfFirstDrawBoost: com.lcy.taskcollection, 8219, 1
+11-13 19:42:30.428  8219  8219 D DecorView[]: getWindowModeFromSystem  windowmode is 1
+11-13 19:42:30.428  8219  8219 D DecorView[]: updateDecorCaptionStatus displayWindowDecor is false
+11-13 19:42:30.432  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.432  2339  2577 I ActivityTaskManager: Displayed com.lcy.taskcollection/.MainActivity: +488ms
+11-13 19:42:30.432  2339  2577 D PerfImpl: perfLockReleaseHandler: 12723
+11-13 19:42:30.441  2339  3141 I WindowManagerService: Physical orientation not applied, rotation=0
+11-13 19:42:30.445  4345  4345 D NavStubView_Touch: onSystemUiFlagsChanged  mIsShowStatusBar    old= true   new=true
+11-13 19:42:30.445  4345  4345 D NavStubView_Touch: onSystemUiFlagsChanged  mIsShowNavBar    old= true   new=true
+11-13 19:42:30.449  8219  8219 D DecorView[]: onWindowFocusChanged hasWindowFocus true
+11-13 19:42:30.449  8219  8219 I HandWritingStubImpl: refreshLastKeyboardType: 1
+11-13 19:42:30.449  8219  8219 I HandWritingStubImpl: getCurrentKeyboardType: 1
+11-13 19:42:30.449  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.452  8219  8270 I ReactNativeJS: '当前pageId:', 'MODULE-HOME', ', pathname:', '/module-home', ', search:', ''
+11-13 19:42:30.452 10856 10856 V InputMethod: unbindInput(): binding=InputBinding{android.os.BinderProxy@5cac72b / uid 10086 / pid 4345} ic=InputConnectionWrapper{idHash=#b6d5ddf mMissingMethods=}
+11-13 19:42:30.452 10856 10856 E BaseInputMethodService: onUnbindInput
+11-13 19:42:30.452  8219  8219 I HandWritingStubImpl: isKeyboardTypeChanged: false
+11-13 19:42:30.452  8219  8271 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+11-13 19:42:30.452  8219  8271 W unknown:ReactNative: StatusBarModule: Ignored status bar change, current activity is edge-to-edge.
+11-13 19:42:30.456  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.463  8219  8219 I HandWritingStubImpl: isKeyboardTypeChanged: false
+11-13 19:42:30.464 10856 10856 V InputMethod: bindInput(): binding=InputBinding{android.os.BinderProxy@22a4a8a / uid 10340 / pid 8219} ic=InputConnectionWrapper{idHash=#f73f8fb mMissingMethods=}
+11-13 19:42:30.464 10856 10856 E BaseInputMethodService: onBindInput
+11-13 19:42:30.465 10856 10856 V InputMethod: startInput(): editor=android.view.inputmethod.EditorInfo@75fad18
+11-13 19:42:30.465 10856 10856 V InputMethodService: CALL: doFinishInput
+11-13 19:42:30.465 10856 10856 D InlineSuggestionSessionController: notifyOnFinishInput
+11-13 19:42:30.465 10856 10856 V InputMethodService: CALL: onFinishInput
+11-13 19:42:30.465 10856 10856 E BaseInputMethodService: onFinishInput
+11-13 19:42:30.465 10856 10856 D InlineSuggestionSessionController: notifyOnStartInput: com.lcy.taskcollection, 0
+11-13 19:42:30.465 10856 10856 V InputMethodService: CALL: onStartInput
+11-13 19:42:30.465 10856 10856 E BaseInputMethodService: onStartInput
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Entering merged library JNI_OnLoad.
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing 12 pre-merged libs (including stub)
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libfabricjni_so.  onload_func: 0x70896b5edc
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libreact_devsupportjni_so.  onload_func: 0x7089786f40
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libreact_featureflagsjni_so.  onload_func: 0x70897999f8
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libreact_newarchdefaults_so.  onload_func: 0x70897bee30
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libreactnativeblob_so.  onload_func: 0x70898515b0
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libreactnativejni_so.  onload_func: 0x708986bb24
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libreactnativejni_common_so.  onload_func: 0x7089872458
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register librninstance_so.  onload_func: 0x708988e070
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libturbomodulejsijni_so.  onload_func: 0x70899261a4
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libuimanagerjni_so.  onload_func: 0x708992d7e0
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: Preparing to register libyoga_so.  onload_func: 0x7089934da4
+11-13 19:42:30.467  8219  8270 D jni_lib_merge: About to register 11 actual methods.
+11-13 19:42:30.470  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.483  2339  5727 I WindowManagerService: Physical orientation not applied, rotation=0
+11-13 19:42:30.484  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.486  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.489  8219  8219 I HandWritingStubImpl: getCurrentKeyboardType: 1
+11-13 19:42:30.489  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.497  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.502  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422
+11-13 19:42:30.512  6332  8448 D TrafficManageService: onReceive: intent.action = com.android.server.action.NETWORK_STATS_UPDATED
+11-13 19:42:30.516  2339  3397 I WindowManagerService: Physical orientation not applied, rotation=0
+11-13 19:42:30.514  6531  6531 W ThreadPoolForeg: type=1400 audit(0.0:54577): avc: denied { write } for name="traced_producer" dev="tmpfs" ino=1517 scontext=u:r:gmscore_app:s0:c512,c768 tcontext=u:object_r:traced_producer_socket:s0 tclass=sock_file permissive=0 app=com.google.android.gms
+11-13 19:42:30.521  2339  3141 I WindowManagerService: Physical orientation not applied, rotation=0
+11-13 19:42:30.523  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.523  2339  3240 W NetworkPolicy: shared quota unsupported; generating rule for each iface
+11-13 19:42:30.524  2339  5727 W InputManager-JNI: Input channel object '8118029 Splash Screen com.lcy.taskcollection (client)' was disposed without first being removed with the input manager!
+11-13 19:42:30.525  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.539  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.540  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.547  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.556  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.563  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.571  4345  4345 W DimLayer: removeDimLayer
+11-13 19:42:30.577  4048  4125 D HomeWallpaperRenderer: OFFSET  x: 1.0  y: 0.0
+11-13 19:42:30.578  4345  4345 E LauncherAnimationRunner: finish: mFinishRunnable.run
+11-13 19:42:30.593  8219  8283 D BLASTBufferQueue: releaseBufferCallback ReleaseCallbackId: bufferId:35300336205827 framenumber:17
+11-13 19:42:30.595  2339  2381 W System  : A resource failed to call release. 
+11-13 19:42:30.595  2339  2381 W System  : A resource failed to call close. 
+11-13 19:42:30.595  2339  2381 W System  : A resource failed to call close. 
+11-13 19:42:30.595  2339  2381 W System  : A resource failed to call close. 
+11-13 19:42:30.602  2339  3397 I WindowManagerService: Physical orientation not applied, rotation=0
+11-13 19:42:30.607  2339  5727 I WindowManagerService: Physical orientation not applied, rotation=0
+11-13 19:42:30.608  4345  4345 D Launcher.Lifecycle: onStop:UserHandle{0},b3a75e2,false
+11-13 19:42:30.612  4345  4345 D LauncherClient.Service: service already disconnected:com.miui.newhome
+11-13 19:42:30.613  4345  4345 W Launcher.Workspace: MiuiHome:onSaveInstanceState
+11-13 19:42:30.613  4345  4345 W ScreenView_Workspace: MiuiHome:onSaveInstanceState
+11-13 19:42:30.613  6954  7022 D LauncherOverlay: setActivityState:0
+11-13 19:42:30.613  4345  4345 W ScreenView_HotSeats: MiuiHome:onSaveInstanceState
+11-13 19:42:30.613  4345  4345 W ScreenView_RecommendAppsThumbnailView: MiuiHome:onSaveInstanceState
+11-13 19:42:30.613  4345  4345 W ScreenView_WorkspaceThumbnailView: MiuiHome:onSaveInstanceState
+11-13 19:42:30.613  4345  4345 W ScreenView_EditingEntryThumbnailView: MiuiHome:onSaveInstanceState
+11-13 19:42:30.613  4345  4345 W ViewPager: MiuiHome:onSaveInstanceState
+11-13 19:42:30.613  4345  4345 W ScreenView_DeleteIconContainer: MiuiHome:onSaveInstanceState
+11-13 19:42:30.614  6954  6954 D LauncherOverlay.Window: onStop
+11-13 19:42:30.616  2339  3242 I MiuiNetworkPolicyTrafficLimit: updateWhiteListUidForMobileTraffic uid=10086,add=false
+11-13 19:42:30.617  2339  3242 I MiuiNetworkPolicyTrafficLimit: updateWhiteListUidForMobileTraffic uid=10070,add=false
+11-13 19:42:30.617  2339  3242 D MiuiNetworkPolicyTrafficLimit: updateWhiteListUidForMobileTraffic rst=true
+11-13 19:42:30.617  2339  3242 D MiuiNetworkPolicyTrafficLimit: updateWhiteListUidForMobileTraffic rst=true
+11-13 19:42:30.622  2339  5727 W ActivityTaskManager: Skip mGoingToSleepWakeLock release for sleepingOrShuttingDown
+11-13 19:42:30.625  1341  1341 D MI-SF   : Launcher Changed hasLauncher=0
+11-13 19:42:30.633  2339  3397 W ProcessStats: Tracking association SourceState{7cedc25 com.miui.guardprovider/10117 BTopFgs #72370} whose proc state 2 is better than process ProcessState{a25b7cb com.miui.securitycenter.remote/1000 pkg=com.miui.securitycenter} proc state 3 (71 skipped)
+11-13 19:42:30.633  2339  3397 E WakePathChecker: MIUILOG-WAKEPATH invalid parameter
+11-13 19:42:30.635  4731 14747 I FontLog : (REDACTED) Received query %s, URI %s
+11-13 19:42:30.635  4731 14747 I FontLog : (REDACTED) Query [%s] resolved to %s
+11-13 19:42:30.636  4731 14747 I FontLog : (REDACTED) Fetch %s end status %s
+11-13 19:42:30.638  4731 17136 I FontLog : (REDACTED) Pulling font file for id = %d, cache size = %d
+11-13 19:42:30.639  4731 14747 I FontLog : (REDACTED) Pulling font file for id = %d, cache size = %d
+11-13 19:42:30.698  2339  2581 W TaskSnapshot_CInjector: couldPersist()... false.
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]: [Event] MSFDDNetworkEngine.cpp(179)::onTcpInfoUpdate->onTcpInfoUpdate:
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_state = 1;
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_ca_state = 0;
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_rto = 256 ms;
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_unacked = 0;
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_rttcur = 53 ms;
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_rttvar = 21 ms;
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_bytes_retrans = 0 bytes;
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_notsent_bytes = 0 bytes;
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_bytes_received = 41211 bytes;
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_bytes_sent = 35143 bytes 
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_last_data_sent = 163316 ms 
+11-13 19:42:30.780  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_last_data_recv = 163264 ms 
+11-13 19:42:30.924  2339  5728 I WindowManagerService: Physical orientation not applied, rotation=0
+11-13 19:42:30.971  1524  3082 D MiuiFastConnectService: stopBleScan: scanning: true
+11-13 19:42:30.971  1524  3082 D BluetoothAdapter: isLeEnabled(): ON
+11-13 19:42:30.972  4013  6025 D BtGatt.GattService: stopScan() - queue size =2
+11-13 19:42:30.973  4013  4446 I BtGatt.ScanManager: msg.what = 1, msg.arg1 = 0(mMiuiControllingType)
+11-13 19:42:30.973  4013  4446 D BtGatt.ScanManager: track LE scan event: callerPackage = [com.xiaomi.bluetooth], scanMode = [0], reportDelayMillis = [0], behavior = [2], scannerId = [6], duration = [59905]
+11-13 19:42:30.973  1172  1172 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK ON
+11-13 19:42:30.974  1172  1172 D vendor.qti.bluetooth@1.0-wake_lock: Acquire wakelock is acquired 
+11-13 19:42:30.974  1172  1172 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Writing IBS_WAKE_IND
+11-13 19:42:30.975  4013  6025 D BtGatt.GattService: unregisterScanner() - scannerId=6
+11-13 19:42:30.979  1172  4600 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_ACK: 0xFC
+11-13 19:42:30.979  1172  4600 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Signal wack_cond_
+11-13 19:42:30.979  1172  1172 D vendor.qti.bluetooth@1.0-ibs_handler: DeviceWakeUp: Unblocked from waiting for FC, pthread_cond_timedwait ret = 0
+11-13 19:42:30.981  1172  4600 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-13 19:42:30.981  1172  4600 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-13 19:42:30.981  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=1, availableSpace=57
+11-13 19:42:30.982  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:30.982  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=1, availableSpace=58
+11-13 19:42:30.982  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:30.983  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=1, availableSpace=59
+11-13 19:42:30.983  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:30.984  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=1, availableSpace=60
+11-13 19:42:30.984  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:30.984  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=1, availableSpace=61
+11-13 19:42:30.984  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:30.985  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=1, availableSpace=62
+11-13 19:42:30.985  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:30.985  4013  4446 D BtGatt.ScanManager: configureRegularScanParams() - queue=1
+11-13 19:42:30.985  4013  4446 D BtGatt.ScanManager: configureRegularScanParams() - ScanSetting LE 1M Scan mode=0 ScanSetting LE Coded Scan mode=0 mLastConfiguredScanSettingLE1M=0 mLastConfiguredScanSettingLECoded=0 scanPhy=255
+11-13 19:42:30.986  4013  4446 D BtGatt.ScanManager: track LE scan event: callerPackage = [scannative], nativeScanMode = [11], behavior = [11], duration = [59886]
+11-13 19:42:30.986  4013  4446 D BtGatt.ScanManager: configureRegularScanParams - scanInterval LE 1M = 1200 configureRegularScanParams - scanWindow LE 1M= 80 configureRegularScanParams - scanInterval LE Coded= 1200 configureRegularScanParams - scanWindow LE Coded= 80
+11-13 19:42:30.986  4013  4446 D BtGatt.ScanManager: recordNativeStartScan() - mLastNativeScanParams = 11
+11-13 19:42:30.986  4013  4113 D BtGatt.GattService: onScanParamSetupCompleted : 0
+11-13 19:42:31.029  1172  4600 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-13 19:42:31.036  1524  3082 D MiuiFastConnectService: handleMessage: MSG_START_BLE_SCAN mode: 0
+11-13 19:42:31.036  1524  3082 D BluetoothAdapter: isLeEnabled(): ON
+11-13 19:42:31.036  1524  3082 D BluetoothLeImp: isRoutingAllowedForScanStub
+11-13 19:42:31.037  4013  6025 D BtGatt.GattService: registerScanner() - UUID=9dbc6530-ed6c-4d5b-9f2d-cbe3836b7106
+11-13 19:42:31.037  4013  4113 D BtGatt.GattService: onScannerRegistered() - UUID=9dbc6530-ed6c-4d5b-9f2d-cbe3836b7106, scannerId=6, status=0
+11-13 19:42:31.037  1524  8136 D BluetoothLeScanner: onScannerRegistered() - status=0 scannerId=6 mScannerId=0
+11-13 19:42:31.038  4013  6025 D BtGatt.GattService: start scan with filters. callingPackage: com.xiaomi.bluetooth
+11-13 19:42:31.038  4013  6025 D BtGatt.GattService: enforcePrivilegedPermissionIfNeeded([BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=null, mServiceData=null, mServiceDataMask=null, mManufacturerId=911, mManufacturerData=[], mManufacturerDataMask=null, mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=null, mServiceData=null, mServiceDataMask=null, mManufacturerId=65535, mManufacturerData=[77], mManufacturerDataMask=null, mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=0000fe95-0000-1000-8000-00805f9b34fb, mServiceData=[], mServiceDataMask=null, mManufacturerId=-1, mManufacturerData=null, mManufacturerDataMask=null, mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=0000fdaa-0000-1000-8000-00805f9b34fb, mServiceData=[], mServiceDataMask=null, mManufacturerId=-1, mManufacturerData=null, mManufacturerDataMask=null, mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=0000fdee-0000-1000-8000-00805f9b34fb, mServiceData=[1, 1, 1], mServiceDataMask=null, mManufacturerId=-1, mManufacturerData=null, mManufacturerDataMask=null, mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false, BluetoothLeScanFilter [mDeviceName=null, mDeviceAddress=null, mUuid=null, mUuidMask=null, mServiceSolicitationUuid=null, mServiceSolicitationUuidMask=null, mServiceDataUuid=0000fd2d-0000-1000-8000-00805f9b34fb, mServiceData=[], mServiceDataMask=null, mManufacturerId=-1, mManufacturerData=null, mManufacturerDataMask=null, mOrganizationId=-1, mTDSFlags=-1, mTDSFlagsMask=-1, mWifiNANHash=null], mGroupBasedFiltering=false])
+11-13 19:42:31.039  4013  6025 W BluetoothUtils: callingUid is Process.BLUETOOTH_UID
+11-13 19:42:31.040  4013  4446 I BtGatt.ScanManager: msg.what = 9, msg.arg1 = 0(mMiuiControllingType)
+11-13 19:42:31.040  4013  4446 I BtGatt.ScanManager: msg.what = 0, msg.arg1 = 0(mMiuiControllingType)
+11-13 19:42:31.040  4013  4446 D BtGatt.ScanManager: handling starting scan
+11-13 19:42:31.040  4013  4446 D BtGatt.ScanManager: isAptXLowLatencyModeEnabled: false
+11-13 19:42:31.040  4013  4446 D BtGatt.ScanManager: track LE scan event: callerPackage = [com.xiaomi.bluetooth], scanMode = [0], reportDelayMillis = [0], behavior = [1], scannerId = [6], duration = [0]
+11-13 19:42:31.041  1172  4600 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_WAKE_IND: 0xFD
+11-13 19:42:31.041  1172  4600 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Writing IBS_WAKE_ACK
+11-13 19:42:31.041  4013  4113 D BtGatt.GattService: onScanFilterEnableDisabled() - clientIf=6, status=0, action=1
+11-13 19:42:31.041  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.041  4013  4446 D BtGatt.ScanManager: configureScanFilters rssiThreshold: -60, 15
+11-13 19:42:31.041  4013  4446 D BtGatt.ScanManager: Available Filter size: 59
+11-13 19:42:31.042  4013  4113 D BtGatt.GattService: onScanFilterConfig() - clientIf=6, action = 0 status = 0, filterType=0, availableSpace=0
+11-13 19:42:31.042  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.042  4013  4446 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+11-13 19:42:31.043  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=0, availableSpace=61
+11-13 19:42:31.043  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.044  4013  4113 D BtGatt.GattService: onScanFilterConfig() - clientIf=6, action = 0 status = 0, filterType=0, availableSpace=0
+11-13 19:42:31.044  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.044  4013  4446 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+11-13 19:42:31.045  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=0, availableSpace=60
+11-13 19:42:31.045  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.045  4013  4113 D BtGatt.GattService: onScanFilterConfig() - clientIf=6, action = 0 status = 0, filterType=0, availableSpace=0
+11-13 19:42:31.045  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.045  4013  4446 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+11-13 19:42:31.046  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=0, availableSpace=59
+11-13 19:42:31.046  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.046  4013  4113 D BtGatt.GattService: onScanFilterConfig() - clientIf=6, action = 0 status = 0, filterType=0, availableSpace=0
+11-13 19:42:31.046  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.046  4013  4446 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+11-13 19:42:31.047  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=0, availableSpace=58
+11-13 19:42:31.047  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.047  4013  4113 D BtGatt.GattService: onScanFilterConfig() - clientIf=6, action = 0 status = 0, filterType=0, availableSpace=0
+11-13 19:42:31.047  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.047  4013  4446 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+11-13 19:42:31.048  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=0, availableSpace=57
+11-13 19:42:31.048  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.049  4013  4113 D BtGatt.GattService: onScanFilterConfig() - clientIf=6, action = 0 status = 0, filterType=0, availableSpace=0
+11-13 19:42:31.049  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.049  4013  4446 D BtGatt.ScanManager: configureFilterParamter 500 10000 1 0, deliveryMode=0
+11-13 19:42:31.050  4013  4113 D BtGatt.GattService: onScanFilterParamsConfigured() - clientIf=6, status=0, action=0, availableSpace=56
+11-13 19:42:31.050  4013  4113 D BtGatt.ScanManager: callback done for scannerId - 6 status - 0
+11-13 19:42:31.050  4013  4446 D BtGatt.ScanManager: configureRegularScanParams() - queue=2
+11-13 19:42:31.050  4013  4446 D BtGatt.ScanManager: configureRegularScanParams() - ScanSetting LE 1M Scan mode=0 ScanSetting LE Coded Scan mode=0 mLastConfiguredScanSettingLE1M=0 mLastConfiguredScanSettingLECoded=0 scanPhy=255
+11-13 19:42:31.050  4013  4446 D BtGatt.ScanManager: track LE scan event: callerPackage = [scannative], nativeScanMode = [11], behavior = [11], duration = [64]
+11-13 19:42:31.050  4013  4446 D BtGatt.ScanManager: configureRegularScanParams - scanInterval LE 1M = 1200 configureRegularScanParams - scanWindow LE 1M= 80 configureRegularScanParams - scanInterval LE Coded= 1200 configureRegularScanParams - scanWindow LE Coded= 80
+11-13 19:42:31.050  4013  4446 D BtGatt.ScanManager: recordNativeStartScan() - mLastNativeScanParams = 11
+11-13 19:42:31.051  4013  4113 D BtGatt.GattService: onScanParamSetupCompleted : 0
+11-13 19:42:31.093  1172  4600 I vendor.qti.bluetooth@1.0-ibs_handler: ProcessIbsCmd: Received IBS_SLEEP_IND: 0xFE
+11-13 19:42:31.257  6263  7900 I DisplayFrameSetting: homeToAppEnd pkg=com.lcy.taskcollection
+11-13 19:42:31.478 31076 31076 W ThreadPoolForeg: type=1400 audit(0.0:54578): avc: denied { write } for name="traced_producer" dev="tmpfs" ino=1517 scontext=u:r:gmscore_app:s0:c743,c771 tcontext=u:object_r:traced_producer_socket:s0 tclass=sock_file permissive=0
+11-13 19:42:31.524  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422
+11-13 19:42:31.822 31167 31167 W ThreadPoolForeg: type=1400 audit(0.0:54579): avc: denied { write } for name="traced_producer" dev="tmpfs" ino=1517 scontext=u:r:gmscore_app:s0:c512,c768 tcontext=u:object_r:traced_producer_socket:s0 tclass=sock_file permissive=0 app=com.google.android.gms
+11-13 19:42:32.017  1220  1737 I SDM     : HWCDisplay::SetActiveConfigWithConstraints: config: 0, WxH 1220x2712, fps 60
+11-13 19:42:32.018  1220  1737 W SDM     : HWDeviceDRM::GetSupportedBitClkRate: Requested rate not supported: 1100000000
+11-13 19:42:32.018  1220  1737 I SDM     : HWDeviceDRM::UpdateMixerAttributes: Mixer WxH 1220x2712-1 for Peripheral
+11-13 19:42:32.018  1220  1737 I SDM     : HWCDisplay::SubmitDisplayConfig: Active configuration changed from config 1 to 0
+11-13 19:42:32.018  1220  1737 I SDM     : HWCDisplay::SubmitDisplayConfig: Active WxH 1220x2712 fps 60
+11-13 19:42:32.019  1220  1476 I SDM     : HWDeviceDRM::SetupAtomic: Setting mode: WxH: 1220x2712, vrefresh: 60, hskew: 0
+11-13 19:42:32.024  1256  1798 D FPSMonitor: threadFuncFpsMonitor display 0, fps 60
+11-13 19:42:32.030  2339  3634 D SchedBoost: stopBoostInternal:
+11-13 19:42:32.030  2339  3634 D SchedBoost: ready to stop boost
+11-13 19:42:32.030  2339  3634 D SchedBoost: stopBoostInternal:
+11-13 19:42:32.030  2339  3634 D SchedBoost: ready to stop boost
+11-13 19:42:32.053  1172  4624 I vendor.qti.bluetooth@1.0-ibs_handler: DeviceSleep: TX Awake, Sending SLEEP_IND
+11-13 19:42:32.053  1172  4624 D vendor.qti.bluetooth@1.0-ibs_handler: SerialClockVote: vote for UART CLK OFF
+11-13 19:42:32.080  1341  1745 D RefreshRateConfigs: TouchBoost - choose 120.00fps
+11-13 19:42:32.096  1220  1737 I SDM     : HWCDisplay::SetActiveConfigWithConstraints: config: 1, WxH 1220x2712, fps 120
+11-13 19:42:32.098  1220  1737 W SDM     : HWDeviceDRM::GetSupportedBitClkRate: Requested rate not supported: 1100000000
+11-13 19:42:32.098  1220  1737 I SDM     : HWDeviceDRM::UpdateMixerAttributes: Mixer WxH 1220x2712-1 for Peripheral
+11-13 19:42:32.098  1220  1737 I SDM     : HWCDisplay::SubmitDisplayConfig: Active configuration changed from config 0 to 1
+11-13 19:42:32.098  1220  1737 I SDM     : HWCDisplay::SubmitDisplayConfig: Active WxH 1220x2712 fps 120
+11-13 19:42:32.100  1220  1476 I SDM     : HWDeviceDRM::SetupAtomic: Setting mode: WxH: 1220x2712, vrefresh: 120, hskew: 0
+11-13 19:42:32.104  1256  1798 D FPSMonitor: threadFuncFpsMonitor display 0, fps 120
+11-13 19:42:32.204  1172  4463 D vendor.qti.bluetooth@1.0-wake_lock: Release wakelock is released 
+11-13 19:42:32.392  8219  8270 I ReactNativeJS: [UpdateService] 开始检查更新...
+11-13 19:42:32.431  8219  8252 E dev.expo.updates: {"timestamp":1763034152430,"message":"Remote update request not successful","code":"UpdateFailedToLoad","level":"error","stacktrace":["expo.modules.updates.loader.FileDownloader.downloadRemoteUpdate(FileDownloader.kt:329)","expo.modules.updates.loader.RemoteLoader.loadRemoteUpdate(RemoteLoader.kt:53)","expo.modules.updates.loader.Loader.load(Loader.kt:95)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdateInBackground(LoaderTask.kt:328)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdate(LoaderTask.kt:205)","expo.modules.updates.loader.LoaderTask.start(LoaderTask.kt:184)","expo.modules.updates.procedures.StartupProcedure.run(StartupProcedure.kt:207)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.executeProcedure(StateMachineSerialExecutorQueue.kt:43)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.access$executeProcedure(StateMachineSerialExecutorQueue.kt:19)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue$1.invokeSuspend(StateMachineSerialExecutorQueue.kt:36)","kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)","kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)","kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)","kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)","kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)"]}
+11-13 19:42:32.432  8219  8252 E dev.expo.updates: {"timestamp":1763034152432,"message":"Failed to download remote update","code":"UpdateFailedToLoad","level":"error","stacktrace":["expo.modules.updates.loader.FileDownloader.downloadRemoteUpdate(FileDownloader.kt:331)","expo.modules.updates.loader.RemoteLoader.loadRemoteUpdate(RemoteLoader.kt:53)","expo.modules.updates.loader.Loader.load(Loader.kt:95)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdateInBackground(LoaderTask.kt:328)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdate(LoaderTask.kt:205)","expo.modules.updates.loader.LoaderTask.start(LoaderTask.kt:184)","expo.modules.updates.procedures.StartupProcedure.run(StartupProcedure.kt:207)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.executeProcedure(StateMachineSerialExecutorQueue.kt:43)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.access$executeProcedure(StateMachineSerialExecutorQueue.kt:19)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue$1.invokeSuspend(StateMachineSerialExecutorQueue.kt:36)","kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)","kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)","kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)","kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)","kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)"]}
+11-13 19:42:32.432  8219  8252 E dev.expo.updates: {"timestamp":1763034152432,"message":"Load error","code":"UpdateFailedToLoad","level":"error","stacktrace":["expo.modules.updates.loader.FileDownloader.downloadRemoteUpdate(FileDownloader.kt:338)","expo.modules.updates.loader.RemoteLoader.loadRemoteUpdate(RemoteLoader.kt:53)","expo.modules.updates.loader.Loader.load(Loader.kt:95)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdateInBackground(LoaderTask.kt:328)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdate(LoaderTask.kt:205)","expo.modules.updates.loader.LoaderTask.start(LoaderTask.kt:184)","expo.modules.updates.procedures.StartupProcedure.run(StartupProcedure.kt:207)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.executeProcedure(StateMachineSerialExecutorQueue.kt:43)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.access$executeProcedure(StateMachineSerialExecutorQueue.kt:19)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue$1.invokeSuspend(StateMachineSerialExecutorQueue.kt:36)","kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)","kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)","kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)","kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)","kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)"]}
+11-13 19:42:32.433  8219  8252 E dev.expo.updates: {"timestamp":1763034152433,"message":"UpdatesController onBackgroundUpdateFinished","code":"Unknown","level":"error","stacktrace":["expo.modules.updates.loader.FileDownloader.downloadRemoteUpdate(FileDownloader.kt:338)","expo.modules.updates.loader.RemoteLoader.loadRemoteUpdate(RemoteLoader.kt:53)","expo.modules.updates.loader.Loader.load(Loader.kt:95)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdateInBackground(LoaderTask.kt:328)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdate(LoaderTask.kt:205)","expo.modules.updates.loader.LoaderTask.start(LoaderTask.kt:184)","expo.modules.updates.procedures.StartupProcedure.run(StartupProcedure.kt:207)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.executeProcedure(StateMachineSerialExecutorQueue.kt:43)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.access$executeProcedure(StateMachineSerialExecutorQueue.kt:19)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue$1.invokeSuspend(StateMachineSerialExecutorQueue.kt:36)","kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)","kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)","kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)","kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)","kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)"]}
+11-13 19:42:32.436  8219  8252 I dev.expo.updates: {"timestamp":1763034152436,"message":"Updates state change: CheckError, context = {isStartupProcedureRunning=true, isUpdateAvailable=false, isUpdatePending=false, isChecking=false, isDownloading=false, isRestarting=false, restartCount=0, downloadProgress=0.0, sequenceNumber=3, checkError={message=Failed to download remote update}, lastCheckForUpdateTime=Thu Nov 13 19:42:32 GMT+08:00 2025}","code":"None","level":"info"}
+11-13 19:42:32.438  8219  8252 I dev.expo.updates: {"timestamp":1763034152438,"message":"ErrorRecovery: remote load status changed: IDLE","code":"None","level":"info"}
+11-13 19:42:32.439  8219  8252 E dev.expo.updates: {"timestamp":1763034152438,"message":"Failed to download remote update","code":"UpdateFailedToLoad","level":"error","stacktrace":["expo.modules.updates.loader.FileDownloader.downloadRemoteUpdate(FileDownloader.kt:338)","expo.modules.updates.loader.RemoteLoader.loadRemoteUpdate(RemoteLoader.kt:53)","expo.modules.updates.loader.Loader.load(Loader.kt:95)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdateInBackground(LoaderTask.kt:328)","expo.modules.updates.loader.LoaderTask.launchRemoteUpdate(LoaderTask.kt:205)","expo.modules.updates.loader.LoaderTask.start(LoaderTask.kt:184)","expo.modules.updates.procedures.StartupProcedure.run(StartupProcedure.kt:207)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.executeProcedure(StateMachineSerialExecutorQueue.kt:43)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.access$executeProcedure(StateMachineSerialExecutorQueue.kt:19)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue$1.invokeSuspend(StateMachineSerialExecutorQueue.kt:36)","kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)","kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)","kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)","kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)","kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)"]}
+11-13 19:42:32.444  8219  8252 I dev.expo.updates: {"timestamp":1763034152444,"message":"Updates state change: EndStartup, context = {isStartupProcedureRunning=false, isUpdateAvailable=false, isUpdatePending=false, isChecking=false, isDownloading=false, isRestarting=false, restartCount=0, downloadProgress=0.0, sequenceNumber=4, checkError={message=Failed to download remote update}, lastCheckForUpdateTime=Thu Nov 13 19:42:32 GMT+08:00 2025}","code":"None","level":"info"}
+11-13 19:42:32.444  8219  8252 I dev.expo.updates: {"timestamp":1763034152444,"message":"Updates state change: Check, context = {isStartupProcedureRunning=false, isUpdateAvailable=false, isUpdatePending=false, isChecking=true, isDownloading=false, isRestarting=false, restartCount=0, downloadProgress=0.0, sequenceNumber=5, checkError={message=Failed to download remote update}, lastCheckForUpdateTime=Thu Nov 13 19:42:32 GMT+08:00 2025}","code":"None","level":"info"}
+11-13 19:42:32.547  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422
+11-13 19:42:33.171  8219  8252 E dev.expo.updates: {"timestamp":1763034153171,"message":"Remote update request not successful","code":"UpdateFailedToLoad","level":"error","stacktrace":["expo.modules.updates.loader.FileDownloader.downloadRemoteUpdate(FileDownloader.kt:329)","expo.modules.updates.procedures.CheckForUpdateProcedure.downloadRemoteUpdate(CheckForUpdateProcedure.kt:55)","expo.modules.updates.procedures.CheckForUpdateProcedure.run(CheckForUpdateProcedure.kt:44)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.executeProcedure(StateMachineSerialExecutorQueue.kt:43)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.access$executeProcedure(StateMachineSerialExecutorQueue.kt:19)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue$1.invokeSuspend(StateMachineSerialExecutorQueue.kt:36)","kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)","kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)","kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)","kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)","kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)"]}
+11-13 19:42:33.172  8219  8252 E dev.expo.updates: {"timestamp":1763034153171,"message":"Failed to download remote update","code":"UpdateFailedToLoad","level":"error","stacktrace":["expo.modules.updates.loader.FileDownloader.downloadRemoteUpdate(FileDownloader.kt:331)","expo.modules.updates.procedures.CheckForUpdateProcedure.downloadRemoteUpdate(CheckForUpdateProcedure.kt:55)","expo.modules.updates.procedures.CheckForUpdateProcedure.run(CheckForUpdateProcedure.kt:44)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.executeProcedure(StateMachineSerialExecutorQueue.kt:43)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue.access$executeProcedure(StateMachineSerialExecutorQueue.kt:19)","expo.modules.updates.procedures.StateMachineSerialExecutorQueue$1.invokeSuspend(StateMachineSerialExecutorQueue.kt:36)","kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)","kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:101)","kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:113)","kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)","kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:589)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:823)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:720)","kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:707)"]}
+11-13 19:42:33.172  8219  8252 I dev.expo.updates: {"timestamp":1763034153172,"message":"Updates state change: CheckError, context = {isStartupProcedureRunning=false, isUpdateAvailable=false, isUpdatePending=false, isChecking=false, isDownloading=false, isRestarting=false, restartCount=0, downloadProgress=0.0, sequenceNumber=6, checkError={message=Failed to download remote update: Remote update request not successful: \"channel-name\": Required. The headers \"expo-runtime-version\", \"expo-channel-name\", and \"expo-platform\" are required. They can also be set with the query parameters \"runtime-version\", \"channel-name\", and \"platform\". Learn more: https:\/\/expo.fyi\/eas-update-missing-headers}, lastCheckForUpdateTime=Thu Nov 13 19:42:33 GMT+08:00 2025}","code":"None","level":"info"}
+11-13 19:42:33.175  8219  8270 E ReactNativeJS: '[UpdateService] 检查更新失败:', { [Error: Call to function 'ExpoUpdates.checkForUpdateAsync' has been rejected.
+11-13 19:42:33.175  8219  8270 E ReactNativeJS: → Caused by: Failed to check for update] code: 'ERR_UPDATES_CHECK' }
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: console.error: [UpdateService] 检查更新失败: Error: Call to function 'ExpoUpdates.checkForUpdateAsync' has been rejected.
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: → Caused by: Failed to check for update, stack:
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: _construct@1:125140
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: Wrapper@1:124793
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: _callSuper@1:109681
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: SyntheticError@1:124278
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: reactConsoleErrorHandler@1:123844
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: ?anon_0_@1:1656221
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: asyncGeneratorStep@1:552648
+11-13 19:42:33.177  8219  8271 E unknown:ReactNative: _throw@1:552953
+11-13 19:42:33.439  1220  1737 I SDM     : HWCDisplay::SetActiveConfigWithConstraints: config: 0, WxH 1220x2712, fps 60
+11-13 19:42:33.440  1220  1737 W SDM     : HWDeviceDRM::GetSupportedBitClkRate: Requested rate not supported: 1100000000
+11-13 19:42:33.440  1220  1737 I SDM     : HWDeviceDRM::UpdateMixerAttributes: Mixer WxH 1220x2712-1 for Peripheral
+11-13 19:42:33.441  1220  1737 I SDM     : HWCDisplay::SubmitDisplayConfig: Active configuration changed from config 1 to 0
+11-13 19:42:33.441  1220  1737 I SDM     : HWCDisplay::SubmitDisplayConfig: Active WxH 1220x2712 fps 60
+11-13 19:42:33.442  1220  1476 I SDM     : HWDeviceDRM::SetupAtomic: Setting mode: WxH: 1220x2712, vrefresh: 60, hskew: 0
+11-13 19:42:33.449  1256  1798 D FPSMonitor: threadFuncFpsMonitor display 0, fps 60
+11-13 19:42:33.542  1256  1256 D SRE     : sensorCallback mDisplayId = 0 dataCallback value=<  51.0300,  51.0000, 186.0000>,time=47283835781548, sensor=5, temperature(K)=  51.0000
+11-13 19:42:33.542  1256  1256 D SRE     : setSREStrength mDisplayId = 0, mLastLux = 56, lux = 51, mSREEnabled = 1, mLastFreezeStatus = 0, freeze = 0
+11-13 19:42:33.574  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]: [Event] MSFDDNetworkEngine.cpp(179)::onTcpInfoUpdate->onTcpInfoUpdate:
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_state = 1;
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_ca_state = 0;
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_rto = 256 ms;
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_unacked = 0;
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_rttcur = 53 ms;
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_rttvar = 21 ms;
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_bytes_retrans = 0 bytes;
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_notsent_bytes = 0 bytes;
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_bytes_received = 41211 bytes;
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_bytes_sent = 35143 bytes 
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_last_data_sent = 166436 ms 
+11-13 19:42:33.900  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_last_data_recv = 166384 ms 
+11-13 19:42:34.578  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422
+11-13 19:42:34.788  2339  3242 D MiuiNetworkPolicy: updateLimit mLimitEnabled=true,enabled=false,mNetworkPriorityMode=1
+11-13 19:42:35.056 29821  8243 I AICall_MemoryTrim$a: Timer-152 trimMemory on background
+11-13 19:42:35.058 29821 29821 I AICall_x0: main invoke : null|80
+11-13 19:42:35.107  1108  1135 W FrameworkListener: Handler 'getaddrinfo' error (Success)
+11-13 19:42:35.108  4731  8299 W igyu    : [{0}] Failed to resolve name. status={1}
+11-13 19:42:35.578  8219  8300 D ProfileInstaller: Skipping profile installation for com.lcy.taskcollection
+11-13 19:42:35.608  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422
+11-13 19:42:36.644  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]: [Event] MSFDDNetworkEngine.cpp(179)::onTcpInfoUpdate->onTcpInfoUpdate:
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_state = 1;
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_ca_state = 0;
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_rto = 256 ms;
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_unacked = 0;
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_rttcur = 53 ms;
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_rttvar = 21 ms;
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_bytes_retrans = 0 bytes;
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_notsent_bytes = 0 bytes;
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_bytes_received = 41211 bytes;
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_bytes_sent = 35143 bytes 
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_last_data_sent = 169484 ms 
+11-13 19:42:36.949  1227  1603 V MSF.C.MSFCore[@DD]:                      tcpi_last_data_recv = 169432 ms 
+11-13 19:42:36.950  6051 13782 D SLM-SRV-SLAService: checktemp temperature = 29526 temperature_average = 29502 isPerformanceMode = false thermal_enable_slm = true
+11-13 19:42:37.348  1108  1135 W FrameworkListener: Handler 'getaddrinfo' error (Success)
+11-13 19:42:37.348  4731  8299 W igyu    : [{0}] Failed to resolve name. status={1}
+11-13 19:42:37.686  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422
+11-13 19:42:38.071  8219  8242 I .taskcollectio: ProcessProfilingInfo new_methods=0 is saved saved_to_disk=0 resolve_classes_delay=8000
+11-13 19:42:38.711  1227  1582 V MSF.C.MSFCore[@PS]: [Event] MSFPacketStatistics.cpp(300)::DoCheckRequestTimeout->current rtts:57.422

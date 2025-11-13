@@ -59,6 +59,7 @@ workflows:
       - name: Inject OTA Bundle Loader
         script: |
           echo "🔧 注入 OTA Bundle Loader 到 MainApplication.kt..."
+          echo "   支持新架构 (BridgelessReact)..."
           node scripts/inject-ota-bundle-loader.js
           echo ""
           echo "📋 验证注入结果..."
@@ -170,6 +171,7 @@ workflows:
       - name: Inject OTA Bundle Loader
         script: |
           echo "🔧 注入 OTA Bundle Loader 到 MainApplication.kt..."
+          echo "   支持新架构 (BridgelessReact)..."
           node scripts/inject-ota-bundle-loader.js
           echo ""
           echo "📋 验证注入结果..."

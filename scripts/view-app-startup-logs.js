@@ -19,7 +19,7 @@ console.log('');
 const args = process.argv.slice(2);
 const clearLogs = !args.includes('--no-clear');
 const filterMode = args.includes('--content') ? 'content' : 
-                   args.includes('--all') ? 'all' : 'tag';
+                   args.includes('--all') ? 'all' : 'all';
 
 if (clearLogs) {
   console.log('📋 步骤 1: 清除旧的日志...');
@@ -42,13 +42,14 @@ let logcatArgs = [];
 
 if (filterMode === 'tag') {
   // 方式1: 使用标签过滤（推荐，最精确）
-  // MainApplication:D 表示显示 MainApplication 标签的所有级别日志
+  // MainApplication:E 表示显示 MainApplication 标签的 ERROR 级别日志（确保能看到）
   // ReactNativeJS:D 显示 React Native JS 层的日志
   // ReactNative:V 显示 React Native 框架日志
   console.log('🔍 使用标签过滤模式（推荐）');
-  console.log('   过滤标签: MainApplication, ReactNativeJS, ReactNative');
+  console.log('   过滤标签: MainApplication (ERROR级别), ReactNativeJS, ReactNative');
+  console.log('   注意: 使用 ERROR 级别确保日志不会被过滤');
   console.log('');
-  logcatArgs = ['logcat', '-s', 'MainApplication:D', 'ReactNativeJS:D', 'ReactNative:V'];
+  logcatArgs = ['logcat', '-s', 'MainApplication:E', 'ReactNativeJS:D', 'ReactNative:V'];
 } else if (filterMode === 'content') {
   // 方式2: 使用内容过滤（更全面，但可能包含无关日志）
   console.log('🔍 使用内容过滤模式（更全面）');

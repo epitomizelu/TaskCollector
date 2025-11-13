@@ -19,7 +19,12 @@
     "upload-js-bundle": "node scripts/upload-js-bundle.js",
     "test-filesdir": "node scripts/test-getfilesdir.js",
     "test-filesdir:logcat": "node scripts/test-filesdir-via-logcat.js --watch",
-    "view-startup-logs": "node scripts/view-app-startup-logs.js"
+    "view-startup-logs": "node scripts/view-app-startup-logs.js",
+    "view-all-logs": "powershell -ExecutionPolicy Bypass -File scripts/view-all-logs.ps1",
+    "capture-logs": "powershell -ExecutionPolicy Bypass -File scripts/capture-and-analyze-logs.ps1",
+    "capture-logs-simple": "powershell -ExecutionPolicy Bypass -File scripts/capture-logs-simple.ps1",
+    "check-apk-version": "powershell -ExecutionPolicy Bypass -File scripts/check-apk-version.ps1",
+    "diagnose-logs": "powershell -ExecutionPolicy Bypass -File scripts/diagnose-mainapplication-logs.ps1"
   },
   "jest": {
     "preset": "jest-expo"

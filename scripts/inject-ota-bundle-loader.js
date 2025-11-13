@@ -1,5 +1,6 @@
 /**
- * 在构建时自动注入 getJSBundleFile() 方法到 MainApplication.kt
+ * 在构建时自动注入 OTA Bundle Loader 到 MainApplication.kt
+ * 支持传统架构（getJSBundleFile）和新架构 BridgelessReact（getJSBundleLoader）
  * 用于支持 OTA 更新功能
  */
 
@@ -23,7 +24,8 @@ const MAIN_APPLICATION_PATH = path.join(
 // 需要添加的导入
 const REQUIRED_IMPORTS = [
   'import android.util.Log',
-  'import java.io.File'
+  'import java.io.File',
+  'import com.facebook.react.bridge.JSBundleLoader'
 ];
 
 // getJSBundleFile() 方法的实现
@@ -32,47 +34,106 @@ const REQUIRED_IMPORTS = [
 // getFilesDir() 返回: /data/user/0/.../files 或 /data/data/.../files
 // 两者指向同一个物理位置，只是格式不同（URI vs 文件系统路径）
 const GET_JS_BUNDLE_FILE_METHOD = `          override fun getJSBundleFile(): String? {
+            // 强制输出日志，确保能看到
+            Log.e("MainApplication", "========================================")
+            Log.e("MainApplication", "🔍 getJSBundleFile() 被调用！")
+            Log.e("MainApplication", "========================================")
+            
             // 检查是否有下载的 bundle 文件
             // 使用 getFilesDir() 获取应用文件目录，这与 FileSystem.documentDirectory 对应
             val filesDir = this@MainApplication.getFilesDir()
             val bundleDir = File(filesDir, "js-bundles")
             
             // 添加调试日志，用于对比 JavaScript 端的路径
-            Log.d("MainApplication", "🔍 检查 Bundle 文件:")
-            Log.d("MainApplication", "   getFilesDir(): \${filesDir.absolutePath}")
-            Log.d("MainApplication", "   bundleDir: \${bundleDir.absolutePath}")
-            Log.d("MainApplication", "   对应 JS 端路径: file://\${filesDir.absolutePath}/js-bundles/")
+            Log.e("MainApplication", "🔍 检查 Bundle 文件:")
+            Log.e("MainApplication", "   getFilesDir(): \${filesDir.absolutePath}")
+            Log.e("MainApplication", "   bundleDir: \${bundleDir.absolutePath}")
+            Log.e("MainApplication", "   对应 JS 端路径: file://\${filesDir.absolutePath}/js-bundles/")
             
             // 优先使用 .js 文件，如果没有则使用 .hbc 文件
             val jsBundle = File(bundleDir, "index.android.js")
             val hbcBundle = File(bundleDir, "index.android.hbc")
             
-            Log.d("MainApplication", "   jsBundle: \${jsBundle.absolutePath}, 存在: \${jsBundle.exists()}, 大小: \${if (jsBundle.exists()) jsBundle.length() else 0}")
-            Log.d("MainApplication", "   hbcBundle: \${hbcBundle.absolutePath}, 存在: \${hbcBundle.exists()}, 大小: \${if (hbcBundle.exists()) hbcBundle.length() else 0}")
+            Log.e("MainApplication", "   jsBundle: \${jsBundle.absolutePath}, 存在: \${jsBundle.exists()}, 大小: \${if (jsBundle.exists()) jsBundle.length() else 0}")
+            Log.e("MainApplication", "   hbcBundle: \${hbcBundle.absolutePath}, 存在: \${hbcBundle.exists()}, 大小: \${if (hbcBundle.exists()) hbcBundle.length() else 0}")
             
             return when {
               jsBundle.exists() && jsBundle.length() > 0 -> {
-                Log.d("MainApplication", "✅ 加载下载的 JS Bundle: \${jsBundle.absolutePath} (\${jsBundle.length()} bytes)")
+                Log.e("MainApplication", "✅ 加载下载的 JS Bundle: \${jsBundle.absolutePath} (\${jsBundle.length()} bytes)")
                 jsBundle.absolutePath
               }
               hbcBundle.exists() && hbcBundle.length() > 0 -> {
-                Log.d("MainApplication", "✅ 加载下载的 HBC Bundle: \${hbcBundle.absolutePath} (\${hbcBundle.length()} bytes)")
+                Log.e("MainApplication", "✅ 加载下载的 HBC Bundle: \${hbcBundle.absolutePath} (\${hbcBundle.length()} bytes)")
                 hbcBundle.absolutePath
               }
               else -> {
-                Log.d("MainApplication", "⚠️  未找到下载的 Bundle 文件，使用默认 Bundle")
-                Log.d("MainApplication", "   尝试列出 bundleDir 内容:")
+                Log.e("MainApplication", "⚠️  未找到下载的 Bundle 文件，使用默认 Bundle")
+                Log.e("MainApplication", "   尝试列出 bundleDir 内容:")
                 if (bundleDir.exists() && bundleDir.isDirectory) {
                   val files = bundleDir.listFiles()
                   if (files != null && files.isNotEmpty()) {
                     files.forEach { file ->
-                      Log.d("MainApplication", "     - \${file.name} (\${file.length()} bytes)")
+                      Log.e("MainApplication", "     - \${file.name} (\${file.length()} bytes)")
                     }
                   } else {
-                    Log.d("MainApplication", "     bundleDir 为空")
+                    Log.e("MainApplication", "     bundleDir 为空")
                   }
                 } else {
-                  Log.d("MainApplication", "     bundleDir 不存在或不是目录")
+                  Log.e("MainApplication", "     bundleDir 不存在或不是目录")
+                }
+                null // 使用默认 bundle (APK assets 中的)
+              }
+            }
+          }`;
+
+// getJSBundleLoader() 方法的实现（用于新架构 BridgelessReact）
+// 注意：这个方法可能定义在 ReactNativeHost 基类中，DefaultReactNativeHost 继承自它
+// 如果 DefaultReactNativeHost 没有这个方法，编译会失败，需要调整实现方式
+// 新架构使用 ReactHost.getJSBundleLoader() 而不是 getJSBundleFile()
+const GET_JS_BUNDLE_LOADER_METHOD = `          override fun getJSBundleLoader(): JSBundleLoader? {
+            // 强制输出日志，确保能看到
+            Log.e("MainApplication", "========================================")
+            Log.e("MainApplication", "getJSBundleLoader() called (BridgelessReact)")
+            Log.e("MainApplication", "========================================")
+            
+            // 检查是否有下载的 bundle 文件
+            val filesDir = this@MainApplication.getFilesDir()
+            val bundleDir = File(filesDir, "js-bundles")
+            
+            Log.e("MainApplication", "Checking Bundle files for BridgelessReact:")
+            Log.e("MainApplication", "   getFilesDir(): \${filesDir.absolutePath}")
+            Log.e("MainApplication", "   bundleDir: \${bundleDir.absolutePath}")
+            
+            // 优先使用 .js 文件，如果没有则使用 .hbc 文件
+            val jsBundle = File(bundleDir, "index.android.js")
+            val hbcBundle = File(bundleDir, "index.android.hbc")
+            
+            Log.e("MainApplication", "   jsBundle: \${jsBundle.absolutePath}, exists: \${jsBundle.exists()}, size: \${if (jsBundle.exists()) jsBundle.length() else 0}")
+            Log.e("MainApplication", "   hbcBundle: \${hbcBundle.absolutePath}, exists: \${hbcBundle.exists()}, size: \${if (hbcBundle.exists()) hbcBundle.length() else 0}")
+            
+            return when {
+              jsBundle.exists() && jsBundle.length() > 0 -> {
+                Log.e("MainApplication", "Loading downloaded JS Bundle (BridgelessReact): \${jsBundle.absolutePath} (\${jsBundle.length()} bytes)")
+                JSBundleLoader.createFileLoader(jsBundle.absolutePath)
+              }
+              hbcBundle.exists() && hbcBundle.length() > 0 -> {
+                Log.e("MainApplication", "Loading downloaded HBC Bundle (BridgelessReact): \${hbcBundle.absolutePath} (\${hbcBundle.length()} bytes)")
+                JSBundleLoader.createFileLoader(hbcBundle.absolutePath)
+              }
+              else -> {
+                Log.e("MainApplication", "No downloaded Bundle found (BridgelessReact), using default Bundle")
+                if (bundleDir.exists() && bundleDir.isDirectory) {
+                  val files = bundleDir.listFiles()
+                  if (files != null && files.isNotEmpty()) {
+                    Log.e("MainApplication", "Bundle directory contents:")
+                    files.forEach { file ->
+                      Log.e("MainApplication", "     - \${file.name} (\${file.length()} bytes)")
+                    }
+                  } else {
+                    Log.e("MainApplication", "Bundle directory is empty")
+                  }
+                } else {
+                  Log.e("MainApplication", "Bundle directory does not exist")
                 }
                 null // 使用默认 bundle (APK assets 中的)
               }
@@ -239,7 +300,139 @@ function injectOTABundleLoader() {
     content = beforeMethod + '\n' + GET_JS_BUNDLE_FILE_METHOD + '\n' + afterMethod;
   }
 
-  // 5. 写入文件
+  // 3. 检查并注入 getJSBundleLoader() 方法（用于新架构）
+  const getJSBundleLoaderStartRegex = /override\s+fun\s+getJSBundleLoader\(\)\s*:\s*JSBundleLoader\?/;
+  const loaderMethodStartMatch = content.match(getJSBundleLoaderStartRegex);
+  
+  console.log(`🔍 检查 getJSBundleLoader() 方法是否存在（新架构支持）...`);
+  console.log(`   是否包含 'getJSBundleLoader': ${content.includes('getJSBundleLoader')}`);
+  
+  if (loaderMethodStartMatch) {
+    console.log(`   ✅ 找到 getJSBundleLoader() 方法声明，位置: ${loaderMethodStartMatch.index}`);
+    
+    let loaderMethodStartIndex = loaderMethodStartMatch.index;
+    for (let i = loaderMethodStartIndex - 1; i >= 0; i--) {
+      if (content[i] === '\n') {
+        loaderMethodStartIndex = i + 1;
+        break;
+      }
+      if (i === 0) {
+        loaderMethodStartIndex = 0;
+        break;
+      }
+    }
+    
+    // 找到方法体
+    let loaderBraceIndex = content.indexOf('{', loaderMethodStartMatch.index);
+    if (loaderBraceIndex === -1) {
+      console.error('❌ 无法找到 getJSBundleLoader() 方法体的开始');
+      process.exit(1);
+    }
+    
+    let loaderBraceCount = 0;
+    let loaderMethodEndIndex = loaderBraceIndex;
+    for (let i = loaderBraceIndex; i < content.length; i++) {
+      if (content[i] === '{') loaderBraceCount++;
+      if (content[i] === '}') loaderBraceCount--;
+      if (loaderBraceCount === 0) {
+        loaderMethodEndIndex = i + 1;
+        break;
+      }
+    }
+    
+    if (loaderMethodEndIndex === loaderBraceIndex) {
+      console.error('❌ 无法找到 getJSBundleLoader() 方法体的结束');
+      process.exit(1);
+    }
+    
+    const loaderMethodContent = content.substring(loaderMethodStartIndex, loaderMethodEndIndex);
+    const hasOTALoaderImplementation = loaderMethodContent.includes('File(this@MainApplication.getFilesDir()') || 
+                                     loaderMethodContent.includes('js-bundles');
+    const hasSuperLoaderCall = loaderMethodContent.includes('super.getJSBundleLoader()') || 
+                              loaderMethodContent.includes('return super');
+    
+    console.log(`   包含 OTA Loader 实现: ${hasOTALoaderImplementation}`);
+    console.log(`   包含 super 调用: ${hasSuperLoaderCall}`);
+    
+    if (hasOTALoaderImplementation) {
+      console.log('ℹ️  getJSBundleLoader() 方法已包含 OTA 实现，跳过注入');
+    } else {
+      console.log('⚠️  检测到 getJSBundleLoader() 方法，将替换为 OTA 实现');
+      const beforeLoaderMethod = content.substring(0, loaderMethodStartIndex);
+      const afterLoaderMethod = content.substring(loaderMethodEndIndex);
+      content = beforeLoaderMethod + GET_JS_BUNDLE_LOADER_METHOD + afterLoaderMethod;
+    }
+  } else {
+    console.log('   ℹ️  未找到 getJSBundleLoader() 方法，将插入新方法（新架构支持）');
+    // 在 getJSBundleFile() 方法之后插入
+    const insertAfterGetJSBundleFile = content.indexOf('override fun getJSBundleFile()');
+    if (insertAfterGetJSBundleFile !== -1) {
+      // 找到 getJSBundleFile() 方法的结束位置
+      let fileMethodBraceIndex = content.indexOf('{', insertAfterGetJSBundleFile);
+      if (fileMethodBraceIndex !== -1) {
+        let fileMethodBraceCount = 0;
+        let fileMethodEndIndex = fileMethodBraceIndex;
+        for (let i = fileMethodBraceIndex; i < content.length; i++) {
+          if (content[i] === '{') fileMethodBraceCount++;
+          if (content[i] === '}') fileMethodBraceCount--;
+          if (fileMethodBraceCount === 0) {
+            fileMethodEndIndex = i + 1;
+            break;
+          }
+        }
+        // 在 getJSBundleFile() 方法之后插入 getJSBundleLoader()
+        const beforeLoaderMethod = content.slice(0, fileMethodEndIndex);
+        const afterLoaderMethod = content.slice(fileMethodEndIndex);
+        content = beforeLoaderMethod + '\n' + GET_JS_BUNDLE_LOADER_METHOD + '\n' + afterLoaderMethod;
+      } else {
+        console.warn('⚠️  无法找到 getJSBundleFile() 方法体，将在文件末尾插入 getJSBundleLoader()');
+        content = content + '\n' + GET_JS_BUNDLE_LOADER_METHOD + '\n';
+      }
+    } else {
+      // 如果连 getJSBundleFile() 都没有，使用相同的插入位置
+      const insertMarker = 'override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG';
+      const markerIndex = content.indexOf(insertMarker);
+      if (markerIndex !== -1) {
+        const lineEndIndex = content.indexOf('\n', markerIndex);
+        if (lineEndIndex !== -1) {
+          const beforeLoaderMethod = content.slice(0, lineEndIndex + 1);
+          const afterLoaderMethod = content.slice(lineEndIndex + 1);
+          content = beforeLoaderMethod + '\n' + GET_JS_BUNDLE_LOADER_METHOD + '\n' + afterLoaderMethod;
+        }
+      }
+    }
+  }
+
+  // 4. 检查并添加 onCreate() 日志（用于验证代码是否执行）
+  if (!content.includes('MainApplication.onCreate() called')) {
+    const onCreateRegex = /override\s+fun\s+onCreate\(\)/;
+    const onCreateMatch = content.match(onCreateRegex);
+    
+    if (onCreateMatch) {
+      console.log('INFO: Found onCreate() method, adding verification logs...');
+      // 在 onCreate() 方法开始处添加日志
+      const onCreateIndex = onCreateMatch.index;
+      const onCreateBraceIndex = content.indexOf('{', onCreateIndex);
+      if (onCreateBraceIndex !== -1) {
+        const afterBrace = content.indexOf('\n', onCreateBraceIndex);
+        if (afterBrace !== -1) {
+          const beforeOnCreate = content.slice(0, afterBrace + 1);
+          const afterOnCreate = content.slice(afterBrace + 1);
+          // 在 super.onCreate() 之前添加日志
+          const onCreateLog = `
+    Log.e("MainApplication", "========================================")
+    Log.e("MainApplication", "MainApplication.onCreate() called")
+    Log.e("MainApplication", "Package: \${packageName}")
+    Log.e("MainApplication", "getFilesDir(): \${getFilesDir().absolutePath}")
+    Log.e("MainApplication", "========================================")
+`;
+          content = beforeOnCreate + onCreateLog + afterOnCreate;
+        }
+      }
+    }
+  }
+
+  // 6. 写入文件
   console.log('');
   console.log('💾 写入修改后的文件...');
   fs.writeFileSync(MAIN_APPLICATION_PATH, content, 'utf8');
@@ -248,14 +441,22 @@ function injectOTABundleLoader() {
   // 6. 验证修改
   console.log('');
   console.log('🔍 验证注入结果...');
-  if (content.includes('override fun getJSBundleFile()')) {
+  const hasGetJSBundleFile = content.includes('override fun getJSBundleFile()');
+  const hasGetJSBundleLoader = content.includes('override fun getJSBundleLoader()');
+  
+  if (hasGetJSBundleFile || hasGetJSBundleLoader) {
     // 验证是否包含 OTA 实现的关键代码
     const hasOTAImplementation = content.includes('File(this@MainApplication.getFilesDir()') || 
                                  content.includes('js-bundles');
-    const hasSuperCall = content.includes('super.getJSBundleFile()');
-    const hasLogStatements = content.includes('Log.d("MainApplication"');
+    const hasLogStatements = content.includes('Log.e("MainApplication"') || content.includes('Log.d("MainApplication"');
+    const hasSuperCall = content.includes('super.getJSBundleFile()') || content.includes('super.getJSBundleLoader()');
     
-    console.log(`   包含 getJSBundleFile() 方法: ✅`);
+    if (hasGetJSBundleFile) {
+      console.log(`   包含 getJSBundleFile() 方法（传统架构）: ✅`);
+    }
+    if (hasGetJSBundleLoader) {
+      console.log(`   包含 getJSBundleLoader() 方法（新架构）: ✅`);
+    }
     console.log(`   包含 OTA 实现 (js-bundles): ${hasOTAImplementation ? '✅' : '❌'}`);
     console.log(`   包含日志语句: ${hasLogStatements ? '✅' : '❌'}`);
     console.log(`   包含 super 调用: ${hasSuperCall ? '⚠️  (可能被覆盖)' : '✅'}`);
@@ -267,25 +468,42 @@ function injectOTABundleLoader() {
       console.log('========================================');
       console.log(`文件路径: ${MAIN_APPLICATION_PATH}`);
       console.log('');
-      console.log('注入的方法包含:');
-      console.log('  ✅ getJSBundleFile() 方法');
+      console.log('注入的方法包括:');
+      if (hasGetJSBundleFile) {
+        console.log('  ✅ getJSBundleFile() 方法（传统架构支持）');
+      }
+      if (hasGetJSBundleLoader) {
+        console.log('  ✅ getJSBundleLoader() 方法（新架构 BridgelessReact 支持）');
+      }
       console.log('  ✅ OTA bundle 加载逻辑');
-      console.log('  ✅ 详细的调试日志');
+      console.log('  ✅ 详细的调试日志 (ERROR 级别)');
+      console.log('');
+      console.log('兼容性:');
+      console.log('  ✅ 传统架构 (ReactNativeHost): 通过 getJSBundleFile() 支持');
+      console.log('  ✅ 新架构 (BridgelessReact): 通过 getJSBundleLoader() 支持');
       console.log('');
       console.log('下一步:');
       console.log('  1. 继续构建 APK/AAB');
       console.log('  2. 安装后查看 logcat 日志:');
-      console.log('     adb logcat -s MainApplication:D');
-      console.log('  3. 应该能看到 "🔍 检查 Bundle 文件" 等日志');
+      console.log('     adb logcat -s MainApplication:E');
+      console.log('  3. 应该能看到 "getJSBundleLoader() called (BridgelessReact)" 等日志');
       console.log('');
     } else if (hasSuperCall) {
       console.warn('');
-      console.warn('⚠️  警告：检测到 getJSBundleFile() 方法，但只包含 super 调用');
+      console.warn('⚠️  警告：检测到方法，但只包含 super 调用');
       console.warn('   这可能意味着注入失败或被覆盖');
       console.warn('   方法内容预览:');
-      const methodMatch = content.match(/override\s+fun\s+getJSBundleFile\(\)[\s\S]{0,300}/);
-      if (methodMatch) {
-        console.warn(`   ${methodMatch[0]}`);
+      if (hasGetJSBundleFile) {
+        const methodMatch = content.match(/override\s+fun\s+getJSBundleFile\(\)[\s\S]{0,300}/);
+        if (methodMatch) {
+          console.warn(`   getJSBundleFile(): ${methodMatch[0].substring(0, 200)}...`);
+        }
+      }
+      if (hasGetJSBundleLoader) {
+        const loaderMethodMatch = content.match(/override\s+fun\s+getJSBundleLoader\(\)[\s\S]{0,300}/);
+        if (loaderMethodMatch) {
+          console.warn(`   getJSBundleLoader(): ${loaderMethodMatch[0].substring(0, 200)}...`);
+        }
       }
       console.warn('');
       console.warn('建议:');
@@ -296,13 +514,16 @@ function injectOTABundleLoader() {
       process.exit(1);
     } else {
       console.log('');
-      console.log('✅ 成功注入 getJSBundleFile() 方法');
+      const methods = [];
+      if (hasGetJSBundleFile) methods.push('getJSBundleFile()');
+      if (hasGetJSBundleLoader) methods.push('getJSBundleLoader()');
+      console.log(`✅ 成功注入方法: ${methods.join(', ')}`);
       console.log(`   文件路径: ${MAIN_APPLICATION_PATH}`);
       console.log('');
     }
   } else {
     console.error('');
-    console.error('❌ 注入失败：未找到注入的方法');
+    console.error('❌ 注入失败：未找到 getJSBundleFile() 或 getJSBundleLoader() 方法');
     console.error('');
     console.error('可能的原因:');
     console.error('  1. 文件写入失败');
