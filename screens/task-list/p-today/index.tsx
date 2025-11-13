@@ -45,10 +45,28 @@ const TodayTaskScreen: React.FC = () => {
       const todayStr = getDateString(new Date());
       const isToday = dateStr === todayStr;
       
-      // 如果是今天，每次进入都要检测并初始化今日任务
-      if (isToday) {
+      // 先检查本地是否有该日期的任务
+      let tasks = await taskListService.getDailyTasks(dateStr);
+      console.log(`本地 ${dateStr} 的任务数量: ${tasks.length}`);
+      
+      // 如果本地没有任务，先从云端同步
+      if (tasks.length === 0) {
+        console.log(`本地没有 ${dateStr} 的任务，开始从云端同步...`);
+        try {
+          await taskListService.syncDailyTasksFromCloud(dateStr, true); // 强制同步
+          tasks = await taskListService.getDailyTasks(dateStr);
+          console.log(`从云端同步后，${dateStr} 的任务数量: ${tasks.length}`);
+        } catch (error) {
+          console.error('从云端同步每日任务失败:', error);
+          // 同步失败不影响继续执行
+        }
+      }
+      
+      // 如果是今天，且本地和云端都没有任务，则从预设任务生成
+      if (isToday && tasks.length === 0) {
+        console.log('本地和云端都没有今日任务，从预设任务生成今日任务');
+        
         // 先同步预设任务（确保预设任务是最新的）
-        // 使用双向同步，合并本地和云端的所有预设任务
         try {
           await taskListService.syncPresetTasksBidirectional();
           console.log('预设任务同步完成');
@@ -57,39 +75,62 @@ const TodayTaskScreen: React.FC = () => {
           // 同步失败不影响继续执行，使用本地预设任务
         }
         
-        // 每次进入都检查是否是新的一天
+        // 从预设任务初始化今日任务
+        try {
+          await taskListService.initializeTodayTasks();
+          tasks = await taskListService.getDailyTasks(dateStr);
+          console.log('从预设任务生成今日任务完成，任务数量:', tasks.length);
+        } catch (error) {
+          console.error('从预设任务生成今日任务失败:', error);
+        }
+      } else if (isToday && tasks.length > 0) {
+        // 如果今天是新的一天，需要检查并重新初始化
         const isNewDay = await taskListService.checkIfNewDay();
         
         if (isNewDay) {
-          console.log('检测到新的一天，开始初始化今日任务');
-          // 初始化今日任务（如果是新的一天，会清除今日任务并从预设任务重新生成，状态初始化）
-          await taskListService.initializeTodayTasks();
-          console.log('今日任务初始化完成');
+          console.log('检测到新的一天，重新初始化今日任务');
+          // 先同步预设任务
+          try {
+            await taskListService.syncPresetTasksBidirectional();
+            console.log('预设任务同步完成');
+          } catch (error) {
+            console.error('同步预设任务失败:', error);
+          }
+          
+          // 重新初始化今日任务
+          try {
+            await taskListService.initializeTodayTasks();
+            tasks = await taskListService.getDailyTasks(dateStr);
+            console.log('今日任务重新初始化完成');
+          } catch (error) {
+            console.error('重新初始化今日任务失败:', error);
+          }
         } else {
-          // 今天已经初始化过，但每次进入都要检查并确保任务正确
+          // 今天已经初始化过，检查任务状态
           console.log('今天已初始化过，检查任务状态');
           
-          // 获取当前任务和预设任务
+          // 获取预设任务
           const presetTasks = await taskListService.getPresetTasks();
           const enabledPresets = presetTasks.filter(t => t.enabled);
-          const todayTasks = await taskListService.getDailyTasks(dateStr);
           
           // 检查今日任务数量是否与启用的预设任务数量一致
-          if (todayTasks.length < enabledPresets.length) {
-            console.log(`检测到预设任务数量（${enabledPresets.length}）大于今日任务数量（${todayTasks.length}），强制重新初始化`);
+          if (tasks.length < enabledPresets.length) {
+            console.log(`检测到预设任务数量（${enabledPresets.length}）大于今日任务数量（${tasks.length}），强制重新初始化`);
             try {
               await taskListService.forceReinitializeTodayTasks();
+              tasks = await taskListService.getDailyTasks(dateStr);
               console.log('今日任务已强制重新初始化');
             } catch (error) {
               console.error('强制重新初始化今日任务失败:', error);
             }
           } else {
-            // 即使数量匹配，也要确保所有任务的日期都是今天（防止显示昨天的任务）
-            const tasksWithWrongDate = todayTasks.filter(task => task.date !== todayStr);
+            // 检查任务的日期是否正确
+            const tasksWithWrongDate = tasks.filter(task => task.date !== todayStr);
             if (tasksWithWrongDate.length > 0) {
               console.log(`检测到 ${tasksWithWrongDate.length} 个任务的日期不正确，强制重新初始化`);
               try {
                 await taskListService.forceReinitializeTodayTasks();
+                tasks = await taskListService.getDailyTasks(dateStr);
                 console.log('今日任务已强制重新初始化（修复日期问题）');
               } catch (error) {
                 console.error('强制重新初始化今日任务失败:', error);
@@ -97,21 +138,9 @@ const TodayTaskScreen: React.FC = () => {
             }
           }
         }
-      } else {
-        // 如果不是今天，只同步该日期的任务（用于查看历史任务）
-        try {
-          await taskListService.syncDailyTasksFromCloud(dateStr);
-          console.log(`${dateStr} 的每日任务同步完成`);
-        } catch (error) {
-          console.error('同步每日任务失败:', error);
-          // 同步失败不影响继续执行，使用本地数据
-        }
       }
       
       // 确保获取的是指定日期的任务，而不是其他日期的任务
-      const tasks = await taskListService.getDailyTasks(dateStr);
-      
-      // 额外检查：如果选择的是今天，但获取到的任务日期不是今天，则过滤掉
       const filteredTasks = isToday 
         ? tasks.filter(task => task.date === todayStr)
         : tasks.filter(task => task.date === dateStr);
