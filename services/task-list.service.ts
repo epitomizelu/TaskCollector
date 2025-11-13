@@ -83,36 +83,39 @@ class TaskListService {
     tasks.push(newTask);
     await AsyncStorage.setItem(PRESET_TASKS_KEY, JSON.stringify(tasks));
     
-    // 同步到云端
-    await this.syncPresetTaskToCloud(newTask).catch(error => {
+    // 异步同步到云端（不阻塞主流程）
+    this.syncPresetTaskToCloud(newTask).catch(error => {
       console.error('同步预设任务到云端失败:', error);
     });
     
-    // 如果预设任务已启用，且今天还没有对应的今日任务，则自动创建并同步到今日任务
+    // 如果预设任务已启用，且今天还没有对应的今日任务，则异步创建并同步到今日任务
     if (newTask.enabled) {
-      const today = this.getLocalDateString();
-      const todayTasks = await this.getDailyTasks(today);
-      const hasTodayTask = todayTasks.some(t => t.presetTaskId === newTask.id);
-      
-      if (!hasTodayTask) {
+      // 异步执行，不阻塞主流程
+      (async () => {
         try {
-          const dailyTask = await this.addDailyTask({
-            presetTaskId: newTask.id,
-            name: newTask.name,
-            description: newTask.description,
-            date: today,
-            completed: false,
-          });
-          console.log('已自动为新增的预设任务创建今日任务:', newTask.name);
+          const today = this.getLocalDateString();
+          const todayTasks = await this.getDailyTasks(today);
+          const hasTodayTask = todayTasks.some(t => t.presetTaskId === newTask.id);
           
-          // 确保今日任务已同步到云端（addDailyTask 内部会同步，这里确保完成）
-          await this.syncDailyTaskToCloud(dailyTask).catch(error => {
-            console.error('同步新创建的今日任务到云端失败:', error);
-          });
+          if (!hasTodayTask) {
+            const dailyTask = await this.addDailyTask({
+              presetTaskId: newTask.id,
+              name: newTask.name,
+              description: newTask.description,
+              date: today,
+              completed: false,
+            });
+            console.log('已自动为新增的预设任务创建今日任务:', newTask.name);
+            
+            // 确保今日任务已同步到云端（addDailyTask 内部会同步，这里确保完成）
+            this.syncDailyTaskToCloud(dailyTask).catch(error => {
+              console.error('同步新创建的今日任务到云端失败:', error);
+            });
+          }
         } catch (error) {
           console.error('自动创建今日任务失败:', error);
         }
-      }
+      })();
     }
     
     return newTask;
@@ -134,8 +137,8 @@ class TaskListService {
     };
     await AsyncStorage.setItem(PRESET_TASKS_KEY, JSON.stringify(tasks));
     
-    // 同步到云端
-    await this.syncPresetTaskToCloud(tasks[index]).catch(error => {
+    // 异步同步到云端（不阻塞主流程）
+    this.syncPresetTaskToCloud(tasks[index]).catch(error => {
       console.error('同步预设任务到云端失败:', error);
     });
     
@@ -434,24 +437,40 @@ class TaskListService {
       updatedAt: new Date().toISOString(),
     };
 
-    // 如果任务被标记为完成，且还未同步到任务收集模块，则同步
-    if (updates.completed === true && !updatedTask.syncedToCollection) {
-      try {
-        await this.syncToTaskCollection(updatedTask);
-        updatedTask.syncedToCollection = true;
-        updatedTask.completedAt = new Date().toISOString();
-      } catch (error) {
-        console.error('同步到任务收集模块失败，但任务仍会标记为完成:', error);
-        // 即使同步失败，也标记为完成
-        updatedTask.completedAt = new Date().toISOString();
-      }
+    // 如果任务被标记为完成，设置完成时间
+    if (updates.completed === true) {
+      updatedTask.completedAt = new Date().toISOString();
     }
 
     allTasks[index] = updatedTask;
     await AsyncStorage.setItem(DAILY_TASKS_KEY, JSON.stringify(allTasks));
     
-    // 同步到云端
-    await this.syncDailyTaskToCloud(updatedTask).catch(error => {
+    // 异步同步到任务收集模块和云端（不阻塞主流程）
+    if (updates.completed === true && !updatedTask.syncedToCollection) {
+      // 异步同步到任务收集模块
+      this.syncToTaskCollection(updatedTask).then(async () => {
+        // 同步成功后，更新本地标记
+        try {
+          const allTasksJson = await AsyncStorage.getItem(DAILY_TASKS_KEY);
+          if (allTasksJson) {
+            const allTasks: DailyTask[] = JSON.parse(allTasksJson);
+            const taskIndex = allTasks.findIndex(t => t.id === id);
+            if (taskIndex !== -1) {
+              allTasks[taskIndex].syncedToCollection = true;
+              await AsyncStorage.setItem(DAILY_TASKS_KEY, JSON.stringify(allTasks));
+            }
+          }
+        } catch (error) {
+          console.error('更新同步标记失败:', error);
+        }
+      }).catch(error => {
+        console.error('同步到任务收集模块失败:', error);
+        // 同步失败不影响任务完成状态
+      });
+    }
+    
+    // 异步同步到云端（不阻塞主流程）
+    this.syncDailyTaskToCloud(updatedTask).catch(error => {
       console.error('同步每日任务到云端失败:', error);
     });
     
@@ -569,6 +588,7 @@ class TaskListService {
 
   /**
    * 同步每日任务到云端
+   * 优化：先尝试更新，如果失败再创建，避免先获取所有任务列表
    */
   private async syncDailyTaskToCloud(task: DailyTask): Promise<void> {
     if (!API_CONFIG.API_KEY) {
@@ -576,16 +596,23 @@ class TaskListService {
     }
     
     try {
-      // 检查是否已存在（通过 ID 查询）
-      const existingTasks = await apiService.getTaskListDailyTasks(task.date);
-      const existingTask = existingTasks.find(t => t.id === task.id);
-      
-      if (existingTask) {
-        // 更新
+      // 先尝试更新（大多数情况下任务已存在）
+      try {
         await apiService.updateTaskListDailyTask(task.id, task);
-      } else {
-        // 创建
-        await apiService.createTaskListDailyTask(task);
+        return; // 更新成功，直接返回
+      } catch (updateError: any) {
+        // 如果更新失败，可能是任务不存在，尝试创建
+        // 检查错误信息，如果是404或任务不存在，则创建
+        const errorMessage = updateError?.message || '';
+        if (errorMessage.includes('不存在') || 
+            errorMessage.includes('not found') || 
+            errorMessage.includes('404')) {
+          // 任务不存在，创建新任务
+          await apiService.createTaskListDailyTask(task);
+        } else {
+          // 其他错误，重新抛出
+          throw updateError;
+        }
       }
     } catch (error) {
       console.error('同步每日任务到云端失败:', error);

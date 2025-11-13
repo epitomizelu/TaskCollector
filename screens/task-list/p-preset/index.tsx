@@ -30,6 +30,7 @@ const PresetTaskScreen: React.FC = () => {
   const [taskName, setTaskName] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     loadPresetTasks();
@@ -110,38 +111,78 @@ const PresetTaskScreen: React.FC = () => {
       return;
     }
 
+    if (isSaving) {
+      return; // 防止重复点击
+    }
+
+    setIsSaving(true);
     try {
       if (editingTask) {
-        // 更新任务
-        await taskListService.updatePresetTask(editingTask.id, {
+        // 更新任务 - 先乐观更新UI
+        const updatedTask: PresetTask = {
+          ...editingTask,
+          name: taskName.trim(),
+          description: taskDescription.trim() || undefined,
+          updatedAt: new Date().toISOString(),
+        };
+        
+        // 立即更新UI
+        setPresetTasks(prevTasks =>
+          prevTasks.map(t => t.id === editingTask.id ? updatedTask : t)
+        );
+        
+        // 关闭Modal
+        setIsAddModalVisible(false);
+        setIsEditModalVisible(false);
+        setEditingTask(null);
+        setTaskName('');
+        setTaskDescription('');
+        setIsSaving(false);
+        showToast('更新成功');
+        
+        // 异步更新数据（不阻塞UI）
+        taskListService.updatePresetTask(editingTask.id, {
           name: taskName.trim(),
           description: taskDescription.trim() || undefined,
           order: editingTask.order,
           enabled: editingTask.enabled,
+        }).catch(error => {
+          console.error('更新任务失败:', error);
+          // 如果失败，恢复UI状态
+          setPresetTasks(prevTasks =>
+            prevTasks.map(t => t.id === editingTask.id ? editingTask : t)
+          );
+          Alert.alert('错误', '更新失败，请重试');
         });
-        showToast('更新成功');
       } else {
-        // 创建新任务
+        // 创建新任务 - 先保存到本地，获取真实ID后再更新UI
         const maxOrder = presetTasks.length > 0
           ? Math.max(...presetTasks.map(t => t.order))
           : 0;
-        await taskListService.savePresetTask({
+        
+        // 先保存到本地存储（快速操作）
+        const savedTask = await taskListService.savePresetTask({
           name: taskName.trim(),
           description: taskDescription.trim() || undefined,
           order: maxOrder + 1,
           enabled: true,
         });
+        
+        // 立即更新UI（使用保存后的真实ID）
+        setPresetTasks(prevTasks => [...prevTasks, savedTask]);
+        
+        // 关闭Modal
+        setIsAddModalVisible(false);
+        setIsEditModalVisible(false);
+        setEditingTask(null);
+        setTaskName('');
+        setTaskDescription('');
+        setIsSaving(false);
         showToast('添加成功');
       }
-
-      setIsAddModalVisible(false);
-      setIsEditModalVisible(false);
-      setEditingTask(null);
-      setTaskName('');
-      setTaskDescription('');
-      await loadPresetTasks();
     } catch (error) {
       console.error('保存失败:', error);
+      setIsSaving(false);
       Alert.alert('错误', '保存失败，请重试');
     }
   };
@@ -334,10 +375,13 @@ const PresetTaskScreen: React.FC = () => {
                   <Text style={styles.modalCancelButtonText}>取消</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.modalConfirmButton}
+                  style={[styles.modalConfirmButton, isSaving && styles.modalConfirmButtonDisabled]}
                   onPress={handleSaveTask}
+                  disabled={isSaving}
                 >
-                  <Text style={styles.modalConfirmButtonText}>保存</Text>
+                  <Text style={styles.modalConfirmButtonText}>
+                    {isSaving ? '保存中...' : '保存'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

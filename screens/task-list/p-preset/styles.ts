@@ -260,6 +260,10 @@ export default StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#6366f1',
   },
+  modalConfirmButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.6,
+  },
   modalConfirmButtonText: {
     fontSize: 16,
     fontWeight: '500',

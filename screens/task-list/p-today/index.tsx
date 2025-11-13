@@ -256,14 +256,40 @@ const TodayTaskScreen: React.FC = () => {
 
   const handleCompleteTask = async (task: DailyTask) => {
     try {
-      if (task.completed) {
-        await taskListService.uncompleteTask(task.id);
-        showToast('已取消完成');
+      // 先乐观更新UI，立即响应用户操作
+      const updatedTask = { ...task, completed: !task.completed };
+      if (updatedTask.completed) {
+        updatedTask.completedAt = new Date().toISOString();
       } else {
-        await taskListService.completeTask(task.id);
-        showToast('任务已完成');
+        updatedTask.completedAt = undefined;
       }
-      await loadTasks();
+      
+      // 立即更新UI
+      setDailyTasks(prevTasks => 
+        prevTasks.map(t => t.id === task.id ? updatedTask : t)
+      );
+      showToast(updatedTask.completed ? '任务已完成' : '已取消完成');
+      
+      // 异步更新数据（不阻塞UI）
+      if (task.completed) {
+        taskListService.uncompleteTask(task.id).catch(error => {
+          console.error('取消完成任务失败:', error);
+          // 如果失败，恢复UI状态
+          setDailyTasks(prevTasks => 
+            prevTasks.map(t => t.id === task.id ? task : t)
+          );
+          Alert.alert('错误', error.message || '操作失败，请重试');
+        });
+      } else {
+        taskListService.completeTask(task.id).catch(error => {
+          console.error('完成任务失败:', error);
+          // 如果失败，恢复UI状态
+          setDailyTasks(prevTasks => 
+            prevTasks.map(t => t.id === task.id ? task : t)
+          );
+          Alert.alert('错误', error.message || '操作失败，请重试');
+        });
+      }
     } catch (error: any) {
       console.error('操作失败:', error);
       Alert.alert('错误', error.message || '操作失败，请重试');
