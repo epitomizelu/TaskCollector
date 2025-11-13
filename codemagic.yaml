@@ -56,6 +56,10 @@ workflows:
           # 确保环境变量在 prebuild 时可用
           export EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY"
           npx expo prebuild --platform android --clean || true
+      - name: Inject OTA Bundle Loader
+        script: |
+          echo "🔧 注入 OTA Bundle Loader 到 MainApplication.kt..."
+          node scripts/inject-ota-bundle-loader.js
       - name: Build Android APK
         script: |
           cd android
@@ -147,6 +151,10 @@ workflows:
           # 确保环境变量在 prebuild 时可用
           export EXPO_PUBLIC_API_KEY="$EXPO_PUBLIC_API_KEY"
           npx expo prebuild --platform android --clean || true
+      - name: Inject OTA Bundle Loader
+        script: |
+          echo "🔧 注入 OTA Bundle Loader 到 MainApplication.kt..."
+          node scripts/inject-ota-bundle-loader.js
       - name: Build Android AAB
         script: |
           cd android
