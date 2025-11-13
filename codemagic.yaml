@@ -60,11 +60,27 @@ workflows:
         script: |
           echo "🔧 注入 OTA Bundle Loader 到 MainApplication.kt..."
           node scripts/inject-ota-bundle-loader.js
+          echo ""
+          echo "📋 验证注入结果..."
+          if grep -q "File(this@MainApplication.getFilesDir(), \"js-bundles\")" android/app/src/main/java/com/lcy/taskcollection/MainApplication.kt; then
+            echo "✅ 确认：MainApplication.kt 包含 OTA 实现"
+          else
+            echo "⚠️  警告：MainApplication.kt 可能不包含 OTA 实现"
+            echo "   文件内容预览："
+            grep -A 10 "getJSBundleFile" android/app/src/main/java/com/lcy/taskcollection/MainApplication.kt || echo "   未找到 getJSBundleFile 方法"
+          fi
       - name: Build Android APK
         script: |
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease
+          echo ""
+          echo "📋 构建后验证 MainApplication.kt..."
+          if grep -q "File(this@MainApplication.getFilesDir(), \"js-bundles\")" app/src/main/java/com/lcy/taskcollection/MainApplication.kt; then
+            echo "✅ 确认：构建后 MainApplication.kt 仍包含 OTA 实现"
+          else
+            echo "⚠️  警告：构建后 MainApplication.kt 可能不包含 OTA 实现"
+          fi
       - name: Build and Upload JS Bundle (OTA Update)
         script: |
           echo "=========================================="
@@ -155,11 +171,27 @@ workflows:
         script: |
           echo "🔧 注入 OTA Bundle Loader 到 MainApplication.kt..."
           node scripts/inject-ota-bundle-loader.js
+          echo ""
+          echo "📋 验证注入结果..."
+          if grep -q "File(this@MainApplication.getFilesDir(), \"js-bundles\")" android/app/src/main/java/com/lcy/taskcollection/MainApplication.kt; then
+            echo "✅ 确认：MainApplication.kt 包含 OTA 实现"
+          else
+            echo "⚠️  警告：MainApplication.kt 可能不包含 OTA 实现"
+            echo "   文件内容预览："
+            grep -A 10 "getJSBundleFile" android/app/src/main/java/com/lcy/taskcollection/MainApplication.kt || echo "   未找到 getJSBundleFile 方法"
+          fi
       - name: Build Android AAB
         script: |
           cd android
           chmod +x gradlew
           ./gradlew bundleRelease
+          echo ""
+          echo "📋 构建后验证 MainApplication.kt..."
+          if grep -q "File(this@MainApplication.getFilesDir(), \"js-bundles\")" app/src/main/java/com/lcy/taskcollection/MainApplication.kt; then
+            echo "✅ 确认：构建后 MainApplication.kt 仍包含 OTA 实现"
+          else
+            echo "⚠️  警告：构建后 MainApplication.kt 可能不包含 OTA 实现"
+          fi
       - name: Build and Upload JS Bundle (OTA Update)
         script: |
           echo "=========================================="
