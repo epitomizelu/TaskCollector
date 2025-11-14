@@ -31,33 +31,92 @@ const ReviewWeeklyScreen = () => {
   const [rating, setRating] = useState<number | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [currentReview, setCurrentReview] = useState<ReviewData | null>(null);
+  // 折叠状态：成就、反思、改进、感恩、目标
+  const [collapsed, setCollapsed] = useState({
+    achievements: false,
+    reflections: false,
+    improvements: false,
+    gratitude: false,
+    goals: false,
+  });
 
   useEffect(() => {
-    if (reviewId) {
-      loadReview();
-    }
-  }, [reviewId]);
+    // 检查日期变更并初始化
+    initializePage();
+  }, []);
 
-  const loadReview = async () => {
+  const initializePage = async () => {
     try {
       setIsLoading(true);
-      const review = await reviewService.getReviewById(reviewId);
-      if (review) {
-        setAchievements(review.content.achievements || ['']);
-        setReflections(review.content.reflections || ['']);
-        setImprovements(review.content.improvements || ['']);
-        setGratitude(review.content.gratitude || ['']);
-        setGoals(review.content.goals || ['']);
-        setNotes(review.content.notes || '');
-        setRating(review.rating);
+      
+      // 检查日期是否变更
+      const dateChanged = await reviewService.checkDateChange('weekly');
+      
+      if (dateChanged) {
+        // 日期已变更，清空页面数据
+        clearForm();
+        // 同步云端数据
+        await reviewService.getAllReviews();
       }
+      
+      // 加载当天的复盘数据
+      await loadTodayReview();
     } catch (error) {
-      console.error('加载复盘失败:', error);
-      Alert.alert('错误', '加载复盘失败');
+      console.error('初始化页面失败:', error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const clearForm = () => {
+    setAchievements(['']);
+    setReflections(['']);
+    setImprovements(['']);
+    setGratitude(['']);
+    setGoals(['']);
+    setNotes('');
+    setRating(undefined);
+    setCurrentReview(null);
+  };
+
+  const loadTodayReview = async () => {
+    try {
+      const today = reviewService.getDateString('weekly');
+      const review = await reviewService.getReviewByDate('weekly', today);
+      
+      if (review) {
+        setCurrentReview(review);
+        setAchievements(review.content.achievements && review.content.achievements.length > 0 
+          ? review.content.achievements 
+          : ['']);
+        setReflections(review.content.reflections && review.content.reflections.length > 0 
+          ? review.content.reflections 
+          : ['']);
+        setImprovements(review.content.improvements && review.content.improvements.length > 0 
+          ? review.content.improvements 
+          : ['']);
+        setGratitude(review.content.gratitude && review.content.gratitude.length > 0 
+          ? review.content.gratitude 
+          : ['']);
+        setGoals(review.content.goals && review.content.goals.length > 0 
+          ? review.content.goals 
+          : ['']);
+        setNotes(review.content.notes || '');
+        setRating(review.rating);
+        
+        // 检查是否可以编辑
+        setIsReadOnly(!reviewService.canEdit(review));
+      } else {
+        const isToday = reviewService.isToday(date, 'weekly');
+        setIsReadOnly(!isToday);
+      }
+    } catch (error) {
+      console.error('加载复盘失败:', error);
+    }
+  };
+
 
   const handleAddItem = (setter: React.Dispatch<React.SetStateAction<string[]>>) => {
     setter(prev => [...prev, '']);
@@ -83,7 +142,13 @@ const ReviewWeeklyScreen = () => {
   };
 
   const handleSave = async () => {
-    if (isSubmitting) {
+    if (isSubmitting || isReadOnly) {
+      return;
+    }
+
+    const today = reviewService.getDateString('weekly');
+    if (date !== today) {
+      Alert.alert('提示', '只能编辑本周的复盘');
       return;
     }
 
@@ -92,7 +157,7 @@ const ReviewWeeklyScreen = () => {
 
       const reviewData: Omit<ReviewData, 'reviewId' | 'createdAt' | 'updatedAt'> = {
         type: 'weekly',
-        date,
+        date: today,
         content: {
           achievements: achievements.filter(a => a.trim()),
           reflections: reflections.filter(r => r.trim()),
@@ -104,21 +169,19 @@ const ReviewWeeklyScreen = () => {
         rating,
       };
 
-      if (reviewId) {
-        await reviewService.updateReview(reviewId, reviewData);
-      } else {
-        await reviewService.createReview(reviewData);
-      }
+      await reviewService.createOrUpdateReview(reviewData);
 
       Alert.alert('成功', '保存成功', [
         {
           text: '确定',
-          onPress: () => router.back(),
+          onPress: () => {
+            loadTodayReview();
+          },
         },
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('保存失败:', error);
-      Alert.alert('错误', '保存失败，请重试');
+      Alert.alert('错误', error.message || '保存失败，请重试');
     } finally {
       setIsSubmitting(false);
     }
@@ -154,18 +217,25 @@ const ReviewWeeklyScreen = () => {
               <Text style={styles.title}>周复盘</Text>
               <Text style={styles.subtitle}>{date}</Text>
             </View>
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={handleSave}
-              disabled={isSubmitting}
-              activeOpacity={0.7}
-            >
-              {isSubmitting ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.saveButtonText}>保存</Text>
-              )}
-            </TouchableOpacity>
+            {!isReadOnly && (
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSave}
+                disabled={isSubmitting}
+                activeOpacity={0.7}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.saveButtonText}>保存</Text>
+                )}
+              </TouchableOpacity>
+            )}
+            {isReadOnly && (
+              <View style={styles.readOnlyBadge}>
+                <Text style={styles.readOnlyText}>只读</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.section}>
@@ -194,164 +264,255 @@ const ReviewWeeklyScreen = () => {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>本周成就</Text>
-            {achievements.map((item, index) => (
-              <View key={index} style={styles.inputRow}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="记录本周完成的事情..."
-                  value={item}
-                  onChangeText={value => handleUpdateItem(setAchievements, index, value)}
-                  multiline
-                />
-                {achievements.length > 1 && (
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => setCollapsed(prev => ({ ...prev, achievements: !prev.achievements }))}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sectionTitle}>本周成就</Text>
+              <FontAwesome6
+                name={collapsed.achievements ? 'chevron-down' : 'chevron-up'}
+                size={16}
+                color="#6B7280"
+              />
+            </TouchableOpacity>
+            {!collapsed.achievements && (
+              <>
+                {achievements.map((item, index) => (
+                  <View key={index} style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, isReadOnly && styles.inputReadOnly]}
+                      placeholder="记录本周完成的事情..."
+                      value={item}
+                      onChangeText={value => !isReadOnly && handleUpdateItem(setAchievements, index, value)}
+                      multiline
+                      editable={!isReadOnly}
+                    />
+                    {achievements.length > 1 && !isReadOnly && (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => handleRemoveItem(setAchievements, index)}
+                      >
+                        <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                {!isReadOnly && (
                   <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => handleRemoveItem(setAchievements, index)}
+                    style={styles.addButton}
+                    onPress={() => handleAddItem(setAchievements)}
                   >
-                    <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                    <FontAwesome6 name="plus" size={16} color="#6366f1" />
+                    <Text style={styles.addButtonText}>添加</Text>
                   </TouchableOpacity>
                 )}
-              </View>
-            ))}
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => handleAddItem(setAchievements)}
-            >
-              <FontAwesome6 name="plus" size={16} color="#6366f1" />
-              <Text style={styles.addButtonText}>添加</Text>
-            </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>本周反思</Text>
-            {reflections.map((item, index) => (
-              <View key={index} style={styles.inputRow}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="本周有什么值得思考的..."
-                  value={item}
-                  onChangeText={value => handleUpdateItem(setReflections, index, value)}
-                  multiline
-                />
-                {reflections.length > 1 && (
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => setCollapsed(prev => ({ ...prev, reflections: !prev.reflections }))}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sectionTitle}>本周反思</Text>
+              <FontAwesome6
+                name={collapsed.reflections ? 'chevron-down' : 'chevron-up'}
+                size={16}
+                color="#6B7280"
+              />
+            </TouchableOpacity>
+            {!collapsed.reflections && (
+              <>
+                {reflections.map((item, index) => (
+                  <View key={index} style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, isReadOnly && styles.inputReadOnly]}
+                      placeholder="本周有什么值得思考的..."
+                      value={item}
+                      onChangeText={value => !isReadOnly && handleUpdateItem(setReflections, index, value)}
+                      multiline
+                      editable={!isReadOnly}
+                    />
+                    {reflections.length > 1 && !isReadOnly && (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => handleRemoveItem(setReflections, index)}
+                      >
+                        <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                {!isReadOnly && (
                   <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => handleRemoveItem(setReflections, index)}
+                    style={styles.addButton}
+                    onPress={() => handleAddItem(setReflections)}
                   >
-                    <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                    <FontAwesome6 name="plus" size={16} color="#6366f1" />
+                    <Text style={styles.addButtonText}>添加</Text>
                   </TouchableOpacity>
                 )}
-              </View>
-            ))}
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => handleAddItem(setReflections)}
-            >
-              <FontAwesome6 name="plus" size={16} color="#6366f1" />
-              <Text style={styles.addButtonText}>添加</Text>
-            </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>下周改进</Text>
-            {improvements.map((item, index) => (
-              <View key={index} style={styles.inputRow}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="下周可以做得更好的地方..."
-                  value={item}
-                  onChangeText={value => handleUpdateItem(setImprovements, index, value)}
-                  multiline
-                />
-                {improvements.length > 1 && (
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => setCollapsed(prev => ({ ...prev, improvements: !prev.improvements }))}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sectionTitle}>下周改进</Text>
+              <FontAwesome6
+                name={collapsed.improvements ? 'chevron-down' : 'chevron-up'}
+                size={16}
+                color="#6B7280"
+              />
+            </TouchableOpacity>
+            {!collapsed.improvements && (
+              <>
+                {improvements.map((item, index) => (
+                  <View key={index} style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, isReadOnly && styles.inputReadOnly]}
+                      placeholder="下周可以做得更好的地方..."
+                      value={item}
+                      onChangeText={value => !isReadOnly && handleUpdateItem(setImprovements, index, value)}
+                      multiline
+                      editable={!isReadOnly}
+                    />
+                    {improvements.length > 1 && !isReadOnly && (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => handleRemoveItem(setImprovements, index)}
+                      >
+                        <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                {!isReadOnly && (
                   <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => handleRemoveItem(setImprovements, index)}
+                    style={styles.addButton}
+                    onPress={() => handleAddItem(setImprovements)}
                   >
-                    <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                    <FontAwesome6 name="plus" size={16} color="#6366f1" />
+                    <Text style={styles.addButtonText}>添加</Text>
                   </TouchableOpacity>
                 )}
-              </View>
-            ))}
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => handleAddItem(setImprovements)}
-            >
-              <FontAwesome6 name="plus" size={16} color="#6366f1" />
-              <Text style={styles.addButtonText}>添加</Text>
-            </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>本周感恩</Text>
-            {gratitude.map((item, index) => (
-              <View key={index} style={styles.inputRow}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="本周要感谢的人或事..."
-                  value={item}
-                  onChangeText={value => handleUpdateItem(setGratitude, index, value)}
-                  multiline
-                />
-                {gratitude.length > 1 && (
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => setCollapsed(prev => ({ ...prev, gratitude: !prev.gratitude }))}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sectionTitle}>本周感恩</Text>
+              <FontAwesome6
+                name={collapsed.gratitude ? 'chevron-down' : 'chevron-up'}
+                size={16}
+                color="#6B7280"
+              />
+            </TouchableOpacity>
+            {!collapsed.gratitude && (
+              <>
+                {gratitude.map((item, index) => (
+                  <View key={index} style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, isReadOnly && styles.inputReadOnly]}
+                      placeholder="本周要感谢的人或事..."
+                      value={item}
+                      onChangeText={value => !isReadOnly && handleUpdateItem(setGratitude, index, value)}
+                      multiline
+                      editable={!isReadOnly}
+                    />
+                    {gratitude.length > 1 && !isReadOnly && (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => handleRemoveItem(setGratitude, index)}
+                      >
+                        <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                {!isReadOnly && (
                   <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => handleRemoveItem(setGratitude, index)}
+                    style={styles.addButton}
+                    onPress={() => handleAddItem(setGratitude)}
                   >
-                    <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                    <FontAwesome6 name="plus" size={16} color="#6366f1" />
+                    <Text style={styles.addButtonText}>添加</Text>
                   </TouchableOpacity>
                 )}
-              </View>
-            ))}
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => handleAddItem(setGratitude)}
-            >
-              <FontAwesome6 name="plus" size={16} color="#6366f1" />
-              <Text style={styles.addButtonText}>添加</Text>
-            </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>下周目标</Text>
-            {goals.map((item, index) => (
-              <View key={index} style={styles.inputRow}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="下周的目标..."
-                  value={item}
-                  onChangeText={value => handleUpdateItem(setGoals, index, value)}
-                  multiline
-                />
-                {goals.length > 1 && (
+            <TouchableOpacity
+              style={styles.sectionHeader}
+              onPress={() => setCollapsed(prev => ({ ...prev, goals: !prev.goals }))}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.sectionTitle}>下周目标</Text>
+              <FontAwesome6
+                name={collapsed.goals ? 'chevron-down' : 'chevron-up'}
+                size={16}
+                color="#6B7280"
+              />
+            </TouchableOpacity>
+            {!collapsed.goals && (
+              <>
+                {goals.map((item, index) => (
+                  <View key={index} style={styles.inputRow}>
+                    <TextInput
+                      style={[styles.input, isReadOnly && styles.inputReadOnly]}
+                      placeholder="下周的目标..."
+                      value={item}
+                      onChangeText={value => !isReadOnly && handleUpdateItem(setGoals, index, value)}
+                      multiline
+                      editable={!isReadOnly}
+                    />
+                    {goals.length > 1 && !isReadOnly && (
+                      <TouchableOpacity
+                        style={styles.removeButton}
+                        onPress={() => handleRemoveItem(setGoals, index)}
+                      >
+                        <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+                {!isReadOnly && (
                   <TouchableOpacity
-                    style={styles.removeButton}
-                    onPress={() => handleRemoveItem(setGoals, index)}
+                    style={styles.addButton}
+                    onPress={() => handleAddItem(setGoals)}
                   >
-                    <FontAwesome6 name="xmark" size={16} color="#EF4444" />
+                    <FontAwesome6 name="plus" size={16} color="#6366f1" />
+                    <Text style={styles.addButtonText}>添加</Text>
                   </TouchableOpacity>
                 )}
-              </View>
-            ))}
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => handleAddItem(setGoals)}
-            >
-              <FontAwesome6 name="plus" size={16} color="#6366f1" />
-              <Text style={styles.addButtonText}>添加</Text>
-            </TouchableOpacity>
+              </>
+            )}
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>备注</Text>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, isReadOnly && styles.inputReadOnly]}
               placeholder="其他想记录的内容..."
               value={notes}
-              onChangeText={setNotes}
+              onChangeText={value => !isReadOnly && setNotes(value)}
               multiline
               numberOfLines={4}
+              editable={!isReadOnly}
             />
           </View>
 

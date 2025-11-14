@@ -1002,6 +1002,87 @@ class ApiService {
     throw new Error(response.message || 'AI分析失败');
   }
 
+  // ========== 复盘模块相关 API ==========
+  // 注意：复盘模块使用独立的云函数地址
+
+  /**
+   * 获取所有复盘
+   */
+  async getReviews(type?: string, date?: string): Promise<any[]> {
+    let endpoint = API_ENDPOINTS.REVIEWS;
+    const params: string[] = [];
+    if (type) {
+      params.push(`type=${encodeURIComponent(type)}`);
+    }
+    if (date) {
+      params.push(`date=${encodeURIComponent(date)}`);
+    }
+    if (params.length > 0) {
+      endpoint += '?' + params.join('&');
+    }
+    
+    const response = await this.get<any[]>(endpoint, API_CONFIG.REVIEW_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return response.data || [];
+    }
+    throw new Error(response.message || '获取复盘失败');
+  }
+
+  /**
+   * 根据ID获取复盘
+   */
+  async getReviewById(reviewId: string): Promise<any> {
+    const response = await this.get<any>(API_ENDPOINTS.REVIEW_BY_ID(reviewId), API_CONFIG.REVIEW_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '获取复盘失败');
+  }
+
+  /**
+   * 创建复盘
+   */
+  async createReview(review: any): Promise<any> {
+    const response = await this.post<any>(API_ENDPOINTS.REVIEWS, review, API_CONFIG.REVIEW_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '创建复盘失败');
+  }
+
+  /**
+   * 更新复盘
+   */
+  async updateReview(reviewId: string, updates: any): Promise<any> {
+    const response = await this.put<any>(API_ENDPOINTS.REVIEW_BY_ID(reviewId), updates, API_CONFIG.REVIEW_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '更新复盘失败');
+  }
+
+  /**
+   * 删除复盘
+   */
+  async deleteReview(reviewId: string): Promise<void> {
+    const response = await this.delete(API_ENDPOINTS.REVIEW_BY_ID(reviewId), API_CONFIG.REVIEW_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return;
+    }
+    throw new Error(response.message || '删除复盘失败');
+  }
+
+  /**
+   * 清理历史数据（保留每个日期每个类型的最新一条）
+   */
+  async cleanupOldReviews(): Promise<void> {
+    const response = await this.post<void>(API_ENDPOINTS.REVIEWS + '/cleanup', {}, API_CONFIG.REVIEW_BASE_URL);
+    if (response.code === 200 || response.code === 0) {
+      return;
+    }
+    throw new Error(response.message || '清理历史数据失败');
+  }
+
   // ========== 认识自己模块相关 API ==========
 
   /**

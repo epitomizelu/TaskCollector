@@ -28,6 +28,11 @@ export const API_CONFIG = {
     ? process.env.EXPO_PUBLIC_UPDATE_SERVICE_URL || 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/app-update-api' // 开发环境
     : process.env.EXPO_PUBLIC_UPDATE_SERVICE_URL || 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/app-update-api', // 生产环境
   
+  // 复盘模块云函数地址（独立云函数）
+  REVIEW_BASE_URL: __DEV__
+    ? 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/review-api' // 开发环境
+    : 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/review-api', // 生产环境
+  
   // 请求超时时间（毫秒）
   TIMEOUT: 10000,
   
@@ -119,6 +124,14 @@ export const API_ENDPOINTS = {
   SELF_AWARENESS_VALUES: '/values',
   SELF_AWARENESS_VALUES_BY_TYPE: (type: string) => `/values?type=${type}`,
   SELF_AWARENESS_VALUE_BY_ID: (id: string) => `/values/${id}`,
+  
+  // 复盘模块相关
+  REVIEWS: '/reviews',
+  REVIEW_BY_ID: (id: string) => `/reviews/${id}`,
+  REVIEWS_BY_TYPE: (type: string) => `/reviews?type=${type}`,
+  REVIEWS_BY_DATE: (date: string) => `/reviews?date=${date}`,
+  REVIEWS_BY_TYPE_AND_DATE: (type: string, date: string) => `/reviews?type=${type}&date=${date}`,
+  REVIEWS_CLEANUP: '/reviews/cleanup',
 };
 
 // 请求头配置

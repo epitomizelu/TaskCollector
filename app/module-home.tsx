@@ -14,6 +14,67 @@ import { ModuleInstance } from '../types/module.types';
 import { userService } from '../services/user.service';
 import { Sidebar, MenuItem } from '../components/Sidebar';
 
+// 模块卡片组件
+const ModuleCard: React.FC<{
+  moduleInstance: ModuleInstance;
+  index: number;
+  onPress: (moduleInstance: ModuleInstance) => void;
+  isInGroup?: boolean;
+}> = ({ moduleInstance, index, onPress, isInGroup = false }) => {
+  const { metadata, getNavigationItem } = moduleInstance.definition;
+  const navItem = getNavigationItem?.();
+  
+  // 为不同模块使用不同的渐变色
+  const gradientColors = [
+    ['#4f46e5', '#7c3aed'], // 紫色
+    ['#06b6d4', '#3b82f6'], // 蓝色
+    ['#10b981', '#059669'], // 绿色
+    ['#f59e0b', '#ef4444'], // 橙红
+    ['#8b5cf6', '#ec4899'], // 粉紫
+    ['#ec4899', '#f43f5e'], // 粉红
+    ['#14b8a6', '#06b6d4'], // 青绿
+    ['#a855f7', '#8b5cf6'], // 紫蓝
+    ['#f97316', '#f59e0b'], // 橙色
+  ];
+  const colors = gradientColors[index % gradientColors.length];
+  
+  // 判断是否是每行的第三个元素（索引 2, 5, 8...）
+  const isLastInRow = (index + 1) % 3 === 0;
+  const gridItemStyle = [
+    isInGroup ? styles.gridItemInGroup : styles.gridItem,
+    !isInGroup && isLastInRow && styles.gridItemLastInRow
+  ];
+
+  return (
+    <TouchableOpacity
+      key={metadata.id}
+      style={gridItemStyle}
+      onPress={() => onPress(moduleInstance)}
+      activeOpacity={0.7}
+    >
+      <LinearGradient
+        colors={colors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.gridCardGradient}
+      >
+        <View style={styles.gridCardContent}>
+          <View style={styles.gridIconContainer}>
+            <FontAwesome6 
+              name={navItem?.icon as any || 'circle'} 
+              size={32} 
+              color="#ffffff" 
+            />
+          </View>
+          <Text style={styles.gridModuleName} numberOfLines={2}>
+            {metadata.displayName}
+          </Text>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+};
+
 const ModuleHome: React.FC = () => {
   const router = useRouter();
   const [modules, setModules] = useState<ModuleInstance[]>([]);
@@ -139,60 +200,58 @@ const ModuleHome: React.FC = () => {
           </View>
         ) : (
           <View style={styles.gridContainer}>
-            {modules.map((moduleInstance, index) => {
-              const { metadata, getNavigationItem } = moduleInstance.definition;
-              const navItem = getNavigationItem?.();
-              
-              // 为不同模块使用不同的渐变色
-              const gradientColors = [
-                ['#4f46e5', '#7c3aed'], // 紫色
-                ['#06b6d4', '#3b82f6'], // 蓝色
-                ['#10b981', '#059669'], // 绿色
-                ['#f59e0b', '#ef4444'], // 橙红
-                ['#8b5cf6', '#ec4899'], // 粉紫
-                ['#ec4899', '#f43f5e'], // 粉红
-                ['#14b8a6', '#06b6d4'], // 青绿
-                ['#a855f7', '#8b5cf6'], // 紫蓝
-                ['#f97316', '#f59e0b'], // 橙色
-              ];
-              const colors = gradientColors[index % gradientColors.length];
-              
-              // 判断是否是每行的第三个元素（索引 2, 5, 8...）
-              const isLastInRow = (index + 1) % 3 === 0;
-              const gridItemStyle = [
-                styles.gridItem,
-                isLastInRow && styles.gridItemLastInRow
-              ];
+            {/* 任务相关模块组：任务收集和任务清单 */}
+            {(() => {
+              const taskCollectionModule = modules.find(m => m.definition.metadata.id === 'task-collection');
+              const taskListModule = modules.find(m => m.definition.metadata.id === 'task-list');
+              const otherModules = modules.filter(m => 
+                m.definition.metadata.id !== 'task-collection' && 
+                m.definition.metadata.id !== 'task-list'
+              );
 
               return (
-                <TouchableOpacity
-                  key={metadata.id}
-                  style={gridItemStyle}
-                  onPress={() => handleModulePress(moduleInstance)}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={colors}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.gridCardGradient}
-                  >
-                    <View style={styles.gridCardContent}>
-                      <View style={styles.gridIconContainer}>
-                        <FontAwesome6 
-                          name={navItem?.icon as any || 'circle'} 
-                          size={32} 
-                          color="#ffffff" 
-                        />
+                <>
+                  {/* 任务相关模块组容器 */}
+                  {(taskCollectionModule || taskListModule) && (
+                    <View style={styles.taskGroupContainer}>
+                      <Text style={styles.groupTitle}>任务管理</Text>
+                      <View style={styles.taskGroupGrid}>
+                        {taskCollectionModule && (
+                          <View style={styles.taskGroupItem}>
+                            <ModuleCard 
+                              moduleInstance={taskCollectionModule} 
+                              index={0}
+                              onPress={handleModulePress}
+                              isInGroup={true}
+                            />
+                          </View>
+                        )}
+                        {taskListModule && (
+                          <View style={[styles.taskGroupItem, { marginRight: 0 }]}>
+                            <ModuleCard 
+                              moduleInstance={taskListModule} 
+                              index={1}
+                              onPress={handleModulePress}
+                              isInGroup={true}
+                            />
+                          </View>
+                        )}
                       </View>
-                      <Text style={styles.gridModuleName} numberOfLines={2}>
-                        {metadata.displayName}
-                      </Text>
                     </View>
-                  </LinearGradient>
-                </TouchableOpacity>
+                  )}
+
+                  {/* 其他模块 */}
+                  {otherModules.map((moduleInstance, index) => (
+                    <ModuleCard
+                      key={moduleInstance.definition.metadata.id}
+                      moduleInstance={moduleInstance}
+                      index={index + 2}
+                      onPress={handleModulePress}
+                    />
+                  ))}
+                </>
               );
-            })}
+            })()}
           </View>
         )}
       </ScrollView>
@@ -420,6 +479,42 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#9ca3af',
+  },
+  taskGroupContainer: {
+    width: '100%',
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  groupTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 12,
+  },
+  taskGroupGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  taskGroupItem: {
+    flex: 1,
+    marginRight: 12,
+  },
+  gridItemInGroup: {
+    width: '100%',
+    aspectRatio: 1,
+    marginRight: 0,
+    marginBottom: 0,
+    borderRadius: 16,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
   },
 });
 

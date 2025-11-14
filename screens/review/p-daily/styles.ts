@@ -85,11 +85,16 @@ export default StyleSheet.create({
       },
     }),
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 16,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -114,6 +119,9 @@ export default StyleSheet.create({
   },
   ratingButtonTextActive: {
     color: '#FFFFFF',
+  },
+  ratingButtonReadOnly: {
+    opacity: 0.6,
   },
   inputRow: {
     flexDirection: 'row',
@@ -161,6 +169,21 @@ export default StyleSheet.create({
   },
   bottomSpacing: {
     height: 40,
+  },
+  inputReadOnly: {
+    backgroundColor: '#F3F4F6',
+    color: '#6B7280',
+  },
+  readOnlyBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  readOnlyText: {
+    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
