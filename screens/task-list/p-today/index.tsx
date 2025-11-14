@@ -56,9 +56,35 @@ const TodayTaskScreen: React.FC = () => {
           await taskListService.syncDailyTasksFromCloud(dateStr, true); // 强制同步
           tasks = await taskListService.getDailyTasks(dateStr);
           console.log(`从云端同步后，${dateStr} 的任务数量: ${tasks.length}`);
+          
+          // ✅ 如果从云端同步到了今日任务，且任务日期是今天，说明今天已经初始化过
+          // 此时 syncDailyTasksFromCloud 内部已经更新了 LAST_INIT_DATE_KEY
+          // 直接使用云端任务，避免重新初始化导致状态丢失
+          if (isToday && tasks.length > 0) {
+            console.log('✅ 从云端同步到今日任务，使用云端任务状态（保留完成状态）');
+            // 确保获取的是今天的任务
+            const todayTasks = tasks.filter(task => task.date === todayStr);
+            setDailyTasks(todayTasks);
+            setIsLoading(false);
+            return;
+          }
         } catch (error) {
           console.error('从云端同步每日任务失败:', error);
           // 同步失败不影响继续执行
+        }
+      }
+      
+      // ✅ 如果本地已有今日任务，检查是否真的是新的一天
+      // 避免安装新APK后误判为新的一天而重新初始化
+      if (isToday && tasks.length > 0) {
+        const isNewDay = await taskListService.checkIfNewDay();
+        if (!isNewDay) {
+          console.log('✅ 本地已有今日任务，且今天已初始化过，使用本地任务状态');
+          // 直接使用本地任务，不重新初始化
+          const todayTasks = tasks.filter(task => task.date === todayStr);
+          setDailyTasks(todayTasks);
+          setIsLoading(false);
+          return;
         }
       }
       
@@ -264,29 +290,48 @@ const TodayTaskScreen: React.FC = () => {
         updatedTask.completedAt = undefined;
       }
       
-      // 立即更新UI
-      setDailyTasks(prevTasks => 
-        prevTasks.map(t => t.id === task.id ? updatedTask : t)
-      );
+      // ✅ 立即更新UI并重新排序：已完成的任务放在最后
+      setDailyTasks(prevTasks => {
+        const updated = prevTasks.map(t => t.id === task.id ? updatedTask : t);
+        // 重新排序：未完成的在前，已完成的在后
+        return updated.sort((a, b) => {
+          if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
+          }
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        });
+      });
       showToast(updatedTask.completed ? '任务已完成' : '已取消完成');
       
       // 异步更新数据（不阻塞UI）
       if (task.completed) {
         taskListService.uncompleteTask(task.id).catch(error => {
           console.error('取消完成任务失败:', error);
-          // 如果失败，恢复UI状态
-          setDailyTasks(prevTasks => 
-            prevTasks.map(t => t.id === task.id ? task : t)
-          );
+          // 如果失败，恢复UI状态并重新排序
+          setDailyTasks(prevTasks => {
+            const restored = prevTasks.map(t => t.id === task.id ? task : t);
+            return restored.sort((a, b) => {
+              if (a.completed !== b.completed) {
+                return a.completed ? 1 : -1;
+              }
+              return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            });
+          });
           Alert.alert('错误', error.message || '操作失败，请重试');
         });
       } else {
         taskListService.completeTask(task.id).catch(error => {
           console.error('完成任务失败:', error);
-          // 如果失败，恢复UI状态
-          setDailyTasks(prevTasks => 
-            prevTasks.map(t => t.id === task.id ? task : t)
-          );
+          // 如果失败，恢复UI状态并重新排序
+          setDailyTasks(prevTasks => {
+            const restored = prevTasks.map(t => t.id === task.id ? task : t);
+            return restored.sort((a, b) => {
+              if (a.completed !== b.completed) {
+                return a.completed ? 1 : -1;
+              }
+              return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            });
+          });
           Alert.alert('错误', error.message || '操作失败，请重试');
         });
       }

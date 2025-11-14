@@ -856,6 +856,19 @@ class TaskListService {
       const mergedTasks = Array.from(localTaskMap.values());
       await AsyncStorage.setItem(DAILY_TASKS_KEY, JSON.stringify(mergedTasks));
       
+      // ✅ 如果同步的是今天的任务，且云端有任务，更新 LAST_INIT_DATE_KEY
+      // 这样可以避免安装新APK后误判为新的一天而重新初始化
+      if (date) {
+        const today = this.getLocalDateString();
+        if (date === today && cloudTasks.length > 0) {
+          const lastInitDate = await AsyncStorage.getItem(LAST_INIT_DATE_KEY);
+          if (lastInitDate !== today) {
+            console.log(`✅ 从云端同步到今日任务，更新初始化日期为: ${today}`);
+            await AsyncStorage.setItem(LAST_INIT_DATE_KEY, today);
+          }
+        }
+      }
+      
       console.log('每日任务同步完成，共', mergedTasks.length, '个任务');
     } catch (error) {
       console.error('从云端同步每日任务失败:', error);
