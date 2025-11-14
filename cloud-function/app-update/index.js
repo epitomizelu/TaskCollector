@@ -197,6 +197,16 @@ exports.main = async (event, context) => {
       result = await handleJSBundleVersions(method, path, body, normalizedHeaders);
     } else if (path === '/app/check-js-bundle-update' || path.startsWith('/app/check-js-bundle-update')) {
       result = await handleJSBundleCheckUpdate(method, path, body, normalizedHeaders);
+    } else if (path === '/app/apk-versions' || path.startsWith('/app/apk-versions')) {
+      result = await handleAPKVersions(method, path, body, normalizedHeaders);
+    } else if (path === '/app/check-update' || path.startsWith('/app/check-update')) {
+      result = await handleAPKCheckUpdate(method, path, body, normalizedHeaders);
+    } else if (path === '/app/force-update' || path.startsWith('/app/force-update')) {
+      result = await handleForceUpdate(method, path, body, normalizedHeaders);
+    } else if (path === '/app/force-update/check' || path.startsWith('/app/force-update/check')) {
+      result = await handleForceUpdateCheck(method, path, body, normalizedHeaders);
+    } else if (path === '/app/force-update/mark-downloaded' || path.startsWith('/app/force-update/mark-downloaded')) {
+      result = await handleForceUpdateMarkDownloaded(method, path, body, normalizedHeaders);
     } else {
       throw new Error(`未知路径: ${path}`);
     }
@@ -1188,6 +1198,575 @@ async function handleJSBundleCheckUpdate(method, path, body, headers) {
     console.error('[检查更新] 检查 JS Bundle 更新失败:', error);
     console.error('[检查更新] 错误堆栈:', error.stack);
     throw new Error(`检查更新失败: ${error.message}`);
+  }
+}
+
+// ========== APK 版本管理 ==========
+
+/**
+ * APK 版本管理接口
+ * POST /app/apk-versions - 保存版本信息
+ * GET /app/apk-versions - 获取版本列表
+ */
+async function handleAPKVersions(method, path, body, headers) {
+  if (method === 'POST') {
+    // 保存版本信息
+    try {
+      body = parseBody(body, headers);
+      const collection = db.collection('app_versions');
+
+      const {
+        version,
+        versionCode,
+        platform = 'android',
+        downloadUrl,
+        easDownloadUrl,
+        filePath,
+        fileSize,
+        forceUpdate = false,
+        updateLog = '',
+      } = body || {};
+
+      if (!version || !versionCode) {
+        throw new Error('缺少必要字段: version, versionCode');
+      }
+
+      // 检查是否已存在相同版本号的记录
+      const existingVersion = await collection
+        .where({
+          platform: platform,
+          versionCode: versionCode,
+        })
+        .get();
+
+      const now = new Date().toISOString();
+      let doc;
+
+      if (existingVersion.data && existingVersion.data.length > 0) {
+        // 更新现有记录
+        const existingDoc = existingVersion.data[0];
+        doc = {
+          ...existingDoc,
+          version,
+          versionCode,
+          platform,
+          downloadUrl: downloadUrl || existingDoc.downloadUrl,
+          easDownloadUrl: easDownloadUrl || existingDoc.easDownloadUrl,
+          filePath: filePath || existingDoc.filePath,
+          fileSize: fileSize || existingDoc.fileSize,
+          forceUpdate: forceUpdate !== undefined ? forceUpdate : existingDoc.forceUpdate,
+          updateLog: updateLog || existingDoc.updateLog,
+          releaseDate: now,
+          updatedAt: now,
+        };
+        
+        await collection.doc(existingDoc._id).update(doc);
+        console.log('✅ APK 版本信息已更新:', doc);
+      } else {
+        // 创建新记录
+        doc = {
+          version,
+          versionCode,
+          platform,
+          downloadUrl: downloadUrl || null,
+          easDownloadUrl: easDownloadUrl || null,
+          filePath: filePath || null,
+          fileSize: fileSize || 0,
+          forceUpdate: forceUpdate,
+          updateLog: updateLog,
+          releaseDate: now,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        const res = await collection.add(doc);
+        console.log('✅ APK 版本信息保存成功:', res);
+      }
+
+      return {
+        code: 0,
+        message: '版本信息保存成功',
+        data: { _id: doc._id || existingVersion.data[0]._id, ...doc },
+      };
+    } catch (error) {
+      console.error('❌ 保存 APK 版本信息失败:', error);
+      throw new Error(`保存版本信息失败: ${error.message}`);
+    }
+  } else if (method === 'GET') {
+    // 获取版本信息
+    try {
+      const versionsCollection = db.collection('app_versions');
+      
+      const url = new URL(`http://example.com${path}`);
+      const platform = url.searchParams.get('platform') || 'android';
+      const versionCode = url.searchParams.get('versionCode');
+      
+      if (versionCode) {
+        // 获取指定版本（按 versionCode）
+        const versions = await versionsCollection
+          .where({
+            versionCode: parseInt(versionCode, 10),
+            platform: platform,
+          })
+          .get();
+        
+        if (versions.data && versions.data.length > 0) {
+          return {
+            code: 0,
+            message: '获取成功',
+            data: versions.data[0],
+          };
+        } else {
+          return {
+            code: 404,
+            message: '版本不存在',
+            data: null,
+          };
+        }
+      } else {
+        // 获取所有版本（按 versionCode 降序）
+        const versions = await versionsCollection
+          .where({ platform: platform })
+          .orderBy('versionCode', 'desc')
+          .get();
+        
+        return {
+          code: 0,
+          message: '获取成功',
+          data: versions.data || [],
+        };
+      }
+    } catch (error) {
+      console.error('获取 APK 版本信息失败:', error);
+      throw new Error(`获取版本信息失败: ${error.message}`);
+    }
+  } else {
+    throw new Error('不支持的请求方法');
+  }
+}
+
+/**
+ * APK 更新检查接口
+ * GET /app/check-update?currentVersion=1.0.0&versionCode=1&platform=android
+ */
+async function handleAPKCheckUpdate(method, path, body, headers) {
+  if (method !== 'GET') {
+    throw new Error('只支持 GET 请求');
+  }
+
+  const queryParams = new URLSearchParams(path.split('?')[1] || '');
+  const currentVersion = queryParams.get('currentVersion') || '1.0.0';
+  let currentVersionCode = parseInt(queryParams.get('versionCode') || '0', 10);
+  // 处理无效值（NaN）
+  if (isNaN(currentVersionCode)) {
+    currentVersionCode = 0;
+  }
+  const platform = queryParams.get('platform') || 'android';
+
+  console.log('[检查APK更新] 请求参数:', { currentVersion, currentVersionCode, platform });
+
+  try {
+    const versionsCollection = db.collection('app_versions');
+    
+    // ✅ 查询指定平台的最新版本
+    const queryVersion = async (targetPlatform) => {
+      let versions;
+      try {
+        versions = await versionsCollection
+          .where({ platform: targetPlatform })
+          .orderBy('versionCode', 'desc')
+          .limit(1)
+          .get();
+        
+        console.log(`[检查APK更新] ${targetPlatform} 平台 orderBy 查询成功，结果数量:`, versions.data?.length || 0);
+      } catch (orderByError) {
+        // ✅ 如果 orderBy 失败（可能缺少索引），尝试不使用 orderBy
+        console.warn(`[检查APK更新] ${targetPlatform} 平台 orderBy 查询失败，尝试不使用 orderBy:`, orderByError.message);
+        const allVersions = await versionsCollection
+          .where({ platform: targetPlatform })
+          .get();
+        
+        console.log(`[检查APK更新] ${targetPlatform} 平台不使用 orderBy 查询成功，结果数量:`, allVersions.data?.length || 0);
+        
+        // ✅ 在内存中排序
+        if (allVersions.data && allVersions.data.length > 0) {
+          allVersions.data.sort((a, b) => {
+            const aCode = typeof a.versionCode === 'number' ? a.versionCode : parseInt(a.versionCode || '0', 10);
+            const bCode = typeof b.versionCode === 'number' ? b.versionCode : parseInt(b.versionCode || '0', 10);
+            return bCode - aCode; // 降序
+          });
+          versions = { data: [allVersions.data[0]] }; // 只取第一个
+        } else {
+          versions = { data: [] };
+        }
+      }
+      return versions;
+    };
+    
+    // ✅ 先查询指定平台的版本
+    let versions = await queryVersion(platform);
+    
+    if (!versions.data || versions.data.length === 0) {
+      console.log(`[检查APK更新] ${platform} 平台没有找到版本数据`);
+      return {
+        code: 0,
+        message: 'success',
+        data: {
+          hasUpdate: false,
+          latestVersion: currentVersion,
+          latestVersionCode: currentVersionCode,
+          downloadUrl: '',
+          easDownloadUrl: null,
+          forceUpdate: false,
+          updateLog: '',
+          fileSize: 0,
+          releaseDate: null,
+        },
+      };
+    }
+    
+    const latestVersion = versions.data[0];
+    console.log('[检查APK更新] 最新版本数据:', {
+      version: latestVersion.version,
+      versionCode: latestVersion.versionCode,
+      versionCodeType: typeof latestVersion.versionCode,
+      platform: latestVersion.platform,
+    });
+    
+    // ✅ 解析 versionCode
+    let latestVersionCode;
+    if (typeof latestVersion.versionCode === 'number' && !isNaN(latestVersion.versionCode)) {
+      latestVersionCode = latestVersion.versionCode;
+    } else if (latestVersion.versionCode != null) {
+      // 尝试转换为数字
+      latestVersionCode = parseInt(String(latestVersion.versionCode), 10);
+      if (isNaN(latestVersionCode)) {
+        console.error('[检查APK更新] versionCode 解析失败，原始值:', latestVersion.versionCode);
+        latestVersionCode = 0;
+      }
+    } else {
+      console.error('[检查APK更新] versionCode 字段不存在或为 null/undefined');
+      latestVersionCode = 0;
+    }
+    
+    // ✅ 使用 versionCode 进行比较
+    const hasUpdate = latestVersionCode > currentVersionCode;
+    
+    console.log('[检查APK更新] 版本比较结果:', {
+      currentVersionCode,
+      latestVersionCode,
+      hasUpdate,
+    });
+    
+    return {
+      code: 0,
+      message: 'success',
+      data: {
+        hasUpdate: hasUpdate,
+        latestVersion: latestVersion.version || '',
+        latestVersionCode: latestVersionCode,
+        downloadUrl: latestVersion.downloadUrl || '',
+        easDownloadUrl: latestVersion.easDownloadUrl || null,
+        forceUpdate: latestVersion.forceUpdate || false,
+        updateLog: latestVersion.updateLog || '',
+        fileSize: latestVersion.fileSize || 0,
+        releaseDate: latestVersion.releaseDate || latestVersion.createdAt || null,
+      },
+    };
+  } catch (error) {
+    console.error('[检查APK更新] 检查 APK 更新失败:', error);
+    console.error('[检查APK更新] 错误堆栈:', error.stack);
+    throw new Error(`检查更新失败: ${error.message}`);
+  }
+}
+
+// ========== 强制更新管理 ==========
+
+/**
+ * 强制更新版本管理接口
+ * POST /app/force-update - 保存强制更新版本信息（只保留最新一条）
+ * GET /app/force-update - 获取当前强制更新版本信息
+ */
+async function handleForceUpdate(method, path, body, headers) {
+  if (method === 'POST') {
+    // 保存强制更新版本信息
+    try {
+      body = parseBody(body, headers);
+      const collection = db.collection('force_update_versions');
+
+      const {
+        version,
+        versionCode,
+        platform = 'android',
+        downloadUrl,
+        easDownloadUrl,
+        filePath,
+        fileSize,
+        updateLog = '',
+      } = body || {};
+
+      if (!version || !versionCode) {
+        throw new Error('缺少必要字段: version, versionCode');
+      }
+
+      // ✅ 删除所有旧数据（只保留最新一条）
+      console.log('🗑️  删除旧的强制更新数据...');
+      const oldVersions = await collection
+        .where({ platform: platform })
+        .get();
+      
+      if (oldVersions.data && oldVersions.data.length > 0) {
+        const deletePromises = oldVersions.data.map(doc => 
+          collection.doc(doc._id).remove()
+        );
+        await Promise.all(deletePromises);
+        console.log(`✅ 已删除 ${oldVersions.data.length} 条旧数据`);
+      }
+
+      // 创建新记录（初始状态为未下载）
+      const now = new Date().toISOString();
+      const doc = {
+        version,
+        versionCode,
+        platform,
+        downloadUrl: downloadUrl || null,
+        easDownloadUrl: easDownloadUrl || null,
+        filePath: filePath || null,
+        fileSize: fileSize || 0,
+        updateLog: updateLog || '',
+        downloadStatus: 'not_downloaded', // 初始状态：未下载
+        releaseDate: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const res = await collection.add(doc);
+      console.log('✅ 强制更新版本信息保存成功:', res);
+
+      return {
+        code: 0,
+        message: '版本信息保存成功',
+        data: { _id: res.id, ...doc },
+      };
+    } catch (error) {
+      console.error('❌ 保存强制更新版本信息失败:', error);
+      throw new Error(`保存版本信息失败: ${error.message}`);
+    }
+  } else if (method === 'GET') {
+    // 获取当前强制更新版本信息
+    try {
+      const versionsCollection = db.collection('force_update_versions');
+      
+      const url = new URL(`http://example.com${path}`);
+      const platform = url.searchParams.get('platform') || 'android';
+      
+      // 获取指定平台的最新版本（应该只有一条）
+      const versions = await versionsCollection
+        .where({ platform: platform })
+        .get();
+      
+      if (versions.data && versions.data.length > 0) {
+        // 按 versionCode 排序，取最新的
+        versions.data.sort((a, b) => {
+          const aCode = typeof a.versionCode === 'number' ? a.versionCode : parseInt(a.versionCode || '0', 10);
+          const bCode = typeof b.versionCode === 'number' ? b.versionCode : parseInt(b.versionCode || '0', 10);
+          return bCode - aCode;
+        });
+        
+        return {
+          code: 0,
+          message: '获取成功',
+          data: versions.data[0],
+        };
+      } else {
+        return {
+          code: 404,
+          message: '没有强制更新版本',
+          data: null,
+        };
+      }
+    } catch (error) {
+      console.error('获取强制更新版本信息失败:', error);
+      throw new Error(`获取版本信息失败: ${error.message}`);
+    }
+  } else {
+    throw new Error('不支持的请求方法');
+  }
+}
+
+/**
+ * 强制更新检查接口
+ * GET /app/force-update/check?currentVersion=1.0.0&versionCode=1&platform=android
+ * 判断逻辑：只要版本号 >= 当前版本就可以更新
+ */
+async function handleForceUpdateCheck(method, path, body, headers) {
+  if (method !== 'GET') {
+    throw new Error('只支持 GET 请求');
+  }
+
+  const queryParams = new URLSearchParams(path.split('?')[1] || '');
+  const currentVersion = queryParams.get('currentVersion') || '1.0.0';
+  let currentVersionCode = parseInt(queryParams.get('versionCode') || '0', 10);
+  // 处理无效值（NaN）
+  if (isNaN(currentVersionCode)) {
+    currentVersionCode = 0;
+  }
+  const platform = queryParams.get('platform') || 'android';
+
+  console.log('[检查强制更新] 请求参数:', { currentVersion, currentVersionCode, platform });
+
+  try {
+    const versionsCollection = db.collection('force_update_versions');
+    
+    // 查询指定平台的最新版本（应该只有一条）
+    let versions;
+    try {
+      versions = await versionsCollection
+        .where({ platform: platform })
+        .get();
+    } catch (error) {
+      console.warn(`[检查强制更新] 查询失败:`, error.message);
+      versions = { data: [] };
+    }
+    
+    if (!versions.data || versions.data.length === 0) {
+      console.log(`[检查强制更新] ${platform} 平台没有找到强制更新版本数据`);
+      return {
+        code: 0,
+        message: 'success',
+        data: {
+          hasUpdate: false,
+          latestVersion: currentVersion,
+          latestVersionCode: currentVersionCode,
+          downloadUrl: '',
+          easDownloadUrl: null,
+          updateLog: '',
+          fileSize: 0,
+          releaseDate: null,
+          downloadStatus: 'not_downloaded',
+        },
+      };
+    }
+    
+    // 按 versionCode 排序，取最新的
+    versions.data.sort((a, b) => {
+      const aCode = typeof a.versionCode === 'number' ? a.versionCode : parseInt(a.versionCode || '0', 10);
+      const bCode = typeof b.versionCode === 'number' ? b.versionCode : parseInt(b.versionCode || '0', 10);
+      return bCode - aCode;
+    });
+    
+    const latestVersion = versions.data[0];
+    console.log('[检查强制更新] 最新版本数据:', {
+      version: latestVersion.version,
+      versionCode: latestVersion.versionCode,
+      versionCodeType: typeof latestVersion.versionCode,
+      platform: latestVersion.platform,
+      downloadStatus: latestVersion.downloadStatus,
+    });
+    
+    // ✅ 解析 versionCode
+    let latestVersionCode;
+    if (typeof latestVersion.versionCode === 'number' && !isNaN(latestVersion.versionCode)) {
+      latestVersionCode = latestVersion.versionCode;
+    } else if (latestVersion.versionCode != null) {
+      // 尝试转换为数字
+      latestVersionCode = parseInt(String(latestVersion.versionCode), 10);
+      if (isNaN(latestVersionCode)) {
+        console.error('[检查强制更新] versionCode 解析失败，原始值:', latestVersion.versionCode);
+        latestVersionCode = 0;
+      }
+    } else {
+      console.error('[检查强制更新] versionCode 字段不存在或为 null/undefined');
+      latestVersionCode = 0;
+    }
+    
+    // ✅ 强制更新判断逻辑：只要版本号 >= 当前版本就可以更新
+    const hasUpdate = latestVersionCode >= currentVersionCode;
+    
+    console.log('[检查强制更新] 版本比较结果:', {
+      currentVersionCode,
+      latestVersionCode,
+      hasUpdate,
+      condition: 'latestVersionCode >= currentVersionCode',
+    });
+    
+    return {
+      code: 0,
+      message: 'success',
+      data: {
+        hasUpdate: hasUpdate,
+        latestVersion: latestVersion.version || '',
+        latestVersionCode: latestVersionCode,
+        downloadUrl: latestVersion.downloadUrl || '',
+        easDownloadUrl: latestVersion.easDownloadUrl || null,
+        updateLog: latestVersion.updateLog || '',
+        fileSize: latestVersion.fileSize || 0,
+        releaseDate: latestVersion.releaseDate || latestVersion.createdAt || null,
+        downloadStatus: latestVersion.downloadStatus || 'not_downloaded',
+      },
+    };
+  } catch (error) {
+    console.error('[检查强制更新] 检查强制更新失败:', error);
+    console.error('[检查强制更新] 错误堆栈:', error.stack);
+    throw new Error(`检查更新失败: ${error.message}`);
+  }
+}
+
+/**
+ * 标记强制更新为已下载
+ * POST /app/force-update/mark-downloaded
+ * 请求体: { versionCode, platform }
+ */
+async function handleForceUpdateMarkDownloaded(method, path, body, headers) {
+  if (method !== 'POST') {
+    throw new Error('只支持 POST 请求');
+  }
+
+  try {
+    body = parseBody(body, headers);
+    const collection = db.collection('force_update_versions');
+
+    const {
+      versionCode,
+      platform = 'android',
+    } = body || {};
+
+    if (!versionCode) {
+      throw new Error('缺少必要字段: versionCode');
+    }
+
+    // 查找对应的版本记录
+    const versions = await collection
+      .where({
+        platform: platform,
+        versionCode: versionCode,
+      })
+      .get();
+
+    if (!versions.data || versions.data.length === 0) {
+      throw new Error(`未找到版本号为 ${versionCode} 的强制更新记录`);
+    }
+
+    // 更新下载状态为已下载
+    const version = versions.data[0];
+    await collection.doc(version._id).update({
+      downloadStatus: 'downloaded',
+      updatedAt: new Date().toISOString(),
+    });
+
+    console.log(`✅ 强制更新版本 ${versionCode} 已标记为已下载`);
+
+    return {
+      code: 0,
+      message: '状态更新成功',
+      data: {
+        versionCode: versionCode,
+        downloadStatus: 'downloaded',
+      },
+    };
+  } catch (error) {
+    console.error('❌ 标记强制更新为已下载失败:', error);
+    throw new Error(`更新状态失败: ${error.message}`);
   }
 }
 

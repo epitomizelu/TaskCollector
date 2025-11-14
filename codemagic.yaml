@@ -96,6 +96,75 @@ workflows:
           else
             echo "⚠️  警告：构建后 MainApplication.kt 可能不包含 OTA 实现"
           fi
+      - name: Get APK Download URL and Save to Database
+        script: |
+          echo "=========================================="
+          echo "  获取 APK 下载地址并保存到数据库"
+          echo "=========================================="
+          echo ""
+          
+          # 获取版本信息
+          VERSION=$(node -p "require('./app.json').expo.version")
+          VERSION_CODE=$(node -p "require('./app.json').expo.android.versionCode")
+          echo "📦 版本信息: v${VERSION} (Build ${VERSION_CODE})"
+          
+          # 查找 APK 文件
+          APK_FILE=$(find android/app/build/outputs/apk/release -name "*.apk" | head -1)
+          if [ -z "$APK_FILE" ]; then
+            echo "❌ 错误: 未找到 APK 文件"
+            exit 1
+          fi
+          
+          echo "✅ 找到 APK 文件: ${APK_FILE}"
+          
+          # Codemagic 构建完成后，APK 会作为 artifact 提供下载
+          # 注意：Codemagic 的 artifact 下载 URL 需要通过 Codemagic API 获取
+          # 或者从构建完成后的通知中获取
+          
+          # 尝试从环境变量获取下载 URL（如果 Codemagic 提供了）
+          DOWNLOAD_URL=""
+          if [ -n "$CM_ARTIFACT_LINKS" ]; then
+            DOWNLOAD_URL=$(echo "$CM_ARTIFACT_LINKS" | grep -oE 'https://[^ ]+\.apk' | head -1)
+            echo "📥 从环境变量获取下载 URL: ${DOWNLOAD_URL}"
+          fi
+          
+          # 如果环境变量中没有，尝试从 Codemagic API 获取
+          # 注意：需要设置 CM_API_TOKEN 环境变量
+          if [ -z "$DOWNLOAD_URL" ] && [ -n "$CM_API_TOKEN" ] && [ -n "$CM_BUILD_ID" ]; then
+            echo "📥 尝试从 Codemagic API 获取下载 URL..."
+            # 这里可以调用 Codemagic API 获取 artifact 下载 URL
+            # 由于 Codemagic API 的具体格式可能不同，这里提供一个示例
+            # DOWNLOAD_URL=$(curl -s -H "Authorization: Bearer $CM_API_TOKEN" \
+            #   "https://api.codemagic.io/builds/$CM_BUILD_ID/artifacts" | \
+            #   jq -r '.artifacts[] | select(.type=="apk") | .url' | head -1)
+          fi
+          
+          # 如果仍然没有获取到 URL，提示用户手动提供
+          if [ -z "$DOWNLOAD_URL" ]; then
+            echo "⚠️  警告: 无法自动获取下载 URL"
+            echo "💡 提示: Codemagic 构建完成后，APK 会作为 artifact 提供下载"
+            echo "   请从 Codemagic 控制台获取下载 URL，然后运行以下命令："
+            echo "   node scripts/save-codemagic-apk-version.js <download-url> [apk-path]"
+            echo ""
+            echo "📝 或者，如果设置了 CM_ARTIFACT_LINKS 环境变量，脚本会自动获取"
+            exit 0
+          fi
+          
+          # 保存版本信息到数据库
+          if [ -z "$EXPO_PUBLIC_API_KEY" ]; then
+            echo "⚠️  警告: EXPO_PUBLIC_API_KEY 环境变量未设置，跳过保存版本信息"
+            echo "   请设置环境变量后重新运行，或手动运行："
+            echo "   node scripts/save-codemagic-apk-version.js ${DOWNLOAD_URL} ${APK_FILE}"
+          else
+            echo ""
+            echo "💾 保存强制更新版本信息到数据库..."
+            node scripts/save-codemagic-apk-version.js "${DOWNLOAD_URL}" "" "${APK_FILE}"
+          fi
+          
+          echo ""
+          echo "=========================================="
+          echo "  ✅ APK 版本信息处理完成"
+          echo "=========================================="
       - name: Build and Upload JS Bundle (OTA Update)
         script: |
           echo "=========================================="

@@ -761,6 +761,9 @@ class ApiService {
     filePath?: string;
     useChunkedDownload?: boolean;
   }> {
+    // 使用 app-update 云函数检查更新
+    const { API_CONFIG } = await import('../config/api.config');
+    const updateServiceUrl = API_CONFIG.UPDATE_SERVICE_URL || API_CONFIG.BASE_URL;
     const response = await this.get<{
       hasUpdate: boolean;
       latestVersion: string;
@@ -776,7 +779,7 @@ class ApiService {
       chunkUrls?: string[];
       filePath?: string;
       useChunkedDownload?: boolean;
-    }>(API_ENDPOINTS.APP_CHECK_UPDATE(currentVersion, versionCode, platform));
+    }>(API_ENDPOINTS.APP_CHECK_UPDATE(currentVersion, versionCode, platform), updateServiceUrl);
     if (response.code === 0) {
       return response.data;
     }
@@ -806,6 +809,58 @@ class ApiService {
       return response.data;
     }
     throw new Error(response.message || '获取分片 URL 失败');
+  }
+
+  // ========== 强制更新 API ==========
+
+  /**
+   * 检查强制更新
+   */
+  async checkForceUpdate(currentVersion: string, versionCode: number, platform: string = 'android'): Promise<{
+    hasUpdate: boolean;
+    latestVersion: string;
+    latestVersionCode: number;
+    downloadUrl: string;
+    easDownloadUrl?: string;
+    updateLog: string;
+    fileSize: number;
+    releaseDate: string;
+    downloadStatus: 'not_downloaded' | 'downloaded';
+  }> {
+    // 使用 app-update 云函数检查强制更新
+    const { API_CONFIG } = await import('../config/api.config');
+    const updateServiceUrl = API_CONFIG.UPDATE_SERVICE_URL || API_CONFIG.BASE_URL;
+    const response = await this.get<{
+      hasUpdate: boolean;
+      latestVersion: string;
+      latestVersionCode: number;
+      downloadUrl: string;
+      easDownloadUrl?: string;
+      updateLog: string;
+      fileSize: number;
+      releaseDate: string;
+      downloadStatus: 'not_downloaded' | 'downloaded';
+    }>(`/app/force-update/check?currentVersion=${currentVersion}&versionCode=${versionCode}&platform=${platform}`, updateServiceUrl);
+    if (response.code === 0) {
+      return response.data;
+    }
+    throw new Error(response.message || '检查强制更新失败');
+  }
+
+  /**
+   * 标记强制更新为已下载
+   */
+  async markForceUpdateDownloaded(versionCode: number, platform: string = 'android'): Promise<void> {
+    const { API_CONFIG } = await import('../config/api.config');
+    const updateServiceUrl = API_CONFIG.UPDATE_SERVICE_URL || API_CONFIG.BASE_URL;
+    const response = await this.post<void>(
+      '/app/force-update/mark-downloaded',
+      { versionCode, platform },
+      updateServiceUrl
+    );
+    if (response.code !== 0) {
+      throw new Error(response.message || '标记下载状态失败');
+    }
   }
 
   // ========== 站内信相关 API ==========

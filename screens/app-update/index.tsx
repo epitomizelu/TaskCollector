@@ -452,27 +452,126 @@ const AppUpdateScreen: React.FC = () => {
                 )}
 
                 {/* 下载按钮 */}
-                <TouchableOpacity
-                  style={[
-                    styles.apkButton,
-                    (isDownloading || isChecking) && styles.downloadButtonDisabled,
-                  ]}
-                  onPress={handleDownload}
-                  disabled={isDownloading || isChecking}
-                  activeOpacity={0.7}
-                >
-                  {isDownloading ? (
-                    <>
-                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
-                      <Text style={styles.downloadButtonText}>下载中...</Text>
-                    </>
-                  ) : (
-                    <>
-                      <FontAwesome6 name="download" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
-                      <Text style={styles.downloadButtonText}>下载 APK 更新</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
+                <View style={{ gap: 12 }}>
+                  <TouchableOpacity
+                    style={[
+                      styles.apkButton,
+                      (isDownloading || isChecking) && styles.downloadButtonDisabled,
+                    ]}
+                    onPress={handleDownload}
+                    disabled={isDownloading || isChecking}
+                    activeOpacity={0.7}
+                  >
+                    {isDownloading ? (
+                      <>
+                        <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                        <Text style={styles.downloadButtonText}>下载中...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesome6 name="download" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                        <Text style={styles.downloadButtonText}>下载 APK 更新</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                  
+                  {/* 强制更新按钮 */}
+                  <TouchableOpacity
+                    style={[
+                      styles.forceUpdateButton,
+                      (isDownloading || isChecking) && styles.downloadButtonDisabled,
+                    ]}
+                    onPress={async () => {
+                      if (!currentVersion) return;
+                      
+                      Alert.alert(
+                        '强制更新',
+                        '强制更新将立即下载并安装最新版本，是否继续？',
+                        [
+                          { text: '取消', style: 'cancel' },
+                          {
+                            text: '确定',
+                            onPress: async () => {
+                              setIsDownloading(true);
+                              setError(null);
+                              setDownloadProgress(null);
+
+                              try {
+                                // 检查强制更新
+                                const { apiService } = await import('../../services/api.service');
+                                const forceUpdateInfo = await apiService.checkForceUpdate(
+                                  currentVersion.version,
+                                  currentVersion.versionCode,
+                                  Platform.OS
+                                );
+
+                                if (!forceUpdateInfo.hasUpdate) {
+                                  Alert.alert('提示', '当前已是最新版本，无需更新');
+                                  return;
+                                }
+
+                                // 下载 APK
+                                const updateInfoForDownload: UpdateInfo = {
+                                  hasUpdate: true,
+                                  latestVersion: forceUpdateInfo.latestVersion,
+                                  latestVersionCode: forceUpdateInfo.latestVersionCode,
+                                  downloadUrl: forceUpdateInfo.downloadUrl,
+                                  easDownloadUrl: forceUpdateInfo.easDownloadUrl,
+                                  forceUpdate: true,
+                                  updateLog: forceUpdateInfo.updateLog,
+                                  fileSize: forceUpdateInfo.fileSize,
+                                  releaseDate: forceUpdateInfo.releaseDate,
+                                };
+
+                                const fileUri = await appUpdateService.downloadApk(
+                                  updateInfoForDownload,
+                                  (progress) => {
+                                    setDownloadProgress(progress);
+                                  }
+                                );
+
+                                // ✅ 下载成功，标记为已下载
+                                try {
+                                  await apiService.markForceUpdateDownloaded(
+                                    forceUpdateInfo.latestVersionCode,
+                                    Platform.OS
+                                  );
+                                  console.log('✅ 强制更新已标记为已下载');
+                                } catch (markError) {
+                                  console.warn('⚠️  标记下载状态失败:', markError);
+                                  // 不影响安装流程
+                                }
+
+                                // 下载完成，直接安装
+                                await appUpdateService.installApk(fileUri);
+                              } catch (err: any) {
+                                setError(err.message || '下载失败，请稍后重试');
+                                Alert.alert('强制更新失败', err.message || '无法下载更新文件');
+                              } finally {
+                                setIsDownloading(false);
+                                setDownloadProgress(null);
+                              }
+                            },
+                          },
+                        ]
+                      );
+                    }}
+                    disabled={isDownloading || isChecking}
+                    activeOpacity={0.7}
+                  >
+                    {isDownloading ? (
+                      <>
+                        <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 8 }} />
+                        <Text style={styles.downloadButtonText}>强制更新中...</Text>
+                      </>
+                    ) : (
+                      <>
+                        <FontAwesome6 name="arrow-down-to-bracket" size={16} color="#FFFFFF" style={{ marginRight: 8 }} />
+                        <Text style={styles.downloadButtonText}>强制更新</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </>
             ) : (
               <View style={styles.noUpdateCard}>
