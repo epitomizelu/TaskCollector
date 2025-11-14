@@ -19,8 +19,7 @@ const ModuleCard: React.FC<{
   moduleInstance: ModuleInstance;
   index: number;
   onPress: (moduleInstance: ModuleInstance) => void;
-  isInGroup?: boolean;
-}> = ({ moduleInstance, index, onPress, isInGroup = false }) => {
+}> = ({ moduleInstance, index, onPress }) => {
   const { metadata, getNavigationItem } = moduleInstance.definition;
   const navItem = getNavigationItem?.();
   
@@ -41,8 +40,8 @@ const ModuleCard: React.FC<{
   // 判断是否是每行的第三个元素（索引 2, 5, 8...）
   const isLastInRow = (index + 1) % 3 === 0;
   const gridItemStyle = [
-    isInGroup ? styles.gridItemInGroup : styles.gridItem,
-    !isInGroup && isLastInRow && styles.gridItemLastInRow
+    styles.gridItem,
+    isLastInRow && styles.gridItemLastInRow
   ];
 
   return (
@@ -200,58 +199,15 @@ const ModuleHome: React.FC = () => {
           </View>
         ) : (
           <View style={styles.gridContainer}>
-            {/* 任务相关模块组：任务收集和任务清单 */}
-            {(() => {
-              const taskCollectionModule = modules.find(m => m.definition.metadata.id === 'task-collection');
-              const taskListModule = modules.find(m => m.definition.metadata.id === 'task-list');
-              const otherModules = modules.filter(m => 
-                m.definition.metadata.id !== 'task-collection' && 
-                m.definition.metadata.id !== 'task-list'
-              );
-
-              return (
-                <>
-                  {/* 任务相关模块组容器 */}
-                  {(taskCollectionModule || taskListModule) && (
-                    <View style={styles.taskGroupContainer}>
-                      <Text style={styles.groupTitle}>任务管理</Text>
-                      <View style={styles.taskGroupGrid}>
-                        {taskCollectionModule && (
-                          <View style={styles.taskGroupItem}>
-                            <ModuleCard 
-                              moduleInstance={taskCollectionModule} 
-                              index={0}
-                              onPress={handleModulePress}
-                              isInGroup={true}
-                            />
-                          </View>
-                        )}
-                        {taskListModule && (
-                          <View style={[styles.taskGroupItem, { marginRight: 0 }]}>
-                            <ModuleCard 
-                              moduleInstance={taskListModule} 
-                              index={1}
-                              onPress={handleModulePress}
-                              isInGroup={true}
-                            />
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  )}
-
-                  {/* 其他模块 */}
-                  {otherModules.map((moduleInstance, index) => (
-                    <ModuleCard
-                      key={moduleInstance.definition.metadata.id}
-                      moduleInstance={moduleInstance}
-                      index={index + 2}
-                      onPress={handleModulePress}
-                    />
-                  ))}
-                </>
-              );
-            })()}
+            {/* 所有模块统一使用九宫格布局 */}
+            {modules.map((moduleInstance, index) => (
+              <ModuleCard
+                key={moduleInstance.definition.metadata.id}
+                moduleInstance={moduleInstance}
+                index={index}
+                onPress={handleModulePress}
+              />
+            ))}
           </View>
         )}
       </ScrollView>
@@ -423,12 +379,11 @@ const styles = StyleSheet.create({
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
   },
   gridItem: {
     width: '31%', // 3列布局，每列约31%宽度
     aspectRatio: 1, // 保持正方形
-    marginRight: '3.5%', // 右边距，确保3个元素一行
     marginBottom: 16,
     borderRadius: 16,
     overflow: 'hidden',
@@ -439,7 +394,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   gridItemLastInRow: {
-    marginRight: 0, // 每行最后一个元素不添加右边距
+    // 每行最后一个元素不需要特殊处理，因为使用 space-between
   },
   gridCardGradient: {
     flex: 1,
@@ -479,42 +434,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#9ca3af',
-  },
-  taskGroupContainer: {
-    width: '100%',
-    marginBottom: 24,
-    padding: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  groupTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 12,
-  },
-  taskGroupGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  taskGroupItem: {
-    flex: 1,
-    marginRight: 12,
-  },
-  gridItemInGroup: {
-    width: '100%',
-    aspectRatio: 1,
-    marginRight: 0,
-    marginBottom: 0,
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
   },
 });
 
