@@ -145,6 +145,31 @@ class ModuleRegistry {
       // 不抛出错误，允许其他模块继续加载
     }
 
+    // 注册复盘模块
+    try {
+      const reviewModule = await import('../modules/review/module.definition');
+      console.log('复盘模块导入结果:', reviewModule);
+      
+      if (reviewModule.reviewModule) {
+        const moduleDef = reviewModule.reviewModule;
+        console.log('复盘模块定义:', {
+          id: moduleDef.metadata?.id,
+          name: moduleDef.metadata?.name,
+          enabled: moduleDef.metadata?.enabled,
+          status: moduleDef.metadata?.status,
+        });
+        
+        moduleDefinitions.push(moduleDef);
+        this.registeredModuleIds.add('review');
+      } else {
+        console.error('复盘模块未找到: reviewModule 不存在');
+        console.log('可用导出:', Object.keys(reviewModule));
+      }
+    } catch (error) {
+      console.error('加载复盘模块失败:', error);
+      // 不抛出错误，允许其他模块继续加载
+    }
+
     // 批量注册所有模块
     await moduleManager.registerModules(moduleDefinitions);
     

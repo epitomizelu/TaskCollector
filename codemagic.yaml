@@ -70,6 +70,20 @@ workflows:
             echo "   文件内容预览："
             grep -A 10 "getJSBundleFile" android/app/src/main/java/com/lcy/taskcollection/MainApplication.kt || echo "   未找到 getJSBundleFile 方法"
           fi
+      - name: Inject EAS Update Channel
+        script: |
+          # 设置默认 channel（预览版使用 preview）
+          export EAS_UPDATE_CHANNEL="${EAS_UPDATE_CHANNEL:-preview}"
+          echo "📦 注入 EAS Update Channel: $EAS_UPDATE_CHANNEL"
+          node scripts/inject-eas-channel.js
+          echo ""
+          echo "📋 验证 channel 注入结果..."
+          if grep -q "expo.modules.updates.EXPO_UPDATE_CHANNEL" android/app/src/main/AndroidManifest.xml; then
+            echo "✅ 确认：AndroidManifest.xml 包含 EAS Update Channel"
+            grep "expo.modules.updates.EXPO_UPDATE_CHANNEL" android/app/src/main/AndroidManifest.xml
+          else
+            echo "⚠️  警告：AndroidManifest.xml 可能不包含 EAS Update Channel"
+          fi
       - name: Build Android APK
         script: |
           cd android
@@ -181,6 +195,20 @@ workflows:
             echo "⚠️  警告：MainApplication.kt 可能不包含 OTA 实现"
             echo "   文件内容预览："
             grep -A 10 "getJSBundleFile" android/app/src/main/java/com/lcy/taskcollection/MainApplication.kt || echo "   未找到 getJSBundleFile 方法"
+          fi
+      - name: Inject EAS Update Channel
+        script: |
+          # 设置默认 channel（生产版使用 production）
+          export EAS_UPDATE_CHANNEL="${EAS_UPDATE_CHANNEL:-production}"
+          echo "📦 注入 EAS Update Channel: $EAS_UPDATE_CHANNEL"
+          node scripts/inject-eas-channel.js
+          echo ""
+          echo "📋 验证 channel 注入结果..."
+          if grep -q "expo.modules.updates.EXPO_UPDATE_CHANNEL" android/app/src/main/AndroidManifest.xml; then
+            echo "✅ 确认：AndroidManifest.xml 包含 EAS Update Channel"
+            grep "expo.modules.updates.EXPO_UPDATE_CHANNEL" android/app/src/main/AndroidManifest.xml
+          else
+            echo "⚠️  警告：AndroidManifest.xml 可能不包含 EAS Update Channel"
           fi
       - name: Build Android AAB
         script: |

@@ -5,7 +5,8 @@
       "android": {
         "buildType": "apk",
         "image": "latest",
-        "withoutCredentials": false
+        "withoutCredentials": false,
+        "channel": "preview"
       },
       "env": {
         "EXPO_PUBLIC_API_KEY": "${EXPO_PUBLIC_API_KEY}"
@@ -15,14 +16,23 @@
       "android": {
         "gradleCommand": ":app:bundleRelease",
         "image": "latest",
-        "withoutCredentials": false
+        "withoutCredentials": false,
+        "channel": "production"
       },
       "env": {
         "EXPO_PUBLIC_API_KEY": "${EXPO_PUBLIC_API_KEY}"
       }
     }
   },
-  "submit": { "production": {} }
+  "submit": { "production": {} },
+  "update": {
+    "preview": {
+      "channel": "preview"
+    },
+    "production": {
+      "channel": "production"
+    }
+  }
 }
 
 

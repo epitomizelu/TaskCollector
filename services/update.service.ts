@@ -62,10 +62,21 @@ class UpdateService {
       };
     } catch (error) {
       console.error('[UpdateService] 检查更新失败:', error);
+      
+      // 提取更详细的错误信息
+      let errorMessage = '检查更新失败';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // 检查是否是 channel 相关的错误
+        if (errorMessage.includes('channel-name') || errorMessage.includes('channel')) {
+          errorMessage = '更新检查失败：缺少 channel 配置。请确保 APK 是在构建时指定了 channel 的版本。';
+        }
+      }
+      
       return {
         isAvailable: false,
         isDownloaded: false,
-        error: error instanceof Error ? error : new Error(String(error)),
+        error: error instanceof Error ? new Error(errorMessage) : new Error(String(error)),
       };
     } finally {
       this.isChecking = false;
