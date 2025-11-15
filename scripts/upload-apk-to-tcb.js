@@ -10,7 +10,11 @@ const https = require('https');
 // 配置信息
 const TCB_STORAGE_DOMAIN = '636c-cloud1-4gee45pq61cd6f19-1259499058.tcb.qcloud.la';
 const STORAGE_FOLDER = 'task_collection_apks';
-const API_BASE_URL = process.env.API_BASE_URL || 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api';
+// 默认使用 task-collection-api（用于存储上传等）
+const DEFAULT_API_BASE_URL = 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/task-collection-api';
+// 强制更新 API 使用 app-update-api
+const FORCE_UPDATE_API_BASE_URL = 'https://cloud1-4gee45pq61cd6f19-1259499058.ap-shanghai.app.tcloudbase.com/app-update-api';
+const API_BASE_URL = process.env.API_BASE_URL || DEFAULT_API_BASE_URL;
 const API_KEY = process.env.EXPO_PUBLIC_API_KEY || process.env.API_KEY;
 
 /**
@@ -413,34 +417,47 @@ async function uploadDirectly(filePath, cloudPath) {
 /**
  * 保存版本信息到数据库（通过云函数 API）
  * 注意：此函数会更新已存在的版本信息（添加腾讯云下载地址）
+ * @param {boolean} isForceUpdate - 是否保存为强制更新（保存到 force_update_versions 集合）
  */
-async function saveVersionInfo(version, versionCode, filePath, uploadResult, easDownloadUrl = null) {
+async function saveVersionInfo(version, versionCode, filePath, uploadResult, easDownloadUrl = null, isForceUpdate = false) {
   try {
-    console.log('更新版本信息到数据库（添加上传结果）...');
+    const updateType = isForceUpdate ? '强制更新' : '普通版本';
+    console.log(`保存版本信息到数据库（${updateType}）...`);
     
-    // 构造版本信息（更新现有记录）
+    // 获取下载 URL（优先使用腾讯云存储的 URL）
+    const downloadUrl = uploadResult.fileUrl || `https://${TCB_STORAGE_DOMAIN}/${filePath}`;
+    
+    // 构造版本信息
     const versionInfo = {
       version: version,
       versionCode: versionCode,
       platform: 'android',
-      filePath: filePath,
-      // EAS Build 下载地址（优先使用，如果之前已保存则保持不变）
+      // 腾讯云存储下载地址（主要下载源）
+      downloadUrl: downloadUrl,
+      // EAS Build 下载地址（备用，如果提供）
       easDownloadUrl: easDownloadUrl || null,
-      // 腾讯云存储下载地址（备用）
-      downloadUrl: uploadResult.fileUrl || `https://${TCB_STORAGE_DOMAIN}/${filePath}`,
+      filePath: filePath,
       fileSize: uploadResult.fileSize || 0,
+      updateLog: isForceUpdate ? 'Codemagic 自动构建版本（强制更新）' : '自动构建版本',
       releaseDate: new Date().toISOString(),
       // 分片下载相关（如果使用分片上传）
       uploadId: uploadResult.uploadId || null,
       totalChunks: uploadResult.totalChunks || null,
       useChunkedDownload: !!(uploadResult.chunkUrls && uploadResult.chunkUrls.length > 0),
-      updatedAt: new Date().toISOString(),
     };
+    
+    // 如果是强制更新，添加 downloadStatus 字段
+    if (isForceUpdate) {
+      versionInfo.downloadStatus = 'not_downloaded';
+    }
     
     // 调用云函数 API 保存版本信息
     try {
       const postData = JSON.stringify(versionInfo);
-      const url = new URL(`${API_BASE_URL}/app/versions`);
+      // 根据 isForceUpdate 选择不同的 API 端点和基础 URL
+      const apiEndpoint = isForceUpdate ? '/app/force-update' : '/app/versions';
+      const baseUrl = isForceUpdate ? FORCE_UPDATE_API_BASE_URL : API_BASE_URL;
+      const url = new URL(`${baseUrl}${apiEndpoint}`);
       
       const options = {
         method: 'POST',
@@ -477,19 +494,22 @@ async function saveVersionInfo(version, versionCode, filePath, uploadResult, eas
       });
       
       if (response.statusCode === 200 && response.data.code === 0) {
-        console.log('✅ 版本信息保存成功');
+        console.log(`✅ 版本信息保存成功（${updateType}）`);
         if (easDownloadUrl) {
           console.log(`   EAS 下载地址: ${easDownloadUrl}`);
         }
-        console.log(`   腾讯云下载地址: ${versionInfo.downloadUrl}`);
+        console.log(`   腾讯云下载地址: ${downloadUrl}`);
+        if (isForceUpdate) {
+          console.log(`   下载状态: ${versionInfo.downloadStatus}`);
+        }
       } else {
-        console.warn('⚠️  保存版本信息失败:', response.data.message || '未知错误');
+        console.warn(`⚠️  保存版本信息失败（${updateType}）:`, response.data.message || '未知错误');
         console.log('版本信息:', JSON.stringify(versionInfo, null, 2));
       }
     } catch (apiError) {
-      console.warn('⚠️  调用云函数 API 保存版本信息失败:', apiError.message);
+      console.warn(`⚠️  调用云函数 API 保存版本信息失败（${updateType}）:`, apiError.message);
       console.log('版本信息:', JSON.stringify(versionInfo, null, 2));
-      console.log('提示: 需要在云函数中添加保存版本信息的接口，或手动在数据库中创建 app_versions 集合');
+      console.log('提示: 需要在云函数中添加保存版本信息的接口');
     }
     
   } catch (error) {
@@ -554,8 +574,11 @@ async function main() {
         console.log(`文件大小: ${uploadResult.fileSize ? (uploadResult.fileSize / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}`);
       }
       
+      // 检查是否保存为强制更新（从环境变量或命令行参数）
+      const isForceUpdate = process.env.FORCE_UPDATE === 'true' || process.env.FORCE_UPDATE === '1' || args.includes('--force-update');
+      
       // 保存版本信息到数据库（包含 EAS 下载地址）
-      await saveVersionInfo(version, versionCode, cloudPath, uploadResult, easDownloadUrl);
+      await saveVersionInfo(version, versionCode, cloudPath, uploadResult, easDownloadUrl, isForceUpdate);
       
     } catch (error) {
       console.warn('通过云函数上传失败，尝试直接上传...');
@@ -567,8 +590,11 @@ async function main() {
         console.log('✅ 直接上传成功！');
         console.log(`文件 URL: ${uploadResult.fileUrl}`);
         
+        // 检查是否保存为强制更新
+        const isForceUpdate = process.env.FORCE_UPDATE === 'true' || process.env.FORCE_UPDATE === '1' || args.includes('--force-update');
+        
         // 保存版本信息到数据库（包含 EAS 下载地址）
-        await saveVersionInfo(version, versionCode, cloudPath, uploadResult, easDownloadUrl);
+        await saveVersionInfo(version, versionCode, cloudPath, uploadResult, easDownloadUrl, isForceUpdate);
       } catch (directError) {
         console.error('❌ 直接上传也失败:', directError.message);
         throw directError;

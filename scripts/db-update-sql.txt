@@ -1,0 +1,66 @@
+/**
+ * 直接在腾讯云数据库管理界面执行以下更新语句
+ * 路径：云开发控制台 → 数据库 → 选择集合 → 高级操作
+ */
+
+// 目标 userId
+const TARGET_USER_ID = 'user_1762415802540_xcfpz7v2v';
+const UPDATED_AT = new Date().toISOString();
+
+// =============================================
+// 1. 更新 tasks 集合
+// =============================================
+db.collection('tasks').where({}).update({
+  userId: TARGET_USER_ID,
+  updatedAt: UPDATED_AT
+});
+
+// =============================================
+// 2. 更新 task_list_preset 集合
+// =============================================
+db.collection('task_list_preset').where({}).update({
+  userId: TARGET_USER_ID,
+  updatedAt: UPDATED_AT
+});
+
+// =============================================
+// 3. 更新 task_list_daily 集合
+// =============================================
+db.collection('task_list_daily').where({}).update({
+  userId: TARGET_USER_ID,
+  updatedAt: UPDATED_AT
+});
+
+// =============================================
+// 4. 更新 reciting_tasks 集合
+// =============================================
+db.collection('reciting_tasks').where({}).update({
+  userId: TARGET_USER_ID,
+  updatedAt: UPDATED_AT
+});
+
+// =============================================
+// 5. 更新 messages 集合
+// =============================================
+db.collection('messages').where({}).update({
+  userId: TARGET_USER_ID,
+  updatedAt: UPDATED_AT
+});
+
+// =============================================
+// 6. 更新 stats 集合
+// =============================================
+db.collection('stats').where({}).update({
+  userId: TARGET_USER_ID,
+  updatedAt: UPDATED_AT
+});
+
+// =============================================
+// 操作说明：
+// 1. 打开腾讯云控制台：https://console.cloud.tencent.com/tcb
+// 2. 进入：云开发 → 数据库
+// 3. 点击每个集合，进入"高级操作"
+// 4. 复制对应的更新语句并执行
+// 5. 查看执行结果确认更新数量
+// =============================================
+

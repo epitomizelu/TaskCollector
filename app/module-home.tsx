@@ -82,17 +82,51 @@ const ModuleHome: React.FC = () => {
   const [userNickname, setUserNickname] = useState<string>('');
   const [sidebarVisible, setSidebarVisible] = useState(false);
 
+  /**
+   * 如果需要，初始化模块（确保登录后模块已注册）
+   */
+  const initializeModulesIfNeeded = React.useCallback(async () => {
+    try {
+      // 检查是否已登录
+      await userService.initialize();
+      if (!userService.isLoggedIn()) {
+        console.log('用户未登录，跳过模块初始化');
+        return;
+      }
+
+      // 检查是否有已激活的模块
+      const activeModules = moduleManager.getOrderedActiveModules();
+      if (activeModules.length === 0) {
+        console.log('没有激活的模块，开始注册模块...');
+        
+        // 注册所有模块
+        const { moduleRegistry } = await import('../core/module-registry');
+        await moduleRegistry.registerAllModules();
+        
+        console.log('模块注册完成，刷新模块列表');
+      }
+      
+      // 加载模块列表
+      loadModules();
+    } catch (error) {
+      console.error('初始化模块失败:', error);
+      // 即使失败也尝试加载模块列表
+      loadModules();
+    }
+  }, []);
+
   // 页面获取焦点时刷新模块列表
   useFocusEffect(
     React.useCallback(() => {
-      loadModules();
-    }, [])
+      // 先检查并初始化模块，然后加载模块列表
+      initializeModulesIfNeeded();
+    }, [initializeModulesIfNeeded])
   );
 
   useEffect(() => {
-    loadModules();
+    initializeModulesIfNeeded();
     loadUserInfo();
-  }, []);
+  }, [initializeModulesIfNeeded]);
 
   const loadUserInfo = async () => {
     await userService.initialize();
@@ -104,6 +138,7 @@ const ModuleHome: React.FC = () => {
 
   const loadModules = () => {
     const activeModules = moduleManager.getOrderedActiveModules();
+    console.log('加载模块列表，激活的模块数量:', activeModules.length);
     setModules(activeModules);
   };
 

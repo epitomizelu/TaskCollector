@@ -60,6 +60,9 @@ const PhoneLoginScreen: React.FC = () => {
    * 处理登录
    */
   const handleLogin = async () => {
+    console.log('=== handleLogin 被调用 ===');
+    console.log('当前状态:', { phone, isLoading, isRegister });
+    
     const logs: string[] = [];
     const addLog = (message: string) => {
       const timestamp = new Date().toLocaleTimeString();
@@ -72,11 +75,13 @@ const PhoneLoginScreen: React.FC = () => {
     addLog(`手机号: ${phone.trim()}`);
 
     if (!phone.trim()) {
+      console.log('手机号为空，显示提示');
       Alert.alert('提示', '请输入手机号');
       return;
     }
 
     if (!validatePhone(phone)) {
+      console.log('手机号格式不正确，显示提示');
       Alert.alert('提示', '请输入正确的手机号');
       return;
     }
@@ -115,8 +120,22 @@ const PhoneLoginScreen: React.FC = () => {
       addLog(`4. 用户信息详情: userId=${userInfo.userId || 'N/A'}, nickname=${userInfo.nickname || 'N/A'}, phone=${userInfo.phone || 'N/A'}`);
       addLog('5. 登录成功，准备跳转');
       
-      // 登录成功后跳转到首页
+      // 登录成功后跳转到首页（先跳转，模块注册在后台进行）
       router.replace('/module-home');
+      
+      // ✅ 登录成功后，异步注册并激活所有模块（不阻塞登录流程）
+      // 注意：模块注册在 AppShell 中也会检查，这里作为补充
+      import('../../core/module-registry')
+        .then(({ moduleRegistry }) => {
+          return moduleRegistry.registerAllModules();
+        })
+        .then(() => {
+          addLog('模块注册完成（异步）');
+        })
+        .catch((error) => {
+          console.error('模块注册失败（异步）:', error);
+          // 模块注册失败不影响登录流程
+        });
       
       // 显示欢迎消息
       const nickname = userInfo?.nickname || userInfo?.phone || '用户';

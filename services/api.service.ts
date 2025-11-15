@@ -56,7 +56,59 @@ class ApiService {
   ): Promise<ApiResponse<T>> {
     const baseUrl = customBaseUrl || this.baseUrl;
     const url = `${baseUrl}${endpoint}`;
-    const isLoginRequest = endpoint.includes('/auth/login');
+    
+    // ✅ 定义不需要用户验证的接口（应用更新相关）
+    const isPublicEndpoint = 
+      endpoint.includes('/auth/login') || 
+      endpoint.includes('/auth/register') ||
+      endpoint.includes('/app/check-update') ||
+      endpoint.includes('/app/force-update/check') ||
+      endpoint.includes('/app/force-update/mark-downloaded') ||
+      endpoint.includes('/app/check-js-bundle-update') ||
+      endpoint.includes('/app/versions') ||
+      endpoint.includes('/app/force-update');
+    
+    // ✅ 用于日志记录的变量（仅用于登录/注册请求）
+    const isLoginRequest = endpoint.includes('/auth/login') || endpoint.includes('/auth/register');
+    
+    // ✅ 检查登录状态：除了公开接口，其他所有接口都需要用户已登录
+    // ✅ 同时获取用户信息，添加到请求头中
+    let userHeaders: Record<string, string> = {};
+    if (!isPublicEndpoint) {
+      // 动态导入 authService 避免循环依赖
+      const { authService } = await import('./auth.service');
+      
+      // 检查登录状态
+      const isLoggedIn = authService.isLoggedIn();
+      console.log(`[ApiService.request] 检查登录状态 - endpoint: ${endpoint}, isLoggedIn: ${isLoggedIn}, isPublicEndpoint: ${isPublicEndpoint}`);
+      
+      if (!isLoggedIn) {
+        console.error(`[ApiService.request] ❌ 用户未登录，阻止请求: ${endpoint}`);
+        throw new Error('用户未登录，无法执行此操作');
+      }
+      
+      // 获取用户信息并添加到请求头
+      const currentUser = authService.getCurrentUser();
+      if (currentUser) {
+        userHeaders['X-User-Id'] = currentUser.userId || '';
+        if (currentUser.nickname) {
+          // ✅ 对昵称进行 Base64 编码，避免非 ISO-8859-1 字符导致的错误
+          // fetch API 的 headers 值必须是 ISO-8859-1 编码的字符串
+          try {
+            userHeaders['X-User-Nickname'] = btoa(unescape(encodeURIComponent(currentUser.nickname)));
+          } catch (e) {
+            // 如果编码失败，使用空字符串
+            console.warn(`[ApiService.request] ⚠️ 昵称编码失败:`, e);
+            userHeaders['X-User-Nickname'] = '';
+          }
+        }
+        console.log(`[ApiService.request] ✅ 用户已登录，添加用户信息到请求头 - userId: ${currentUser.userId}`);
+      } else {
+        console.warn(`[ApiService.request] ⚠️ 用户已登录但无法获取用户信息`);
+      }
+    } else {
+      console.log(`[ApiService.request] 公开接口，跳过登录检查: ${endpoint}`);
+    }
     
     const addRequestLog = (message: string) => {
       if (isLoginRequest) {
@@ -82,6 +134,7 @@ class ApiService {
       ...options,
       headers: {
         ...getHeaders(this.token),
+        ...userHeaders,
         ...options.headers,
       },
     };
@@ -112,10 +165,55 @@ class ApiService {
         addRequestLog(`发送fetch请求 (超时: ${API_CONFIG.TIMEOUT}ms)`);
       }
 
-      const response = await fetch(url, {
+      // 为所有请求添加日志（不仅仅是登录请求）
+      console.log(`[ApiService.request] 发送请求: ${options.method || 'GET'} ${endpoint}`);
+      console.log(`[ApiService.request] 完整URL: ${url}`);
+      console.log(`[ApiService.request] 请求配置:`, {
+        method: options.method || 'GET',
+        headers: Object.keys(config.headers || {}),
+        hasBody: !!config.body,
+        signal: controller.signal ? '已设置' : '未设置',
+      });
+      
+      const fetchStartTime = Date.now();
+      console.log(`[ApiService.request] 开始执行 fetch，时间: ${fetchStartTime}`);
+      console.log(`[ApiService.request] fetch URL: ${url}`);
+      console.log(`[ApiService.request] fetch signal: ${controller.signal ? '已设置' : '未设置'}, aborted: ${controller.signal?.aborted || false}`);
+      
+      // ✅ 强制刷新：确保代码执行到这里
+      console.log(`[ApiService.request] ✅ 代码执行到 fetch 调用前，URL: ${url}`);
+      
+      let response: Response;
+      try {
+        console.log(`[ApiService.request] 准备调用 fetch()...`);
+        console.log(`[ApiService.request] fetch 参数检查:`, {
+          url: url,
+          method: config.method || 'GET',
+          hasHeaders: !!config.headers,
+          hasSignal: !!controller.signal,
+        });
+        
+        const fetchPromise = fetch(url, {
         ...config,
         signal: controller.signal,
       });
+        console.log(`[ApiService.request] fetch() 已调用，等待响应...`);
+        
+        response = await fetchPromise;
+        
+        const fetchEndTime = Date.now();
+        console.log(`[ApiService.request] fetch 完成，耗时: ${fetchEndTime - fetchStartTime}ms, 状态码: ${response.status}`);
+      } catch (fetchError: any) {
+        const fetchEndTime = Date.now();
+        console.error(`[ApiService.request] fetch 异常，耗时: ${fetchEndTime - fetchStartTime}ms`);
+        console.error(`[ApiService.request] fetch 异常详情:`, {
+          name: fetchError?.name,
+          message: fetchError?.message,
+          stack: fetchError?.stack,
+          signal: controller.signal?.aborted ? '已中止' : '未中止',
+        });
+        throw fetchError;
+      }
 
       const requestDuration = Date.now() - requestStartTime;
 
@@ -124,6 +222,9 @@ class ApiService {
         clearTimeout(timeoutId);
         timeoutId = null;
       }
+
+      // 为所有请求添加响应日志
+      console.log(`[ApiService.request] 收到响应: ${endpoint} - 状态码: ${response.status} (耗时: ${requestDuration}ms)`);
 
       if (isLoginRequest) {
         addRequestLog(`收到响应 (耗时: ${requestDuration}ms)`);
@@ -167,6 +268,10 @@ class ApiService {
       }
 
       const data = await response.json();
+      
+      // 为所有请求添加响应数据日志
+      console.log(`[ApiService.request] 响应数据: ${endpoint} - code: ${data.code || 'N/A'}, message: ${data.message || 'N/A'}, data: ${data.data ? (Array.isArray(data.data) ? `数组(${data.data.length}项)` : '存在') : '不存在'}`);
+      
       if (isLoginRequest) {
         addRequestLog(`响应数据解析成功`);
         addRequestLog(`响应code: ${data.code || 'N/A'}`);
@@ -183,8 +288,12 @@ class ApiService {
         timeoutId = null;
       }
 
+      // 为所有请求添加错误日志
+      console.error(`[ApiService.request] 请求失败: ${endpoint} - 错误: ${error.message || error.name || 'Unknown'}, 耗时: ${requestDuration}ms`);
+
       // 检查是否是超时错误
       if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        console.error(`[ApiService.request] 请求超时: ${endpoint} (耗时: ${requestDuration}ms, 超时限制: ${API_CONFIG.TIMEOUT}ms)`);
         if (isLoginRequest) {
           addRequestLog(`请求超时 (耗时: ${requestDuration}ms, 超时限制: ${API_CONFIG.TIMEOUT}ms)`);
         }
@@ -551,11 +660,22 @@ class ApiService {
    * 获取所有预设任务
    */
   async getTaskListPresets(): Promise<any[]> {
+    console.log(`[ApiService.getTaskListPresets] 开始调用，endpoint: ${API_ENDPOINTS.TASK_LIST_PRESET}`);
+    const startTime = Date.now();
+    try {
     const response = await this.get<any[]>(API_ENDPOINTS.TASK_LIST_PRESET);
+      const endTime = Date.now();
+      console.log(`[ApiService.getTaskListPresets] ✅ 成功，耗时: ${endTime - startTime}ms, 返回 ${response.data?.length || 0} 个预设任务`);
     if (response.code === 0) {
-      return response.data;
+        return response.data || [];
     }
     throw new Error(response.message || '获取预设任务列表失败');
+    } catch (error: any) {
+      const endTime = Date.now();
+      console.error(`[ApiService.getTaskListPresets] ❌ 失败，耗时: ${endTime - startTime}ms`);
+      console.error(`[ApiService.getTaskListPresets] 错误:`, error?.message || error);
+      throw error;
+    }
   }
 
   /**

@@ -18,6 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { taskListService, PresetTask } from '../../../services/task-list.service';
+import { API_CONFIG } from '../../../config/api.config';
+import { authService } from '../../../services/auth.service';
 import styles from './styles';
 
 const PresetTaskScreen: React.FC = () => {
@@ -39,13 +41,17 @@ const PresetTaskScreen: React.FC = () => {
   const loadPresetTasks = async () => {
     setIsLoading(true);
     try {
-      // 先进行双向同步（取交集，先更新本地，后更新云端）
-      try {
-        await taskListService.syncPresetTasksBidirectional();
-        console.log('预设任务双向同步完成');
-      } catch (error) {
-        console.error('同步预设任务失败:', error);
-        // 同步失败不影响继续执行，使用本地数据
+      // 先进行双向同步（取交集，先更新本地，后更新云端）- 只有在配置了 API_KEY 且用户已登录时才同步
+      if (API_CONFIG.API_KEY && authService.isLoggedIn()) {
+        try {
+          await taskListService.syncPresetTasksBidirectional();
+          console.log('预设任务双向同步完成');
+        } catch (error) {
+          console.error('同步预设任务失败:', error);
+          // 同步失败不影响继续执行，使用本地数据
+        }
+      } else {
+        console.log('未配置 API Key，跳过云端同步，仅使用本地数据');
       }
       
       // 然后加载预设任务

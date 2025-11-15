@@ -16,7 +16,12 @@ exports.main = async (event, context) => {
   // 兼容不同的路径格式
   let { method, path, headers, body } = event;
 
-  console.log('云函数入口参数:', method, path, headers, body);
+  console.log('=============================================');
+  console.log('云函数入口 - 原始 event:', JSON.stringify(event, null, 2));
+  console.log('method:', method);
+  console.log('path:', path);
+  console.log('queryStringParameters:', event.queryStringParameters);
+  console.log('=============================================');
   
   // 如果 method 未定义，尝试从其他字段获取（腾讯云函数使用 httpMethod）
   if (!method) {
@@ -141,6 +146,12 @@ exports.main = async (event, context) => {
     } else if (path === '/messages' || path.startsWith('/messages')) {
       // 站内信相关
       result = await handleMessages(method, path, body, normalizedHeaders);
+    } else if (path.startsWith('/admin/init-user-id') && method === 'POST') {
+      // ⚠️ 管理接口：初始化所有集合的 userId
+      // 支持查询参数：?collection=tasks 只更新指定集合
+      const url = new URL(path, 'http://localhost');
+      const collection = url.searchParams.get('collection');
+      result = await initializeUserIdForAllCollections(collection);
     } else {
       return {
         statusCode: 404,
@@ -244,15 +255,49 @@ function verifyApiKey(headers) {
 }
 
 /**
- * 从请求头获取用户 ID（使用 API Key 验证）
+ * 从请求头获取用户 ID
+ * 优先级：1. X-User-Id 请求头（客户端传入的用户ID）
+ *         2. 从 Token 中解析用户ID
+ *         3. 使用 API Key 验证（向后兼容）
  */
 function getUserIdFromHeaders(headers) {
+  // ✅ 优先从请求头获取用户ID（客户端已登录时传入）
+  const userIdFromHeader = headers['x-user-id'] || headers['X-User-Id'];
+  if (userIdFromHeader && userIdFromHeader.trim() !== '') {
+    console.log('从请求头获取用户ID:', userIdFromHeader);
+    return userIdFromHeader;
+  }
+  
+  // ✅ 尝试从 Token 中解析用户ID（登录后的 JWT Token）
+  try {
+    const authHeader = headers.authorization || headers.Authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      // 尝试解析 Token（如果是 JWT 或自定义格式）
+      try {
+        const decoded = Buffer.from(token, 'base64').toString('utf-8');
+        const parts = decoded.split('_');
+        if (parts.length >= 1 && parts[0] && parts[0].startsWith('user_')) {
+          console.log('从 Token 解析用户ID:', parts[0]);
+          return parts[0];
+        }
+      } catch (e) {
+        // Token 解析失败，继续尝试其他方式
+        console.log('Token 解析失败，尝试其他方式:', e.message);
+      }
+    }
+  } catch (error) {
+    console.log('从 Token 获取用户ID失败:', error.message);
+  }
+  
+  // ✅ 最后尝试使用 API Key 验证（向后兼容，但不推荐用于用户数据查询）
   try {
     const userInfo = verifyApiKey(headers);
+    console.log('使用 API Key 验证获取用户ID:', userInfo.userId);
     return userInfo.userId;
   } catch (error) {
-    // 如果验证失败，抛出错误
-    throw error;
+    // 如果所有方式都失败，抛出错误
+    throw new Error('无法获取用户ID，请确保已登录或提供有效的认证信息');
   }
 }
 
@@ -835,17 +880,43 @@ async function handleTaskListDaily(method, path, body, headers) {
  * 获取每日任务列表
  */
 async function handleGetTaskListDailyTasks(path, userId, collection) {
-  const url = new URL(path, 'http://localhost');
-  const date = url.searchParams.get('date');
-  const dailyTaskId = path.split('/').pop();
+  console.log('=============================================');
+  console.log('[handleGetTaskListDailyTasks] 开始处理');
+  console.log('[handleGetTaskListDailyTasks] 原始 path:', path);
+  console.log('[handleGetTaskListDailyTasks] userId:', userId);
   
-  let query = collection.where({
-    userId: userId,
-  });
+  // ✅ 解析查询参数
+  let date = null;
+  if (path.includes('?')) {
+    const queryString = path.split('?')[1];
+    console.log('[handleGetTaskListDailyTasks] queryString:', queryString);
+    const params = new URLSearchParams(queryString);
+    date = params.get('date');
+    console.log('[handleGetTaskListDailyTasks] 从 URLSearchParams 解析的 date:', date);
+  }
+  
+  // ✅ 提取任务 ID（移除查询参数）
+  const pathWithoutQuery = path.split('?')[0];
+  const dailyTaskId = pathWithoutQuery.split('/').pop();
+  
+  console.log('[handleGetTaskListDailyTasks] pathWithoutQuery:', pathWithoutQuery);
+  console.log('[handleGetTaskListDailyTasks] dailyTaskId:', dailyTaskId);
+  console.log('[handleGetTaskListDailyTasks] date 参数:', date);
   
   // 根据 ID 查询单个任务
   if (dailyTaskId && dailyTaskId !== 'daily') {
-    const task = await query.where({ id: dailyTaskId }).get();
+    console.log('[handleGetTaskListDailyTasks] 进入单个任务查询分支');
+    const whereCondition = {
+      userId: userId,
+      id: dailyTaskId,
+    };
+    console.log('[handleGetTaskListDailyTasks] 单个任务查询条件:', JSON.stringify(whereCondition, null, 2));
+    
+    const task = await collection.where(whereCondition).get();
+    
+    console.log('[handleGetTaskListDailyTasks] 单个任务查询结果:', task.data ? task.data.length : 0, '条');
+    console.log('=============================================');
+    
     return {
       code: 0,
       message: 'success',
@@ -853,12 +924,25 @@ async function handleGetTaskListDailyTasks(path, userId, collection) {
     };
   }
   
-  // 根据日期筛选
+  // ✅ 查询列表：一次性构建所有查询条件
+  console.log('[handleGetTaskListDailyTasks] 进入列表查询分支');
+  const whereCondition = { userId: userId };
   if (date) {
-    query = query.where({ date: date });
+    whereCondition.date = date;
+    console.log('[handleGetTaskListDailyTasks] 按日期查询:', date);
+  } else {
+    console.log('[handleGetTaskListDailyTasks] 查询用户所有任务（不限日期）');
   }
   
-  const result = await query.orderBy('createdAt', 'desc').get();
+  console.log('[handleGetTaskListDailyTasks] 列表查询条件:', JSON.stringify(whereCondition, null, 2));
+  
+  const result = await collection.where(whereCondition).orderBy('createdAt', 'desc').get();
+  
+  console.log('[handleGetTaskListDailyTasks] 查询结果数量:', result.data ? result.data.length : 0);
+  if (result.data && result.data.length > 0) {
+    console.log('[handleGetTaskListDailyTasks] 第一条数据示例:', JSON.stringify(result.data[0], null, 2));
+  }
+  console.log('=============================================');
   
   return {
     code: 0,
@@ -897,6 +981,16 @@ async function handleUpdateTaskListDailyTask(path, body, userId, collection) {
     throw new Error('每日任务 ID 不能为空');
   }
   
+  // ✅ 先检查任务是否存在
+  const existingTask = await collection.where({
+    id: dailyTaskId,
+    userId: userId,
+  }).get();
+  
+  if (!existingTask.data || existingTask.data.length === 0) {
+    throw new Error(`每日任务不存在: ${dailyTaskId}`);
+  }
+  
   // 排除 _id 字段，MongoDB 不允许更新 _id
   const { _id, ...updateData } = body;
   
@@ -910,6 +1004,7 @@ async function handleUpdateTaskListDailyTask(path, body, userId, collection) {
     userId: userId,
   }).update(finalUpdateData);
   
+  // 获取更新后的任务
   const task = await collection.where({
     id: dailyTaskId,
     userId: userId,
@@ -951,7 +1046,8 @@ async function handleDeleteTaskListDailyTask(path, userId, collection) {
  * 处理站内信请求
  */
 async function handleMessages(method, path, body, headers) {
-  const userId = getUserIdFromToken(headers);
+  // ✅ 统一使用 getUserIdFromHeaders，支持从请求头或 Token 获取用户ID
+  const userId = getUserIdFromHeaders(headers);
   const messagesCollection = db.collection('messages');
 
   if (method === 'GET') {
@@ -1060,4 +1156,73 @@ async function createMessage(userId, messageData) {
   await messagesCollection.add(message);
   return message;
 }
+
+/**
+ * 初始化函数：将指定集合中的 userId 统一更新为指定用户
+ * ⚠️ 这个函数应该只在初始化数据时使用一次
+ * 
+ * 使用方法：
+ * POST /task-collection-api/admin/init-user-id?collection=tasks
+ * 或不指定 collection 参数，自动处理所有集合
+ */
+async function initializeUserIdForAllCollections(collectionName) {
+  const TARGET_USER_ID = 'user_1762415802540_xcfpz7v2v';
+  
+  // 所有需要处理的集合
+  const allCollections = [
+    'tasks',              // 任务收集
+    'task_list_preset',   // 预设任务
+    'task_list_daily',    // 每日任务
+    'reciting_tasks',     // 背诵任务
+    'messages',           // 消息
+    'stats',              // 统计数据
+  ];
+  
+  // 如果指定了集合名，只处理该集合
+  const collectionsToProcess = collectionName ? [collectionName] : allCollections;
+  
+  console.log('=============================================');
+  console.log('开始初始化集合的 userId');
+  console.log('目标 userId:', TARGET_USER_ID);
+  console.log('处理集合:', collectionsToProcess.join(', '));
+  console.log('=============================================');
+  
+  const results = {};
+  
+  for (const name of collectionsToProcess) {
+    try {
+      console.log(`\n处理集合: ${name}`);
+      const collection = db.collection(name);
+      const updatedAt = new Date().toISOString();
+      
+      // ✅ 直接使用批量更新，不先查询（更快）
+      const updateResult = await collection.where({}).update({
+        userId: TARGET_USER_ID,
+        updatedAt: updatedAt,
+      });
+      
+      const updatedCount = updateResult.updated || 0;
+      console.log(`  - ✅ 更新完成: ${updatedCount} 条`);
+      results[name] = { updated: updatedCount };
+      
+    } catch (error) {
+      console.error(`  - ❌ 处理失败: ${error.message}`);
+      results[name] = { error: error.message };
+    }
+  }
+  
+  console.log('\n=============================================');
+  console.log('初始化完成，结果汇总:');
+  console.log(JSON.stringify(results, null, 2));
+  console.log('=============================================');
+  
+  return {
+    code: 0,
+    message: '初始化完成',
+    data: results,
+  };
+}
+
+// 导出初始化函数（可选，如果需要在其他地方调用）
+exports.initializeUserIdForAllCollections = initializeUserIdForAllCollections;
 

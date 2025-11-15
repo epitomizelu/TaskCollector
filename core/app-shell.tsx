@@ -14,14 +14,40 @@ interface AppShellProps {
 /**
  * 应用外壳组件
  * 负责初始化模块系统并管理模块生命周期
+ * 注意：模块注册会在用户登录后才执行
  */
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState<Error | null>(null);
 
   useEffect(() => {
-    initializeModules();
+    checkLoginAndInitializeModules();
   }, []);
+
+  /**
+   * 检查登录状态并初始化模块
+   */
+  const checkLoginAndInitializeModules = async () => {
+    try {
+      // 动态导入 authService 避免循环依赖
+      const { authService } = await import('../services/auth.service');
+      
+      // 初始化认证服务，从本地加载登录状态
+      await authService.initialize();
+      
+      // ✅ 只有登录后才注册模块
+      if (authService.isLoggedIn()) {
+        console.log('用户已登录，开始初始化模块系统...');
+        await initializeModules();
+      } else {
+        console.log('用户未登录，跳过模块注册');
+        setIsInitializing(false);
+      }
+    } catch (error) {
+      console.error('检查登录状态失败:', error);
+      setIsInitializing(false);
+    }
+  };
 
   /**
    * 初始化所有模块

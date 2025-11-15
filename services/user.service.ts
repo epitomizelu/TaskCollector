@@ -181,6 +181,17 @@ class UserService {
    * 设置认证数据
    */
   private async setAuthData(token: string, userInfo: UserInfo): Promise<void> {
+    // ✅ 同步更新 authService 的状态，确保两个服务状态一致
+    try {
+      const { authService } = await import('./auth.service');
+      // 直接设置 authService 的内部状态，避免重新初始化
+      (authService as any).token = token;
+      (authService as any).currentUser = userInfo;
+      console.log('已同步更新 authService 状态');
+    } catch (error) {
+      console.error('同步 authService 状态失败:', error);
+      // 失败不影响登录流程
+    }
     this.token = token;
     this.currentUser = userInfo;
 
