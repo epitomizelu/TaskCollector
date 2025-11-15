@@ -120,21 +120,22 @@ const PhoneLoginScreen: React.FC = () => {
       addLog(`4. 用户信息详情: userId=${userInfo.userId || 'N/A'}, nickname=${userInfo.nickname || 'N/A'}, phone=${userInfo.phone || 'N/A'}`);
       addLog('5. 登录成功，准备跳转');
       
-      // 登录成功后跳转到首页（先跳转，模块注册在后台进行）
+      // ✅ 立即跳转（不等待模块注册）
       router.replace('/module-home');
       
-      // ✅ 登录成功后，异步注册并激活所有模块（不阻塞登录流程）
-      // 注意：模块注册在 AppShell 中也会检查，这里作为补充
+      // ✅ 异步注册模块（不阻塞跳转，并行优化后很快完成）
+      // module-home 会显示 loading，等待模块就绪
       import('../../core/module-registry')
         .then(({ moduleRegistry }) => {
+          addLog('6. 开始注册模块（异步，已优化为并行）');
           return moduleRegistry.registerAllModules();
         })
         .then(() => {
-          addLog('模块注册完成（异步）');
+          addLog('7. 模块注册完成');
         })
         .catch((error) => {
-          console.error('模块注册失败（异步）:', error);
-          // 模块注册失败不影响登录流程
+          console.error('模块注册失败:', error);
+          addLog('7. 模块注册失败（module-home 会重试）');
         });
       
       // 显示欢迎消息
@@ -222,8 +223,21 @@ const PhoneLoginScreen: React.FC = () => {
         throw new Error('注册失败：未获取到用户信息');
       }
       
-      // 注册成功后跳转到首页
+      // ✅ 立即跳转（不等待模块注册）
       router.replace('/module-home');
+      
+      // ✅ 异步注册模块（不阻塞跳转）
+      import('../../core/module-registry')
+        .then(({ moduleRegistry }) => {
+          console.log('开始注册模块（异步）');
+          return moduleRegistry.registerAllModules();
+        })
+        .then(() => {
+          console.log('模块注册完成');
+        })
+        .catch((error) => {
+          console.error('模块注册失败:', error);
+        });
       
       // 显示欢迎消息
       const nickname = userInfo?.nickname || userInfo?.phone || '用户';

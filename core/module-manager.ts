@@ -63,11 +63,13 @@ class ModuleManager {
 
   /**
    * 批量注册模块
+   * ✅ 优化：并行注册，提升速度
    */
   async registerModules(definitions: ModuleDefinition[]): Promise<void> {
-    for (const definition of definitions) {
-      await this.registerModule(definition);
-    }
+    // ✅ 并行注册所有模块（注册本身很快，主要是激活可能慢）
+    await Promise.all(
+      definitions.map(definition => this.registerModule(definition))
+    );
   }
 
   /**
@@ -107,6 +109,7 @@ class ModuleManager {
 
   /**
    * 激活模块
+   * ✅ 优化：onActivate 异步执行，不阻塞激活流程
    */
   async activateModule(id: string): Promise<void> {
     if (!id) {
@@ -124,15 +127,12 @@ class ModuleManager {
     }
 
     try {
-      // 调用生命周期钩子
+      // ✅ 调用 onInit（快速初始化，等待完成）
       if (instance.definition.lifecycle?.onInit) {
         await instance.definition.lifecycle.onInit();
       }
 
-      if (instance.definition.lifecycle?.onActivate) {
-        await instance.definition.lifecycle.onActivate();
-      }
-
+      // ✅ 先标记为激活状态（快速完成）
       instance.initialized = true;
       instance.loaded = true;
       this.activeModules.add(id);
@@ -142,6 +142,19 @@ class ModuleManager {
       instance.definition.metadata.enabled = true;
 
       console.log(`模块 ${id} 激活成功`);
+
+      // ✅ onActivate 异步执行（不阻塞，后台执行）
+      if (instance.definition.lifecycle?.onActivate) {
+        // 不使用 await，让 onActivate 在后台异步执行
+        instance.definition.lifecycle.onActivate()
+          .then(() => {
+            console.log(`模块 ${id} 的 onActivate 完成`);
+          })
+          .catch((error) => {
+            console.error(`模块 ${id} 的 onActivate 失败:`, error);
+            // 不影响模块激活状态，只记录错误
+          });
+      }
     } catch (error) {
       instance.lastError = error as Error;
       console.error(`模块 ${id} 激活失败:`, error);

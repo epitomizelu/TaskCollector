@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Modal } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert, Modal, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { FontAwesome6 } from '@expo/vector-icons';
@@ -81,16 +81,20 @@ const ModuleHome: React.FC = () => {
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [userNickname, setUserNickname] = useState<string>('');
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true); // ✅ 新增：初始化状态
 
   /**
    * 如果需要，初始化模块（确保登录后模块已注册）
    */
   const initializeModulesIfNeeded = React.useCallback(async () => {
     try {
+      setIsInitializing(true); // ✅ 开始初始化
+      
       // 检查是否已登录
       await userService.initialize();
       if (!userService.isLoggedIn()) {
         console.log('用户未登录，跳过模块初始化');
+        setIsInitializing(false);
         return;
       }
 
@@ -112,6 +116,8 @@ const ModuleHome: React.FC = () => {
       console.error('初始化模块失败:', error);
       // 即使失败也尝试加载模块列表
       loadModules();
+    } finally {
+      setIsInitializing(false); // ✅ 初始化完成
     }
   }, []);
 
@@ -197,6 +203,18 @@ const ModuleHome: React.FC = () => {
       onPress: handleLogout,
     },
   ];
+
+  // ✅ 如果正在初始化模块，显示加载界面
+  if (isInitializing) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>正在加载模块...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -469,6 +487,18 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#9ca3af',
+  },
+  // ✅ 新增：加载状态样式
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6b7280',
   },
 });
 

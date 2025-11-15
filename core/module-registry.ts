@@ -14,166 +14,97 @@ class ModuleRegistry {
 
   /**
    * 注册所有可用模块
-   * 通过配置控制哪些模块启用
+   * ✅ 优化：并行导入和注册，大幅提升速度
    */
   async registerAllModules(): Promise<void> {
-    // 动态导入所有模块定义
+    const startTime = Date.now();
+    console.log('[ModuleRegistry] 开始注册模块...');
+
+    // ✅ 定义所有模块的导入任务（并行执行）
+    const moduleImportTasks = [
+      {
+        id: 'task-collection',
+        name: '任务收集',
+        importFn: () => import('../modules/task-collection/module.definition'),
+        exportName: 'taskCollectionModule',
+      },
+      {
+        id: 'ilove-reciting',
+        name: '我爱背书',
+        importFn: () => import('../modules/ilove-reciting/module.definition'),
+        exportName: 'iloveRecitingModule',
+      },
+      {
+        id: 'task-list',
+        name: '任务清单',
+        importFn: () => import('../modules/task-list/module.definition'),
+        exportName: 'taskListModule',
+      },
+      {
+        id: 'idea-collector',
+        name: '想法收集器',
+        importFn: () => import('../modules/idea-collector/module.definition'),
+        exportName: 'ideaCollectorModule',
+      },
+      {
+        id: 'self-awareness',
+        name: '认识自己',
+        importFn: () => import('../modules/self-awareness/module.definition'),
+        exportName: 'selfAwarenessModule',
+      },
+      {
+        id: 'review',
+        name: '复盘',
+        importFn: () => import('../modules/review/module.definition'),
+        exportName: 'reviewModule',
+      },
+    ];
+
+    // ✅ 并行导入所有模块
+    const importResults = await Promise.allSettled(
+      moduleImportTasks.map(async (task) => {
+        try {
+          const module = await task.importFn();
+          const moduleDef = module[task.exportName];
+          
+          if (!moduleDef) {
+            throw new Error(`${task.name}模块导出 ${task.exportName} 不存在`);
+          }
+          
+          return { task, moduleDef };
+        } catch (error) {
+          console.error(`[ModuleRegistry] 加载${task.name}模块失败:`, error);
+          throw error;
+        }
+      })
+    );
+
+    // ✅ 收集成功导入的模块定义
     const moduleDefinitions: ModuleDefinition[] = [];
+    let successCount = 0;
+    let failCount = 0;
 
-    // 注册任务收集模块
-    try {
-      const taskModule = await import('../modules/task-collection/module.definition');
-      console.log('任务收集模块导入结果:', taskModule);
-      
-      if (taskModule.taskCollectionModule) {
-        const moduleDef = taskModule.taskCollectionModule;
-        console.log('任务收集模块定义:', {
-          id: moduleDef.metadata?.id,
-          name: moduleDef.metadata?.name,
-          enabled: moduleDef.metadata?.enabled,
-          status: moduleDef.metadata?.status,
-        });
-        
+    importResults.forEach((result, index) => {
+      const task = moduleImportTasks[index];
+      if (result.status === 'fulfilled') {
+        const { moduleDef } = result.value;
         moduleDefinitions.push(moduleDef);
-        this.registeredModuleIds.add('task-collection');
+        this.registeredModuleIds.add(task.id);
+        successCount++;
+        console.log(`[ModuleRegistry] ✅ ${task.name}模块导入成功`);
       } else {
-        console.error('任务收集模块未找到: taskCollectionModule 不存在');
-        console.log('可用导出:', Object.keys(taskModule));
+        failCount++;
+        console.error(`[ModuleRegistry] ❌ ${task.name}模块导入失败:`, result.reason);
       }
-    } catch (error) {
-      console.error('加载任务收集模块失败:', error);
-      throw error; // 重新抛出错误以便看到完整堆栈
-    }
+    });
 
-    // 注册我爱背书模块
-    try {
-      const iloveRecitingModule = await import('../modules/ilove-reciting/module.definition');
-      console.log('我爱背书模块导入结果:', iloveRecitingModule);
-      
-      if (iloveRecitingModule.iloveRecitingModule) {
-        const moduleDef = iloveRecitingModule.iloveRecitingModule;
-        console.log('我爱背书模块定义:', {
-          id: moduleDef.metadata?.id,
-          name: moduleDef.metadata?.name,
-          enabled: moduleDef.metadata?.enabled,
-          status: moduleDef.metadata?.status,
-        });
-        
-        moduleDefinitions.push(moduleDef);
-        this.registeredModuleIds.add('ilove-reciting');
-      } else {
-        console.error('我爱背书模块未找到: iloveRecitingModule 不存在');
-        console.log('可用导出:', Object.keys(iloveRecitingModule));
-      }
-    } catch (error) {
-      console.error('加载我爱背书模块失败:', error);
-      // 不抛出错误，允许其他模块继续加载
+    // ✅ 并行注册所有模块
+    if (moduleDefinitions.length > 0) {
+      await moduleManager.registerModules(moduleDefinitions);
     }
-
-    // 注册任务清单模块
-    try {
-      const taskListModule = await import('../modules/task-list/module.definition');
-      console.log('任务清单模块导入结果:', taskListModule);
-      
-      if (taskListModule.taskListModule) {
-        const moduleDef = taskListModule.taskListModule;
-        console.log('任务清单模块定义:', {
-          id: moduleDef.metadata?.id,
-          name: moduleDef.metadata?.name,
-          enabled: moduleDef.metadata?.enabled,
-          status: moduleDef.metadata?.status,
-        });
-        
-        moduleDefinitions.push(moduleDef);
-        this.registeredModuleIds.add('task-list');
-      } else {
-        console.error('任务清单模块未找到: taskListModule 不存在');
-        console.log('可用导出:', Object.keys(taskListModule));
-      }
-    } catch (error) {
-      console.error('加载任务清单模块失败:', error);
-      // 不抛出错误，允许其他模块继续加载
-    }
-
-    // 注册想法收集器模块
-    try {
-      const ideaCollectorModule = await import('../modules/idea-collector/module.definition');
-      console.log('想法收集器模块导入结果:', ideaCollectorModule);
-      
-      if (ideaCollectorModule.ideaCollectorModule) {
-        const moduleDef = ideaCollectorModule.ideaCollectorModule;
-        console.log('想法收集器模块定义:', {
-          id: moduleDef.metadata?.id,
-          name: moduleDef.metadata?.name,
-          enabled: moduleDef.metadata?.enabled,
-          status: moduleDef.metadata?.status,
-        });
-        
-        moduleDefinitions.push(moduleDef);
-        this.registeredModuleIds.add('idea-collector');
-      } else {
-        console.error('想法收集器模块未找到: ideaCollectorModule 不存在');
-        console.log('可用导出:', Object.keys(ideaCollectorModule));
-      }
-    } catch (error) {
-      console.error('加载想法收集器模块失败:', error);
-      // 不抛出错误，允许其他模块继续加载
-    }
-
-    // 注册认识自己模块
-    try {
-      const selfAwarenessModule = await import('../modules/self-awareness/module.definition');
-      console.log('认识自己模块导入结果:', selfAwarenessModule);
-      
-      if (selfAwarenessModule.selfAwarenessModule) {
-        const moduleDef = selfAwarenessModule.selfAwarenessModule;
-        console.log('认识自己模块定义:', {
-          id: moduleDef.metadata?.id,
-          name: moduleDef.metadata?.name,
-          enabled: moduleDef.metadata?.enabled,
-          status: moduleDef.metadata?.status,
-        });
-        
-        moduleDefinitions.push(moduleDef);
-        this.registeredModuleIds.add('self-awareness');
-      } else {
-        console.error('认识自己模块未找到: selfAwarenessModule 不存在');
-        console.log('可用导出:', Object.keys(selfAwarenessModule));
-      }
-    } catch (error) {
-      console.error('加载认识自己模块失败:', error);
-      // 不抛出错误，允许其他模块继续加载
-    }
-
-    // 注册复盘模块
-    try {
-      const reviewModule = await import('../modules/review/module.definition');
-      console.log('复盘模块导入结果:', reviewModule);
-      
-      if (reviewModule.reviewModule) {
-        const moduleDef = reviewModule.reviewModule;
-        console.log('复盘模块定义:', {
-          id: moduleDef.metadata?.id,
-          name: moduleDef.metadata?.name,
-          enabled: moduleDef.metadata?.enabled,
-          status: moduleDef.metadata?.status,
-        });
-        
-        moduleDefinitions.push(moduleDef);
-        this.registeredModuleIds.add('review');
-      } else {
-        console.error('复盘模块未找到: reviewModule 不存在');
-        console.log('可用导出:', Object.keys(reviewModule));
-      }
-    } catch (error) {
-      console.error('加载复盘模块失败:', error);
-      // 不抛出错误，允许其他模块继续加载
-    }
-
-    // 批量注册所有模块
-    await moduleManager.registerModules(moduleDefinitions);
     
-    console.log(`已注册 ${moduleDefinitions.length} 个模块`);
+    const duration = Date.now() - startTime;
+    console.log(`[ModuleRegistry] 模块注册完成: ${successCount} 成功, ${failCount} 失败, 耗时: ${duration}ms`);
   }
 
   /**
